@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Ruby gems (Gemfile + rails_admin_next.gemspec).
+  # NOTE: Dependabot cannot see the self-hosted importmap pins in config/importmap.rails_admin.rb —
+  # those JS/CSS dependencies are vendored, not declared in a manifest. They are audited manually;
+  # see SECURITY.md.
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - ruby
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions used by the workflows in .github/workflows.
+  # Actions are pinned to commit SHAs; Dependabot bumps the SHA and keeps the `# vN` comment in sync.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      github-actions:
+        patterns:
+          - "*"

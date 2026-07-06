@@ -1,0 +1,9 @@
+ruby_version: 4.0.5
+
+# Standard's built-in default_ignores already cover .git, node_modules, vendor,
+# root bin/*, root db/schema.rb, and root tmp. Only the nested dummy-app paths
+# (which the root-anchored defaults miss) need to be listed here.
+ignore:
+  - "spec/dummy_app/bin/**/*"
+  - "spec/dummy_app/db/schema.rb"
+  - "spec/dummy_app/tmp/**/*"

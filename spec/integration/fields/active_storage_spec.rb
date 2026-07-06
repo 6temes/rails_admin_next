@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-RSpec.describe 'ActiveStorage field', type: :request, active_record: true do
+RSpec.describe "ActiveStorage field", type: :request, active_record: true do
   subject { page }
   let(:field_test) { FactoryBot.create :field_test }
   before do
@@ -12,23 +12,23 @@ RSpec.describe 'ActiveStorage field', type: :request, active_record: true do
   end
   after { page.driver.browser.url_blacklist = @original } # rubocop:disable Naming/InclusiveLanguage
 
-  describe 'direct upload', js: true do
+  describe "direct upload", js: true do
     before do
-      RailsAdmin.config FieldTest do
+      RailsAdminNext.config FieldTest do
         edit do
           field(:active_storage_asset) { direct true }
         end
       end
     end
 
-    it 'works' do
-      visit edit_path(model_name: 'field_test', id: field_test.id)
-      attach_file 'Active storage asset', file_path('test.jpg')
+    it "works" do
+      visit edit_path(model_name: "field_test", id: field_test.id)
+      attach_file "Active storage asset", file_path("test.jpg")
       expect_any_instance_of(ActiveStorage::DirectUploadsController).to receive(:create).and_call_original
-      click_button 'Save'
-      expect(page).to have_content 'Field test successfully updated'
+      click_button "Save"
+      expect(page).to have_content "Field test successfully updated"
       field_test.reload
-      expect(field_test.active_storage_asset.filename).to eq 'test.jpg'
+      expect(field_test.active_storage_asset.filename).to eq "test.jpg"
     end
   end
 end

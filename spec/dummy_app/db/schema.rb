@@ -155,19 +155,8 @@ ActiveRecord::Schema.define(version: 2024_09_21_171953) do
     t.string "format"
     t.string "restricted_field"
     t.string "protected_field"
-    t.string "paperclip_asset_file_name"
-    t.string "dragonfly_asset_uid"
-    t.string "carrierwave_asset"
-    t.string "dragonfly_asset_name"
-    t.string "refile_asset_id"
-    t.string "refile_asset_filename"
-    t.string "refile_asset_size"
-    t.string "refile_asset_content_type"
     t.string "string_enum_field"
     t.integer "integer_enum_field"
-    t.string "carrierwave_assets"
-    t.text "shrine_asset_data"
-    t.text "shrine_versioning_asset_data"
     t.boolean "open"
     t.boolean "non_nullable_boolean_field", default: false, null: false
   end
@@ -179,10 +168,6 @@ ActiveRecord::Schema.define(version: 2024_09_21_171953) do
   end
 
   create_table "images", force: :cascade do |t|
-    t.string "file_file_name"
-    t.string "file_content_type"
-    t.bigint "file_file_size"
-    t.datetime "file_updated_at", precision: nil
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
   end
@@ -272,10 +257,6 @@ ActiveRecord::Schema.define(version: 2024_09_21_171953) do
     t.string "password_salt"
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
-    t.string "avatar_file_name"
-    t.string "avatar_content_type"
-    t.integer "avatar_file_size"
-    t.datetime "avatar_updated_at", precision: nil
     t.string "roles"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true

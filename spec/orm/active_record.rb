@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'rails_admin/adapters/active_record'
+require "rails_admin_next/adapters/active_record"
 
 ActiveRecord::Base.connection.data_sources.each do |table|
   ActiveRecord::Base.connection.drop_table(table)
@@ -8,7 +8,7 @@ end
 
 def silence_stream(stream)
   old_stream = stream.dup
-  stream.reopen(/mswin|mingw/.match?(RbConfig::CONFIG['host_os']) ? 'NUL:' : '/dev/null')
+  stream.reopen(File::NULL)
   stream.sync = true
   yield
 ensure
@@ -17,14 +17,7 @@ ensure
 end
 
 silence_stream($stdout) do
-  if ActiveRecord::Migrator.respond_to? :migrate
-    ActiveRecord::Migrator.migrate File.expand_path('../dummy_app/db/migrate', __dir__)
-  else
-    ActiveRecord::MigrationContext.new(
-      *([File.expand_path('../dummy_app/db/migrate', __dir__)] +
-          (ActiveRecord::MigrationContext.instance_method(:initialize).arity == 2 ? [ActiveRecord::SchemaMigration] : [])),
-    ).migrate
-  end
+  ActiveRecord::MigrationContext.new(File.expand_path("../dummy_app/db/migrate", __dir__)).migrate
 end
 
 class Tableless < ActiveRecord::Base
@@ -40,19 +33,14 @@ class Tableless < ActiveRecord::Base
     def column(name, sql_type = nil, default = nil, null = true)
       cast_type = connection.send(:lookup_cast_type, sql_type.to_s)
       define_attribute(name.to_s, cast_type)
-      columns <<
-        if ActiveRecord.version > Gem::Version.new('6.0')
-          type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(
-            sql_type: sql_type.to_s,
-            type: cast_type.type,
-            limit: cast_type.limit,
-            precision: cast_type.precision,
-            scale: cast_type.scale,
-          )
-          ActiveRecord::ConnectionAdapters::Column.new(name.to_s, default, type_metadata, null)
-        else
-          ActiveRecord::ConnectionAdapters::Column.new(name.to_s, default, cast_type, sql_type.to_s, null)
-        end
+      type_metadata = ActiveRecord::ConnectionAdapters::SqlTypeMetadata.new(
+        sql_type: sql_type.to_s,
+        type: cast_type.type,
+        limit: cast_type.limit,
+        precision: cast_type.precision,
+        scale: cast_type.scale
+      )
+      columns << ActiveRecord::ConnectionAdapters::Column.new(name.to_s, cast_type, default, type_metadata, null)
     end
 
     def columns_hash
@@ -80,10 +68,10 @@ class Tableless < ActiveRecord::Base
     end
 
     def primary_key
-      'id'
+      "id"
     end
 
-  private
+    private
 
     def lookup_attribute_type(type)
       ActiveRecord::Type.lookup({datetime: :time}[type] || type)
@@ -104,7 +92,7 @@ end
 if defined?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
   ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.class_eval do
     def lookup_cast_type(sql_type)
-      oid = execute("SELECT #{quote(sql_type)}::regtype::oid", 'SCHEMA').first['oid'].to_i
+      oid = execute("SELECT #{quote(sql_type)}::regtype::oid", "SCHEMA").first["oid"].to_i
       type_map.lookup(oid, sql_type)
     end
   end

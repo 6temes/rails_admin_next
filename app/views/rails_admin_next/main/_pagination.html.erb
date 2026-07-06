@@ -1,0 +1,54 @@
+<%# locals: (collection:, url_proc:, mode: :numbered) -%>
+<nav aria-label="Page navigation">
+  <ul class="pagination">
+    <% if mode == :limited %>
+      <%# Count-free pager: prev when not on the first page, next while the page is full. %>
+      <% unless collection.first_page? %>
+        <li class="page-item prev">
+          <%= link_to raw(t('admin.pagination.previous')), url_proc.call(collection.current_page - 1), class: 'page-link' %>
+        </li>
+      <% end %>
+      <% if collection.full_page? %>
+        <li class="page-item next">
+          <%= link_to raw(t('admin.pagination.next')), url_proc.call(collection.current_page + 1), class: 'page-link' %>
+        </li>
+      <% else %>
+        <li class="page-item next disabled">
+          <%= link_to raw(t('admin.pagination.next')), '#', class: 'page-link' %>
+        </li>
+      <% end %>
+    <% else %>
+      <% current = collection.current_page %>
+      <% total = collection.total_pages %>
+      <% if collection.first_page? %>
+        <li class="page-item prev disabled">
+          <%= link_to raw(t('admin.pagination.previous')), '#', class: 'page-link' %>
+        </li>
+      <% else %>
+        <li class="page-item prev">
+          <%= link_to raw(t('admin.pagination.previous')), url_proc.call(current - 1), class: 'page-link' %>
+        </li>
+      <% end %>
+      <% (1..total).each do |number| %>
+        <% if (current - number).abs <= 4 %>
+          <li class="<%= number == current ? 'page-item active' : 'page-item' %>">
+            <%= link_to number, url_proc.call(number), class: 'page-link' %>
+          </li>
+        <% elsif number == 1 || (current - (number - 1)).abs <= 4 %>
+          <li class="page-item disabled">
+            <a href="#" class="page-link"><%= raw(t('admin.pagination.truncate')) %></a>
+          </li>
+        <% end %>
+      <% end %>
+      <% if collection.last_page? %>
+        <li class="page-item next disabled">
+          <%= link_to raw(t('admin.pagination.next')), '#', class: 'page-link' %>
+        </li>
+      <% else %>
+        <li class="page-item next">
+          <%= link_to raw(t('admin.pagination.next')), url_proc.call(current + 1), class: 'page-link' %>
+        </li>
+      <% end %>
+    <% end %>
+  </ul>
+</nav>

@@ -1,7 +1,20 @@
+# Generated / build output
 coverage
-lib/generators/rails_admin/templates
 spec/dummy_app/app/assets/builds
 spec/dummy_app/public
 spec/dummy_app/tmp
-spec/support/jquery.simulate.drag-sortable.js
+
+# Install-generator templates (copied verbatim into host apps; not ours to reformat)
+lib/generators/rails_admin_next/templates
+
+# Vendored / third-party assets kept byte-faithful to upstream
 vendor
+app/assets/stylesheets/font-awesome.css
+app/assets/stylesheets/flatpickr.css
+
+# Hand-authored prose docs (markdown reflow is noisy; owned by the docs unit)
+CLAUDE.md
+docs/
+
+# Generated, machine-written, or intentionally-modified config
+spec/dummy_app/config/database.yml

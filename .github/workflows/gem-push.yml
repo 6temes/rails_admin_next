@@ -1,0 +1,39 @@
+name: Publish Gem
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1
+        with:
+          ruby-version: "4.0"
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+
+      # The gemspec reads the version from the RailsAdminNext::Version constant, so `gem build`
+      # runs standalone (no bundler); the tag just names the built artifact to push. The tag
+      # version reaches the shell via env (never interpolated into run:), and the push fails
+      # loudly if the tag and the gemspec constant disagree.
+      - name: Build and push gem
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gem build rails_admin_next.gemspec
+          gem push "rails_admin_next-${VERSION}.gem"

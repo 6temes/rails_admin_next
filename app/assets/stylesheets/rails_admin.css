@@ -1,0 +1,47 @@
+/*
+ * rails_admin_next stylesheet
+ *
+ * Owned, hand-maintained CSS: a hand-authored flatten of Bootstrap 5.1.3 plus the engine's own
+ * legacy SCSS. Not vendored and does not track upstream Bootstrap. Edit it directly — there is no
+ * build step and no upstream to stay mergeable with.
+ *
+ * Browser floor: latest stable Chrome and Safari only. The engine's JS and CSS may assume :has(),
+ * <dialog>, popover, CSS nesting, oklch(), color-mix(), light-dark(), @starting-style, and CSS
+ * anchor positioning.
+ *
+ * Styled vocabulary (the public styling contract for hosts):
+ * - the Bootstrap-derived class names actually emitted by engine views/helpers/JS, plus
+ * - the host-facing config value spaces, kept even where no engine view emits them:
+ *   .navbar-light / .navbar-dark (navbar_css_classes), alert-* (flash_alert_class),
+ *   bg-* utilities (badges, indicators, host navbar), .badge colors, and table-* contextual
+ *   rows (row_css_class conventions).
+ * Class names this file does not style are out of contract and may stay unstyled.
+ */
+
+/*
+ * Cascade-layer topology (public API — the layer names are a documented contract):
+ *   ra.tokens    — design tokens (custom properties)
+ *   ra.framework — the trimmed ex-Bootstrap component CSS
+ *   ra.skin      — the engine's own widgets, icons, and admin skin
+ * Later layers win; anything a host ships UNLAYERED beats all engine CSS by design,
+ * so a plain host rule overrides the admin without specificity games.
+ */
+@layer ra.tokens, ra.framework, ra.skin;
+
+@import url("rails_admin/tokens.css") layer(ra.tokens);
+@import url("rails_admin/framework.css") layer(ra.framework);
+@import url("rails_admin/skin.css") layer(ra.skin);
+
+/*
+ * Registration for the scheme probe declared in tokens.css. Registered as a <color> so its
+ * computed value is the RESOLVED light-dark() arm, letting framework.css swap the one artifact
+ * a <color> value can't reach — the .form-select caret's url() background image — with an
+ * @container style(--ra-scheme-probe: black) query. Lives here, outside the cascade layers,
+ * because @property registrations are document-global. The light initial value means a failed
+ * registration degrades to the light caret.
+ */
+@property --ra-scheme-probe {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: white;
+}

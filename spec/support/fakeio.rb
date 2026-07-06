@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'forwardable'
-require 'stringio'
+require "forwardable"
+require "stringio"
 
 class FakeIO
   attr_reader :original_filename, :content_type
@@ -13,5 +13,6 @@ class FakeIO
   end
 
   extend Forwardable
+
   delegate %i[read rewind eof? close size] => :@io
 end

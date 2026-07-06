@@ -1,223 +1,119 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   rspec:
-    name: RSpec
+    name: RSpec (${{ matrix.adapter }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        ruby:
-          - "3.2"
-          - "3.3"
-          - "3.4"
-        gemfile: [gemfiles/rails_8.0.gemfile]
-        orm: [active_record]
-        adapter: [sqlite3]
-        asset: [webpack]
-        include:
-          - ruby: 2.6
-            gemfile: gemfiles/rails_6.0.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: 2.7
-            gemfile: gemfiles/rails_6.1.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: 2.7
-            gemfile: gemfiles/rails_6.1.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: webpacker
-          - ruby: "3.0"
-            gemfile: gemfiles/rails_7.0.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.1"
-            gemfile: gemfiles/rails_7.1.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.2"
-            gemfile: gemfiles/rails_7.2.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.4"
-            gemfile: gemfiles/rails_8.0.gemfile
-            orm: active_record
-            adapter: mysql2
-            asset: importmap
-          - ruby: "3.4"
-            gemfile: gemfiles/rails_8.0.gemfile
-            orm: active_record
-            adapter: postgresql
-            asset: sprockets
-          - ruby: "3.4"
-            gemfile: gemfiles/rails_8.0.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: vite
-          - ruby: "3.4"
-            gemfile: gemfiles/rails_8.0.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.2"
-            gemfile: gemfiles/composite_primary_keys.gemfile
-            orm: active_record
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: 2.7
-            gemfile: gemfiles/rails_6.0.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.0"
-            gemfile: gemfiles/rails_6.1.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.1"
-            gemfile: gemfiles/rails_7.0.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.2"
-            gemfile: gemfiles/rails_7.1.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.3"
-            gemfile: gemfiles/rails_7.2.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: "3.4"
-            gemfile: gemfiles/rails_8.0.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-          - ruby: jruby-9.4
-            gemfile: gemfiles/rails_7.1.gemfile
-            orm: active_record
-            adapter: mysql2
-            asset: sprockets
-          - ruby: jruby-9.4
-            gemfile: gemfiles/rails_7.1.gemfile
-            orm: mongoid
-            adapter: sqlite3
-            asset: sprockets
-    runs-on: ubuntu-latest
+        # Single supported runtime (Ruby 4.0.5 / Rails 8.1 / ActiveRecord / importmap + Propshaft).
+        # The adapter axis is kept because the filter/search SQL is generated per-adapter
+        # (AbstractModel::StatementBuilder), so each adapter exercises a distinct code path.
+        adapter: [sqlite3, postgresql, mysql2]
     services:
-      mysql:
-        image: mysql:8.0
-        ports:
-          - 3306:3306
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
       postgres:
-        image: postgres:11
+        image: postgres:16
         ports:
           - 5432:5432
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      mongo:
-        image: mongo:4.4
+      mysql:
+        image: mysql:8.0
         ports:
-          - 27017:27017
+          - 3306:3306
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        options: --health-cmd "mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
-      CI_ORM: ${{ matrix.orm }}
-      CI_ASSET: ${{ matrix.asset }}
-      JRUBY_OPTS: --debug
+      BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile
+      CI_DB_ADAPTER: ${{ matrix.adapter }}
+      RAILS_ENV: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: "4.0.5"
           bundler-cache: true
-          cache-version: gems-${{ hashFiles('Gemfile', 'gemfiles/*.gemfile') }}
-        env:
-          MAKEFLAGS: make --jobs 4
-          BUNDLE_WITHOUT: development
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: "20"
-      - name: Install ImageMagick
-        run: sudo apt-get install imagemagick
-      - name: Setup application
-        env:
-          BUNDLE_GEMFILE: ../../${{ matrix.gemfile }}
-          CI_ASSET: ${{ matrix.asset }}
-          CI_DB_ADAPTER: ${{ matrix.adapter }}
-          RAILS_ENV: test
-          NODE_OPTIONS: --openssl-legacy-provider
-        run: |
-          yarn install
-          cd spec/dummy_app
-          bundle exec rake rails_admin:prepare_ci_env db:create db:schema:load
-          yarn install
-          case "$CI_ASSET" in
-          "webpack" ) yarn build && yarn build:css ;;
-          "importmap" ) yarn build:css ;;
-          esac
-          cd ../../
+          node-version: "24"
+      - name: Install libvips
+        # ActiveStorage's :vips variant processor; ruby-vips dlopens the libvips shared library.
+        # libvips-dev is the version-stable package name (the runtime lib is libvips42t64 on
+        # Ubuntu 24.04 after the t64 transition); installing -dev pulls in that runtime.
+        run: sudo apt-get update && sudo apt-get install -y libvips-dev
+      # Chrome is pre-installed on ubuntu-latest; Cuprite/Ferrum auto-detect it for the js: true specs.
+      - name: Provision the dummy app database
+        working-directory: spec/dummy_app
+        run: bundle exec rake rails_admin:prepare_ci_env db:create db:schema:load
       - name: Run tests
         run: bundle exec rspec
-      - name: Coveralls Parallel
-        if: ${{ github.repository_owner == 'railsadminteam' }}
-        uses: coverallsapp/github-action@v2
-        continue-on-error: true
-        with:
-          github-token: ${{ secrets.github_token }}
-          flag-name: run-${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ matrix.orm }}-${{ matrix.adapter }}
-          parallel: true
 
-  coveralls:
-    name: Coveralls
-    if: ${{ github.repository_owner == 'railsadminteam' }}
-    needs: rspec
+  standard:
+    name: Standard
     runs-on: ubuntu-latest
     steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1
         with:
-          github-token: ${{ secrets.github_token }}
-          parallel-finished: true
+          ruby-version: "4.0.5"
+          bundler-cache: true
+      - name: Run Standard
+        run: bundle exec standardrb
+
+  brakeman:
+    name: Brakeman
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1
+        with:
+          ruby-version: "4.0.5"
+          bundler-cache: true
+      # -A runs the full check set; reviewed false positives are recorded in config/brakeman.ignore.
+      - name: Run Brakeman
+        run: bundle exec brakeman -A --no-pager
+
+  bundler-audit:
+    name: Bundler-Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1
+        with:
+          ruby-version: "4.0.5"
+          bundler-cache: true
+      # --update refreshes the advisory DB first; ignores live in .bundler-audit.yml.
+      - name: Run bundler-audit
+        run: bundle exec bundler-audit check --update
 
   prettier:
     name: Prettier
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-      - name: Install dependencies
-        run: yarn install
-      - name: Run check
-        run: yarn run prettier --check .
-
-  rubocop:
-    name: RuboCop
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          ruby-version: "3.2"
-          bundler-cache: true
-          cache-version: gems-${{ hashFiles('Gemfile') }}
-      - name: Install dependencies
-        run: bundle install --without development --jobs=3 --retry=3 --path=vendor/bundle
-      - name: Run check
-        run: bundle exec rake rubocop
+          node-version: "24"
+      # No package.json ships (importmap self-hosts the runtime modules), so Prettier is pinned via
+      # npx and only formats the JS/CSS source. See .prettierignore for what is intentionally excluded.
+      - name: Check JS/CSS formatting
+        run: npx --yes prettier@2.8.8 --check .
