@@ -5,7 +5,6 @@ source "https://rubygems.org"
 gem "net-smtp", require: false
 gem "rails"
 gem "turbo-rails"
-gem "webrick"
 
 group :development, :test do
   gem "pry", ">= 0.9"
