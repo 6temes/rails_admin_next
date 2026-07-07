@@ -1,0 +1,145 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Weak Hash",
+      "warning_code": 90,
+      "fingerprint": "7ae45391f647eaa39c6ab4ea081fdd4c928c38064850cacd3115a017ce0fc5ef",
+      "check_name": "WeakHash",
+      "message": "Weak hashing algorithm used: MD5",
+      "file": "app/helpers/rails_admin_next/application_helper.rb",
+      "line": 230,
+      "link": "https://brakemanscanner.org/docs/warning_types/weak_hash/",
+      "code": "Digest::MD5.hexdigest(email)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RailsAdminNext::ApplicationHelper",
+        "method": "gravatar_url"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "cwe_id": [
+        328
+      ],
+      "note": "False positive. MD5 implements the Gravatar avatar URL scheme (Gravatar keys avatars by the MD5 of the email). It is a non-cryptographic identifier, not used for passwords or integrity."
+    },
+    {
+      "warning_type": "Weak Hash",
+      "warning_code": 90,
+      "fingerprint": "ade4b22042c4f44d36b2a203a27252138eb53e191ff15f8e822c0623d8565311",
+      "check_name": "WeakHash",
+      "message": "Weak hashing algorithm used: MD5",
+      "file": "app/helpers/rails_admin_next/application_helper.rb",
+      "line": 236,
+      "link": "https://brakemanscanner.org/docs/warning_types/weak_hash/",
+      "code": "Digest::MD5.hexdigest(label)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RailsAdminNext::ApplicationHelper",
+        "method": "collapsible_stack"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "cwe_id": [
+        328
+      ],
+      "note": "False positive. MD5 builds a short, stable DOM/CSS key from a sidebar label (collapse-key). It is a non-cryptographic identifier for client-side targeting, not used for security."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "d15e1c138bacf89995ddd7472443a7cc493afca1b4d7c90cb4c4c1f828a94bec",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "lib/rails_admin_next/adapters/active_record.rb",
+      "line": 195,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "scope.where(\"#{statement}\", *[value1, value2])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RailsAdminNext::Adapters::ActiveRecord::WhereBuilder",
+        "method": "build"
+      },
+      "user_input": "statement",
+      "confidence": "Weak",
+      "cwe_id": [
+        89
+      ],
+      "note": "False positive. @statements are built by StatementBuilder from schema-derived column names and a fixed operator set using ? placeholders; every user-supplied value is bound positionally via *@values. No user input is interpolated into the SQL string."
+    },
+    {
+      "warning_type": "Dangerous Eval",
+      "warning_code": 13,
+      "fingerprint": "7cba47560dcc1117f0679d149479586da5c01b563d5974388d00ec644e6a6773",
+      "check_name": "Evaluation",
+      "message": "Dynamic string evaluated as code",
+      "file": "lib/rails_admin_next/config/actions.rb",
+      "line": 52,
+      "link": "https://brakemanscanner.org/docs/warning_types/dangerous_eval/",
+      "code": "\"RailsAdminNext::Config::Actions::#{parent_class.to_s.camelize}\".constantize.new.instance_eval(\"\\n            #{parent} true\\n            def key\\n              :#{key}\\n            end\\n          \", \"lib/rails_admin_next/config/actions.rb\", 52)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RailsAdminNext::Config::Actions",
+        "method": "self.add_action"
+      },
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [
+        913,
+        95
+      ],
+      "note": "False positive. Internal action-registry DSL: the instance_eval'd template interpolates only gem-defined action keys and scope kinds (:base/:collection/:member/:root), never request data."
+    },
+    {
+      "warning_type": "Dangerous Eval",
+      "warning_code": 13,
+      "fingerprint": "f25a967de73c369963f8999f96afcc6327d4fd49a6ee15725fe6a1dc3fd91a48",
+      "check_name": "Evaluation",
+      "message": "Dynamic string evaluated as code",
+      "file": "lib/rails_admin_next/config/actions.rb",
+      "line": 71,
+      "link": "https://brakemanscanner.org/docs/warning_types/dangerous_eval/",
+      "code": "instance_eval(\"\\n            def #{name.to_s.demodulize.underscore.to_sym}(&block)\\n              action = #{name.to_s.demodulize.underscore.to_sym}.new\\n              add_action_custom_key(action, &block)\\n            end\\n          \", \"lib/rails_admin_next/config/actions.rb\", 71)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RailsAdminNext::Config::Actions",
+        "method": "self.register"
+      },
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [
+        913,
+        95
+      ],
+      "note": "False positive. Internal action-registry DSL: the instance_eval'd template interpolates only gem-defined action class names, never request data."
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "c787e046c0932c7b107eb081bffa9cc6796d415358bf3614b6f601573f62488e",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "lib/rails_admin_next/config/actions/index.rb",
+      "line": 89,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params[:csv_options].permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Index",
+        "method": null
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "cwe_id": [
+        915
+      ],
+      "note": "False positive. The permitted hash is CSV export formatting options (encoding_to, skip_header, and the generator kwargs passed to CSV.generate), consumed by RailsAdmin::CSVConverter#to_csv. It is never assigned to a model, so there is no attribute mass-assignment; unrecognised keys merely raise in Encoding.find / CSV.generate."
+    }
+  ],
+  "brakeman_version": null
+}

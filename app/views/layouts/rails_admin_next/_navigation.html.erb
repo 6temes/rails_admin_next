@@ -1,0 +1,18 @@
+<%# locals: () -%>
+<div class="container-fluid" data-controller="collapse">
+  <a class="navbar-brand" href="<%= dashboard_path %>">
+    Rails
+    <small>
+      AdminNext
+    </small>
+  </a>
+  <button class="navbar-toggler" type="button" data-collapse-target="trigger" data-action="collapse#toggle" aria-expanded="false" aria-controls="secondary-navigation">
+    <span class="sr-only">
+      <%= t('admin.toggle_navigation') %>
+    </span>
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="secondary-navigation" data-collapse-target="region">
+    <%= render partial: 'layouts/rails_admin_next/secondary_navigation' %>
+  </div>
+</div>

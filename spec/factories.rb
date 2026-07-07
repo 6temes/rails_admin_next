@@ -55,7 +55,7 @@ FactoryBot.define do
 
   factory :user do
     sequence(:email) { |n| "username_#{n}@example.com" }
-    sequence(:password) { |_n| 'password' }
+    sequence(:password) { |_n| "password" }
 
     factory :user_confirmed, class: User::Confirmed
     factory :managing_user, class: ManagingUser
@@ -77,7 +77,7 @@ FactoryBot.define do
     end
 
     factory :comment_confirmed, class: Comment::Confirmed do
-      content { 'something' }
+      content { "something" }
     end
   end
 
@@ -86,30 +86,26 @@ FactoryBot.define do
   end
 
   factory :hardball do
-    color { 'blue' }
-  end
-
-  factory :image do
-    file { File.open(Rails.root.join('public', 'robots.txt')) }
+    color { "blue" }
   end
 
   factory :paper_trail_test do
     sequence(:name) { |n| "name #{n}" }
 
     factory :paper_trail_test_subclass,
-            parent: :paper_trail_test,
-            class: 'PaperTrailTestSubclass'
+      parent: :paper_trail_test,
+      class: "PaperTrailTestSubclass"
 
     factory :paper_trail_test_subclass_in_namespace,
-            parent: :paper_trail_test,
-            class: 'PaperTrailTest::SubclassInNamespace'
+      parent: :paper_trail_test,
+      class: "PaperTrailTest::SubclassInNamespace"
 
     factory :paper_trail_test_with_custom_association,
-            parent: :paper_trail_test,
-            class: 'PaperTrailTestWithCustomAssociation'
+      parent: :paper_trail_test,
+      class: "PaperTrailTestWithCustomAssociation"
   end
 
-  factory :two_level_namespaced_polymorphic_association_test, class: 'TwoLevel::Namespaced::PolymorphicAssociationTest' do
+  factory :two_level_namespaced_polymorphic_association_test, class: "TwoLevel::Namespaced::PolymorphicAssociationTest" do
     sequence(:name) { |n| "name #{n}" }
   end
 end

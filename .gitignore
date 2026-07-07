@@ -29,3 +29,6 @@ spec/dummy_app/public/uploads
 spec/dummy_app/Gemfile*.lock
 tmp/**/*
 nbproject
+*.sqlite3-shm
+*.sqlite3-wal
+/spec/dummy_app/config/database.yml

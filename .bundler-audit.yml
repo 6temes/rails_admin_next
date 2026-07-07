@@ -1,0 +1,9 @@
+---
+# Each ignore entry carries its justification and a revisit condition, mirroring
+# config/brakeman.ignore's policy. Delete entries as soon as they stop applying.
+ignore:
+  # webrick 1.9.2, CVE-2026-38969 (trailer reparse / request smuggling). Test-only
+  # transitive of ferrum (the Cuprite CDP driver); WEBrick never serves the app under
+  # test (Capybara boots Puma) and ships nowhere in the gem. No patched webrick exists
+  # yet — revisit when webrick > 1.9.2 releases, then delete this entry.
+  - CVE-2026-38969

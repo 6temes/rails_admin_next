@@ -4,7 +4,6 @@ project:
 stage:
   before:
     - export CI_DB_ADAPTER=postgresql
-    - export CI_ORM=active_record
     - cp Procfile.teatro Procfile
     - cd spec/dummy_app
     - cp ../../config/database.yml config/

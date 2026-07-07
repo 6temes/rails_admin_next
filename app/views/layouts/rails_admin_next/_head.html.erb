@@ -1,0 +1,29 @@
+<%# locals: () -%>
+<meta content="IE=edge" http-equiv="X-UA-Compatible">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta content="width=device-width, initial-scale=1" name="viewport; charset=utf-8">
+<meta content="NONE,NOARCHIVE" name="robots">
+<meta content="false" name="turbo-prefetch">
+<%= csrf_meta_tag %>
+<%# The scheme every light-dark() token pair in the engine CSS resolves against. Placed before the
+    stylesheet link so the scheme is known before first paint; a meta (not an inline style) keeps
+    CSP out of the picture and lets :light/:dark pins override the OS preference. %>
+<meta content="<%= {auto: 'light dark', light: 'light', dark: 'dark'}.fetch(RailsAdminNext.config.color_scheme) %>" name="color-scheme">
+<%# The entry stylesheet pulls tokens/framework/skin via @import, which the browser only discovers
+    after fetching and parsing the entry file. Preload the three targets so all four fetch in parallel. %>
+<link rel="preload" as="style" href="<%= asset_path('rails_admin/tokens.css') %>">
+<link rel="preload" as="style" href="<%= asset_path('rails_admin/framework.css') %>">
+<link rel="preload" as="style" href="<%= asset_path('rails_admin/skin.css') %>">
+<%# Date/time fields use native HTML5 inputs; the picker UI is the browser's. Icons are inline SVG (no icon font). %>
+<%= stylesheet_link_tag "rails_admin", media: :all, data: {'turbo-track': 'reload'} %>
+<%# Rich-text (ActionText) fields render a Trix editor; load its stylesheet so the toolbar is styled.
+    trix.css ships with the action_text-trix gem and is on the Propshaft load path when ActionText is used.
+    NOTE: trix.css is light-only for now — dark styling for the Trix toolbar/editor is deferred. %>
+<% if defined?(ActionText::Engine) %>
+  <%= stylesheet_link_tag "trix", media: :all, data: {'turbo-track': 'reload'} %>
+<% end %>
+<%# Zero-build delivery: browser-native ESM pinned by the engine-owned importmap, served by Propshaft.
+    The importmap-rails helpers thread the request CSP nonce onto every inline <script> they emit. %>
+<%= javascript_inline_importmap_tag(RailsAdminNext::Engine.importmap.to_json(resolver: self)) %>
+<%= javascript_importmap_module_preload_tags(RailsAdminNext::Engine.importmap) %>
+<%= javascript_import_module_tag 'rails_admin' %>

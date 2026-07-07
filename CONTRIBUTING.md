@@ -1,13 +1,12 @@
-## Contributing
+# Contributing
 
-In the spirit of [free software][free-sw], **everyone** is encouraged to help
-improve this project.
+In the spirit of [free software][free-sw], **everyone** is encouraged to help improve
+this project.
 
 [free-sw]: http://www.fsf.org/licensing/essays/free-sw.html
 
 Here are some ways _you_ can contribute:
 
-- by using alpha, beta, and prerelease versions
 - by triaging bug reports
 - by writing or editing documentation
 - by writing specifications
@@ -17,104 +16,115 @@ Here are some ways _you_ can contribute:
 - by fixing [issues][]
 - by reviewing patches
 - by suggesting new features
-- [financially][gittip]
 
-[issues]: https://github.com/railsadminteam/rails_admin/issues
-[gittip]: https://www.gittip.com/sferik/
+[issues]: https://github.com/6temes/rails_admin_next/issues
 
 ## Development
 
-### Running tests locally
+RailsAdminNext targets a **single supported runtime** — Ruby 4.0.5, Rails ~> 8.1,
+ActiveRecord, and an importmap + Propshaft asset pipeline. There is **no multi-ORM,
+multi-bundler, or multi-Rails build matrix**, and **no Appraisal**: the suite runs against
+one Gemfile with no `yarn build` step.
 
-To run the test suite, you need Google Chrome and ImageMagick (or GraphicsMagick).
+The gem has no application of its own; it is developed and tested against the embedded
+host app at `spec/dummy_app/`.
+
+### Prerequisites
+
+To run the suite you need:
+
+- **Google Chrome** — the `js: true` specs run in headless Chrome driven by Cuprite/Ferrum.
+- **libvips** — required by the image-field specs (ActiveStorage's `:vips` variant processor;
+  the `ruby-vips` gem dlopens the libvips shared library).
 
 Example installation on macOS using Homebrew:
 
 ```bash
-# install imagemagick:
-brew install imagemagick
-# install google chrome with cask:
-brew install brew-cask
-brew install google-chrome --cask
-# install mysql
-brew install mysql
-# install openssl
-brew install openssl@3
+brew install vips
+brew install --cask google-chrome
 ```
 
 Example installation on Ubuntu:
 
 ```bash
-# install imagemagick:
-sudo apt update -y && sudo apt install imagemagick -y
-# install google chrome:
-sudo apt update -y && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo apt install ./google-chrome-stable_current_amd64.deb -y
+sudo apt-get update -y && sudo apt-get install -y libvips-dev
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
 ```
 
-Then you need to do this one-time setup:
+### Setup
 
 ```bash
-# On Mac, you may run into problems with the mysql2 gem that require flags to be set in bundle config
-# See: https://github.com/brianmario/mysql2/issues/1345
-bundle config build.mysql2 '-- --with-cflags="-Wno-error=implicit-function-declaration" --with-ldflags=-L/opt/homebrew/opt/zstd/lib'
-
 bundle install
-yarn install
-# install dependencies for each appraisal:
-bundle exec appraisal install
-# precompile assets in the dummy app:
-cd spec/dummy_app && yarn install && yarn build && yarn build:css && cd -
+
+# Provision the dummy app database (database.yml is generated, not committed):
+cd spec/dummy_app
+bundle exec rake rails_admin:prepare_ci_env db:create db:schema:load
+cd -
 ```
 
-Then you will be able to run the specs:
+There is no `yarn install`/`yarn build` step — the engine serves browser-native ESM and
+CSS over importmap + Propshaft, so the assets need no compilation before the suite runs.
+
+### Running tests
 
 ```bash
-bundle exec appraisal rails-7.0 rspec
+bundle exec rspec                                       # full suite (sqlite3)
+bundle exec rspec spec/integration/actions/show_spec.rb # single file
+bundle exec rspec spec/integration/actions/show_spec.rb:42  # single example by line
 ```
 
-### Tests run against multiple versions of Rails
+The test run reads two environment variables:
 
-In CI, we use [appraisal] to run tests against multiple versions of Rails. The
-[gemfiles/ directory] contains the Gemfiles used to create the CI build matrix.
-See the [GitHub Actions configuration] for more details on what Ruby versions
-run what Rails versions.
+- `CI_DB_ADAPTER` — `sqlite3` (default), `postgresql`, or `mysql2`. It is consumed by the
+  `rails_admin:prepare_ci_env` rake task, which (re)writes `spec/dummy_app/config/database.yml`.
+  Re-run the provision step above after changing it.
+- `RAILS_ENV` — `test`.
 
-[appraisal]: https://github.com/thoughtbot/appraisal
-[gemfiles/ directory]: ./gemfiles
-[github actions configuration]: ./.github/workflows/test.yml
+```bash
+# Run against PostgreSQL (re-provision the database first, then run the suite):
+cd spec/dummy_app && CI_DB_ADAPTER=postgresql bundle exec rake rails_admin:prepare_ci_env db:create db:schema:load && cd -
+CI_DB_ADAPTER=postgresql bundle exec rspec
+```
 
-## Getting Help
+There is no `spec/rails_helper.rb`: every spec does `require 'spec_helper'`, and
+`spec/spec_helper.rb` boots `spec/dummy_app/config/environment`.
 
-We use a [mailing list][list] for user support. If you've got a "how do
-I do this?" or "this doesn't seem to work the way I expect" type of
-issue or just want some help, please post a message to the [mailing
-list][list].
+### Lint and security gates
 
-## Submitting an Issue
+CI gates every push and pull request on the following checks. Run them locally before
+opening a pull request:
 
-If you're confident that you've found a bug in
-rails_admin, please [open an issue][issues], but check to make sure it hasn't
-already been submitted. When submitting a bug report, please include a
-[Gist][] that includes a stack trace and any details that may be
-necessary to reproduce the bug, including your gem version, Ruby
-version, and operating system. Ideally, a bug report should include a
+```bash
+bundle exec standardrb                 # Ruby style
+bundle exec brakeman -A --no-pager     # static security analysis
+bundle exec bundler-audit check --update  # gem advisory audit
+npx --yes prettier@2.8.8 --check .     # JS/CSS formatting (no package.json; pinned via npx)
+```
+
+`bundle exec rake` runs the default task — the spec suite followed by Standard. It does
+**not** run Prettier, Brakeman, or bundler-audit, so run those separately.
+
+The importmap pins the engine self-hosts are a [Dependabot blind spot](SECURITY.md);
+they are audited by hand on the cadence documented in [SECURITY.md](SECURITY.md).
+
+## Submitting an issue
+
+If you're confident that you've found a bug, please [open an issue][issues] after checking
+that it hasn't already been reported. Include the steps to reproduce, a stack trace, and
+your gem version, Ruby version, and operating system. Ideally, a bug report includes a
 pull request with failing specs.
 
-[gist]: https://gist.github.com/
-[list]: http://groups.google.com/group/rails_admin
-
-## Submitting a Pull Request
+## Submitting a pull request
 
 1. [Fork the repository.][fork]
 2. Create a branch.
 3. Add specs for your unimplemented feature or bug fix.
-4. Run `bundle exec rake spec`. If your specs pass, return to step 3.
-5. Implement your feature or bug fix.
-6. Run `bundle exec rake default`. If your specs fail, return to step 5.
-7. Run `open coverage/index.html`. If your changes are not completely covered
-   by your tests, return to step 3.
-8. Add, commit, and push your changes.
-9. [Submit a pull request.][pr]
+4. Implement your feature or bug fix.
+5. Run `bundle exec rake`. If anything fails, return to step 4.
+6. Run the lint and security gates above.
+7. Add, commit, and push your changes.
+8. [Submit a pull request.][pr]
 
-[fork]: http://help.github.com/fork-a-repo/
-[pr]: http://help.github.com/send-pull-requests/
+[fork]: https://docs.github.com/en/get-started/quickstart/fork-a-repo
+[pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request

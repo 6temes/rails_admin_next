@@ -1,5 +1,4 @@
-import "rails_admin/src/rails_admin/base";
-import "flatpickr/dist/l10n/fr.js";
+import "rails_admin/base";
 import "trix";
 import "@rails/actiontext";
 import * as ActiveStorage from "@rails/activestorage";
@@ -9,8 +8,4 @@ window.domReadyTriggered = [];
 
 document.addEventListener("rails_admin.dom_ready", function () {
   window.domReadyTriggered.push("plainjs/dot");
-});
-
-$(document).on("rails_admin.dom_ready", function () {
-  window.domReadyTriggered.push("jquery/dot");
 });

@@ -1,106 +1,106 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
-RSpec.describe 'Show action', type: :request do
+RSpec.describe "Show action", type: :request do
   subject { page }
   let(:team) { FactoryBot.create :team }
 
-  describe 'page' do
-    it 'has History, Edit, Delete, Details and attributes' do
+  describe "page" do
+    it "has History, Edit, Delete, Details and attributes" do
       @player = FactoryBot.create :player
-      visit show_path(model_name: 'player', id: @player.id)
+      visit show_path(model_name: "player", id: @player.id)
 
-      is_expected.to have_selector('a', text: 'History')
-      is_expected.to have_selector('a', text: 'Edit')
-      is_expected.to have_selector('a', text: 'Delete')
-      is_expected.to have_content('Details')
-      is_expected.to have_content('Name')
+      is_expected.to have_selector("a", text: "History")
+      is_expected.to have_selector("a", text: "Edit")
+      is_expected.to have_selector("a", text: "Delete")
+      is_expected.to have_content("Details")
+      is_expected.to have_content("Name")
       is_expected.to have_content(@player.name)
-      is_expected.to have_content('Number')
+      is_expected.to have_content("Number")
       is_expected.to have_content(@player.number)
     end
   end
 
-  context 'with invalid id' do
-    it 'raises NotFound' do
-      visit '/admin/players/123this-id-doesnt-exist'
+  context "with invalid id" do
+    it "raises NotFound" do
+      visit "/admin/players/123this-id-doesnt-exist"
       expect(page.driver.status_code).to eq(404)
     end
   end
 
-  describe 'JSON show view' do
+  describe "JSON show view" do
     before do
       @player = FactoryBot.create :player
       visit uri
     end
 
-    let(:uri) { show_path(model_name: 'player', id: @player.id, format: :json) }
+    let(:uri) { show_path(model_name: "player", id: @player.id, format: :json) }
     let(:body) { page.body }
 
-    it 'creates a JSON uri' do
+    it "creates a JSON uri" do
       expect(uri).to eq("/admin/player/#{@player.id}.json")
     end
 
-    it 'contains the JSONified object' do
+    it "contains the JSONified object" do
       expect(JSON.parse(body)).to eq JSON.parse @player.reload.to_json
     end
   end
 
-  context 'when compact_show_view is enabled' do
-    it 'hides nil fields in show view by default' do
-      visit show_path(model_name: 'team', id: team.id)
-      is_expected.not_to have_css('.logo_url_field')
+  context "when compact_show_view is enabled" do
+    it "hides nil fields in show view by default" do
+      visit show_path(model_name: "team", id: team.id)
+      is_expected.not_to have_css(".logo_url_field")
     end
 
-    it 'hides blank fields in show view by default' do
-      team.update logo_url: ''
-      visit show_path(model_name: 'team', id: team.id)
-      is_expected.not_to have_css('.logo_url_field')
+    it "hides blank fields in show view by default" do
+      team.update logo_url: ""
+      visit show_path(model_name: "team", id: team.id)
+      is_expected.not_to have_css(".logo_url_field")
     end
 
-    it 'is disactivable' do
-      RailsAdmin.config do |c|
+    it "is disactivable" do
+      RailsAdminNext.config do |c|
         c.compact_show_view = false
       end
 
-      visit show_path(model_name: 'team', id: team.id)
-      is_expected.to have_css('.logo_url_field')
+      visit show_path(model_name: "team", id: team.id)
+      is_expected.to have_css(".logo_url_field")
     end
 
-    describe 'with boolean field' do
+    describe "with boolean field" do
       let(:player) { FactoryBot.create :player, retired: false }
 
-      it 'does not hide false value' do
-        visit show_path(model_name: 'player', id: player.id)
-        is_expected.to have_css('.retired_field')
+      it "does not hide false value" do
+        visit show_path(model_name: "player", id: player.id)
+        is_expected.to have_css(".retired_field")
       end
     end
   end
 
-  context 'when compact_show_view is disabled' do
+  context "when compact_show_view is disabled" do
     before do
-      RailsAdmin.config do |c|
+      RailsAdminNext.config do |c|
         c.compact_show_view = false
       end
     end
 
-    it 'shows nil fields' do
+    it "shows nil fields" do
       team.update logo_url: nil
-      visit show_path(model_name: 'team', id: team.id)
-      is_expected.to have_css('.logo_url_field')
+      visit show_path(model_name: "team", id: team.id)
+      is_expected.to have_css(".logo_url_field")
     end
 
-    it 'shows blank fields' do
-      team.update logo_url: ''
-      visit show_path(model_name: 'team', id: team.id)
-      is_expected.to have_css('.logo_url_field')
+    it "shows blank fields" do
+      team.update logo_url: ""
+      visit show_path(model_name: "team", id: team.id)
+      is_expected.to have_css(".logo_url_field")
     end
   end
 
-  describe 'bindings' do
-    it 'should be present' do
-      RailsAdmin.config Team do |_c|
+  describe "bindings" do
+    it "should be present" do
+      RailsAdminNext.config Team do |_c|
         show do
           field :name do
             show do
@@ -110,29 +110,29 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('div .name_field.string_type')
+      is_expected.to have_selector("div .name_field.string_type")
     end
   end
 
-  describe 'css hooks' do
-    it 'is present' do
-      visit show_path(model_name: 'team', id: team.id)
+  describe "css hooks" do
+    it "is present" do
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('div .name_field.string_type')
+      is_expected.to have_selector("div .name_field.string_type")
     end
   end
 
-  describe 'field grouping' do
+  describe "field grouping" do
     before do
-      RailsAdmin.config do |c|
+      RailsAdminNext.config do |c|
         c.compact_show_view = false
       end
     end
 
-    it 'is hideable' do
-      RailsAdmin.config Team do
+    it "is hideable" do
+      RailsAdminNext.config Team do
         show do
           group :default do
             hide
@@ -140,9 +140,9 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.not_to have_selector('h4', text: 'Basic info')
+      is_expected.not_to have_selector("h4", text: "Basic info")
 
       %w[
         division name logo_url manager
@@ -153,8 +153,8 @@ RSpec.describe 'Show action', type: :request do
       end
     end
 
-    it 'hides association groupings by the name of the association' do
-      RailsAdmin.config Team do
+    it "hides association groupings by the name of the association" do
+      RailsAdminNext.config Team do
         show do
           group :players do
             hide
@@ -162,27 +162,27 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.not_to have_selector('h4', text: 'Players')
+      is_expected.not_to have_selector("h4", text: "Players")
     end
 
-    it 'is renameable' do
-      RailsAdmin.config Team do
+    it "is renameable" do
+      RailsAdminNext.config Team do
         show do
           group :default do
-            label 'Renamed group'
+            label "Renamed group"
           end
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('h4', text: 'Renamed group')
+      is_expected.to have_selector("h4", text: "Renamed group")
     end
 
-    it 'has accessor for its fields' do
-      RailsAdmin.config Team do
+    it "has accessor for its fields" do
+      RailsAdminNext.config Team do
         show do
           group :default do
             field :name
@@ -195,18 +195,18 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('h4', text: 'Basic info')
-      is_expected.to have_selector('h4', text: "Belong's to associations")
+      is_expected.to have_selector("h4", text: "Basic info")
+      is_expected.to have_selector("h4", text: "Belong's to associations")
 
-      is_expected.to have_selector('.name_field')
-      is_expected.to have_selector('.logo_url_field')
-      is_expected.to have_selector('.division_field')
+      is_expected.to have_selector(".name_field")
+      is_expected.to have_selector(".logo_url_field")
+      is_expected.to have_selector(".division_field")
     end
 
-    it 'has accessor for its fields by type' do
-      RailsAdmin.config Team do
+    it "has accessor for its fields by type" do
+      RailsAdminNext.config Team do
         show do
           group :default do
             field :name
@@ -223,25 +223,25 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('.card-header', text: 'Name')
-      is_expected.to have_selector('.card-header', text: 'Logo url')
-      is_expected.to have_selector('.card-header', text: 'Division')
-      is_expected.to have_selector('.card-header', text: 'Manager (STRING)')
-      is_expected.to have_selector('.card-header', text: 'Ballpark (STRING)')
+      is_expected.to have_selector(".card-header", text: "Name")
+      is_expected.to have_selector(".card-header", text: "Logo url")
+      is_expected.to have_selector(".card-header", text: "Division")
+      is_expected.to have_selector(".card-header", text: "Manager (STRING)")
+      is_expected.to have_selector(".card-header", text: "Ballpark (STRING)")
     end
   end
 
-  describe 'fields' do
+  describe "fields" do
     before do
-      RailsAdmin.config do |c|
+      RailsAdminNext.config do |c|
         c.compact_show_view = false
       end
     end
 
-    it 'shows all by default' do
-      visit show_path(model_name: 'team', id: team.id)
+    it "shows all by default" do
+      visit show_path(model_name: "team", id: team.id)
 
       %w[
         division name logo_url manager
@@ -252,8 +252,8 @@ RSpec.describe 'Show action', type: :request do
       end
     end
 
-    it 'only shows the defined fields and appear in order defined' do
-      RailsAdmin.config Team do
+    it "only shows the defined fields and appear in order defined" do
+      RailsAdminNext.config Team do
         show do
           field :manager
           field :division
@@ -261,47 +261,47 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('.manager_field')
-      is_expected.to have_selector('.division_field')
-      is_expected.to have_selector('.name_field')
+      is_expected.to have_selector(".manager_field")
+      is_expected.to have_selector(".division_field")
+      is_expected.to have_selector(".name_field")
     end
 
-    it 'delegates the label option to the ActiveModel API' do
-      RailsAdmin.config Team do
+    it "delegates the label option to the ActiveModel API" do
+      RailsAdminNext.config Team do
         show do
           field :manager
           field :fans
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('.card-header', text: 'Team Manager')
-      is_expected.to have_selector('.card-header', text: 'Some Fans')
+      is_expected.to have_selector(".card-header", text: "Team Manager")
+      is_expected.to have_selector(".card-header", text: "Some Fans")
     end
 
-    it 'is renameable' do
-      RailsAdmin.config Team do
+    it "is renameable" do
+      RailsAdminNext.config Team do
         show do
           field :manager do
-            label 'Renamed field'
+            label "Renamed field"
           end
           field :division
           field :name
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('.card-header', text: 'Renamed field')
-      is_expected.to have_selector('.card-header', text: 'Division')
-      is_expected.to have_selector('.card-header', text: 'Name')
+      is_expected.to have_selector(".card-header", text: "Renamed field")
+      is_expected.to have_selector(".card-header", text: "Division")
+      is_expected.to have_selector(".card-header", text: "Name")
     end
 
-    it 'is renameable by type' do
-      RailsAdmin.config Team do
+    it "is renameable by type" do
+      RailsAdminNext.config Team do
         show do
           fields_of_type :string do
             label { "#{label} (STRING)" }
@@ -309,19 +309,19 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
       [
-        'Division', 'Name (STRING)', 'Logo url (STRING)', 'Manager (STRING)',
-        'Ballpark (STRING)', 'Mascot (STRING)', 'Founded', 'Wins', 'Losses',
-        'Win percentage', 'Revenue', 'Players', 'Fans'
+        "Division", "Name (STRING)", "Logo url (STRING)", "Manager (STRING)",
+        "Ballpark (STRING)", "Mascot (STRING)", "Founded", "Wins", "Losses",
+        "Win percentage", "Revenue", "Players", "Fans"
       ].each do |text|
-        is_expected.to have_selector('.card-header', text: text)
+        is_expected.to have_selector(".card-header", text: text)
       end
     end
 
-    it 'is globally renameable by type' do
-      RailsAdmin.config Team do
+    it "is globally renameable by type" do
+      RailsAdminNext.config Team do
         show do
           fields_of_type :string do
             label { "#{label} (STRING)" }
@@ -329,19 +329,19 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
       [
-        'Division', 'Name (STRING)', 'Logo url (STRING)', 'Manager (STRING)',
-        'Ballpark (STRING)', 'Mascot (STRING)', 'Founded', 'Wins', 'Losses',
-        'Win percentage', 'Revenue', 'Players', 'Fans'
+        "Division", "Name (STRING)", "Logo url (STRING)", "Manager (STRING)",
+        "Ballpark (STRING)", "Mascot (STRING)", "Founded", "Wins", "Losses",
+        "Win percentage", "Revenue", "Players", "Fans"
       ].each do |text|
-        is_expected.to have_selector('.card-header', text: text)
+        is_expected.to have_selector(".card-header", text: text)
       end
     end
 
-    it 'is hideable' do
-      RailsAdmin.config Team do
+    it "is hideable" do
+      RailsAdminNext.config Team do
         show do
           field :manager do
             hide
@@ -351,14 +351,14 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      is_expected.to have_selector('.division_field')
-      is_expected.to have_selector('.name_field')
+      is_expected.to have_selector(".division_field")
+      is_expected.to have_selector(".name_field")
     end
 
-    it 'is hideable by type' do
-      RailsAdmin.config Team do
+    it "is hideable by type" do
+      RailsAdminNext.config Team do
         show do
           fields_of_type :string do
             hide
@@ -366,19 +366,19 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      ['Name', 'Logo url', 'Manager', 'Ballpark', 'Mascot'].each do |text|
-        is_expected.not_to have_selector('.card-header', text: text)
+      ["Name", "Logo url", "Manager", "Ballpark", "Mascot"].each do |text|
+        is_expected.not_to have_selector(".card-header", text: text)
       end
 
-      ['Division', 'Founded', 'Wins', 'Losses', 'Win percentage', 'Revenue', 'Players', 'Fans'].each do |text|
-        is_expected.to have_selector('.card-header', text: text)
+      ["Division", "Founded", "Wins", "Losses", "Win percentage", "Revenue", "Players", "Fans"].each do |text|
+        is_expected.to have_selector(".card-header", text: text)
       end
     end
 
-    it 'is globally hideable by type' do
-      RailsAdmin.config Team do
+    it "is globally hideable by type" do
+      RailsAdminNext.config Team do
         show do
           fields_of_type :string do
             hide
@@ -386,23 +386,23 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      visit show_path(model_name: 'team', id: team.id)
+      visit show_path(model_name: "team", id: team.id)
 
-      ['Name', 'Logo url', 'Manager', 'Ballpark', 'Mascot'].each do |text|
-        is_expected.not_to have_selector('.card-header', text: text)
+      ["Name", "Logo url", "Manager", "Ballpark", "Mascot"].each do |text|
+        is_expected.not_to have_selector(".card-header", text: text)
       end
 
-      ['Division', 'Founded', 'Wins', 'Losses', 'Win percentage', 'Revenue', 'Players', 'Fans'].each do |text|
-        is_expected.to have_selector('.card-header', text: text)
+      ["Division", "Founded", "Wins", "Losses", "Win percentage", "Revenue", "Players", "Fans"].each do |text|
+        is_expected.to have_selector(".card-header", text: text)
       end
     end
   end
 
-  describe 'virtual field' do
-    let(:team) { FactoryBot.create :team, name: 'foobar' }
-    context 'with formatted_value defined' do
+  describe "virtual field" do
+    let(:team) { FactoryBot.create :team, name: "foobar" }
+    context "with formatted_value defined" do
       before do
-        RailsAdmin.config Team do
+        RailsAdminNext.config Team do
           show do
             field :truncated_name do
               formatted_value do
@@ -413,17 +413,17 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      it 'shows up correctly' do
-        visit show_path(model_name: 'team', id: team.id)
+      it "shows up correctly" do
+        visit show_path(model_name: "team", id: team.id)
 
-        is_expected.to have_selector('.truncated_name_field')
-        is_expected.to have_selector('.card', text: 'fo...')
+        is_expected.to have_selector(".truncated_name_field")
+        is_expected.to have_selector(".card", text: "fo...")
       end
     end
 
-    context 'without formatted_value' do
+    context "without formatted_value" do
       before do
-        RailsAdmin.config Team do
+        RailsAdminNext.config Team do
           show do
             field :truncated_name do
               pretty_value do
@@ -434,35 +434,35 @@ RSpec.describe 'Show action', type: :request do
         end
       end
 
-      it 'raises error along with suggestion' do
-        expect { visit show_path(model_name: 'team', id: team.id) }.to raise_error(/you should declare 'formatted_value'/)
+      it "raises error along with suggestion" do
+        expect { visit show_path(model_name: "team", id: team.id) }.to raise_error(/you should declare 'formatted_value'/)
       end
     end
   end
 
-  describe 'with model scope' do
+  describe "with model scope" do
     let!(:comments) { %w[something anything].map { |content| FactoryBot.create :comment_confirmed, content: content } }
     before do
-      RailsAdmin.config do |config|
+      RailsAdminNext.config do |config|
         config.model Comment::Confirmed do
           scope { Comment::Confirmed.unscoped }
         end
       end
     end
 
-    it 'overrides default_scope' do
-      visit show_path(model_name: 'comment~confirmed', id: comments[0].id)
-      is_expected.to have_selector('.card-body', text: 'something')
-      visit show_path(model_name: 'comment~confirmed', id: comments[1].id)
-      is_expected.to have_selector('.card-body', text: 'anything')
+    it "overrides default_scope" do
+      visit show_path(model_name: "comment~confirmed", id: comments[0].id)
+      is_expected.to have_selector(".card-body", text: "something")
+      visit show_path(model_name: "comment~confirmed", id: comments[1].id)
+      is_expected.to have_selector(".card-body", text: "anything")
     end
   end
 
-  context 'with composite primary keys', composite_primary_keys: true do
+  context "with composite primary keys", composite_primary_keys: true do
     let(:fanship) { FactoryBot.create(:fanship) }
 
-    it 'shows the object' do
-      visit show_path(model_name: 'fanship', id: fanship.id)
+    it "shows the object" do
+      visit show_path(model_name: "fanship", id: fanship.id)
       is_expected.to have_link(fanship.fan.name)
       is_expected.to have_link(fanship.team.name)
     end

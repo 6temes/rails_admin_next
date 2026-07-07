@@ -11,7 +11,9 @@ var I18n = {
   t(key) {
     var humanize;
     humanize = key.charAt(0).toUpperCase() + key.replace(/_/g, " ").slice(1);
-    return this.translations[key] || humanize;
+    // Stimulus controllers can connect before dom-ready.js calls I18n.init, so
+    // tolerate translations not being loaded yet (fall back to the humanized key).
+    return (this.translations && this.translations[key]) || humanize;
   },
 };
 

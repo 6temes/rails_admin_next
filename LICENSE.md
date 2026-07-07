@@ -1,4 +1,5 @@
 Copyright (c) 2010-2016 Erik Michaels-Ober
+Copyright (c) 2026 Daniel López Prat and RailsAdminNext contributors
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

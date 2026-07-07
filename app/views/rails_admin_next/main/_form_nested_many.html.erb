@@ -1,0 +1,20 @@
+<%# locals: (field:, form:) -%>
+<%
+  associated_model = field.associated_model_config.abstract_model
+  add_label = rails_admin_icon(:new) + " " + wording_for(:link, :new, associated_model)
+  allow_destroy = field.nested_form && field.nested_form[:allow_destroy]
+  placeholder = "new_#{field.name}"
+-%>
+<div class="controls col-sm-10" data-controller="nested-form" data-nested-form-placeholder-value="<%= placeholder %>">
+  <div class="tab-content" data-nested-form-target="container">
+    <%= form.fields_for field.name, nil, include_id: false do |nested_form| %>
+      <%= form.nested_field_set nested_form, field, allow_destroy: allow_destroy %>
+    <% end %>
+  </div>
+  <% if field.inline_add %>
+    <button type="button" class="btn btn-info add_nested_fields" data-action="nested-form#add"><%= add_label %></button>
+  <% end %>
+  <%= form.errors_for(field) %>
+  <%= form.help_for(field) %>
+  <template data-nested-form-target="template"><%= form.fields_for field.name, associated_model.model.new, child_index: placeholder, include_id: false do |nested_form| %><%= form.nested_field_set nested_form, field, allow_destroy: true %><% end %></template>
+</div>

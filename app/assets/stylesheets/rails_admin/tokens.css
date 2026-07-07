@@ -1,0 +1,281 @@
+/*
+ * rails_admin_next — design tokens (CSS custom properties).
+ * Loaded by rails_admin.css into the ra.tokens cascade layer; see that file's header for the
+ * browser floor and the styled-vocabulary contract.
+ *
+ * Every color token is a light-dark() pair, resolved against the page scheme that the layout's
+ * <meta name="color-scheme"> advertises (RailsAdminNext.config.color_scheme: :auto/:light/:dark).
+ * The light arms are exact oklch() conversions of the original Bootstrap 5.1.3 hexes (noted
+ * alongside), precise enough to re-convert to the same sRGB value within 1/255 per channel.
+ * The dark arms keep each light arm's hue and invert the lightness ramp: the page turns to a
+ * near-black neutral, the gray ladder mirrors around gray-500, and the status colors lift their
+ * oklch lightness so they read as text against the dark background (WCAG AA). Solid fills pair
+ * with --ra-tint-target text (white in light, black in dark), so the lightened fills keep AA too.
+ */
+
+/*
+ * Supported override tokens (public API)
+ *
+ * Hosts may override these tokens (unlayered, e.g. `:root { --ra-primary: #663399; }`)
+ * and every derived color — button hover/active states, focus rings, alert tints,
+ * table tints, links — follows automatically:
+ *
+ *   --ra-primary, --ra-secondary, --ra-success, --ra-info, --ra-warning, --ra-danger,
+ *   --ra-light, --ra-dark          brand and status colors
+ *   --ra-body-bg, --ra-body-color  body surface and text
+ *   --ra-link-color                link color (defaults to a tint of --ra-primary)
+ *
+ * A single-color override applies to both schemes; hosts that want a tuned dark
+ * mode should override with their own pair, e.g.
+ * `:root { --ra-primary: light-dark(#663399, #a97fd6); }`.
+ *
+ * Every other --ra-* name is internal and may change without notice.
+ */
+
+/* === CSS custom properties ============================================== */
+:root {
+  /* Scheme-aware mix targets. All state derivation (hover/active shades, tints,
+     translucent overlays) mixes toward these — never toward literal black/white —
+     so the derivations flip direction under the dark scheme. */
+  --ra-shade-target: light-dark(black, white);
+  --ra-tint-target: light-dark(white, black);
+
+  /* Scheme probe for the one artifact a <color> can't express: a url() background
+     image (the .form-select caret). light-dark() exists only for colors, so this
+     registered color (@property in rails_admin.css) flips with the scheme and
+     framework.css swaps the caret data-URI under
+     @container style(--ra-scheme-probe: black). */
+  --ra-scheme-probe: light-dark(white, black);
+
+  /* Brand and status palette (public). Dark arms: same hue, lightness lifted so
+     each color passes 4.5:1 as text on the dark body bg (WCAG AA). --ra-info and
+     --ra-warning are already light enough — and always pair with dark text — so
+     their arms match. */
+  --ra-primary: light-dark(
+    oklch(57.8201% 0.228209 260.0251deg),
+    oklch(65.31% 0.17 260.0251deg)
+  ); /* #0d6efd / ~#4e8df6 */
+  --ra-secondary: light-dark(
+    oklch(55.7535% 0.016495 244.8934deg),
+    oklch(66.72% 0.016495 244.8934deg)
+  ); /* #6c757d / ~#8c969e */
+  --ra-success: light-dark(
+    oklch(55.2026% 0.123397 157.0121deg),
+    oklch(67.39% 0.123397 157.0121deg)
+  ); /* #198754 / ~#4aad77 */
+  --ra-info: light-dark(
+    oklch(77.4929% 0.137971 218.0547deg),
+    oklch(77.4929% 0.137971 218.0547deg)
+  ); /* #0dcaf0, both schemes */
+  --ra-warning: light-dark(
+    oklch(84.4171% 0.172159 84.9338deg),
+    oklch(84.4171% 0.172159 84.9338deg)
+  ); /* #ffc107, both schemes */
+  --ra-danger: light-dark(
+    oklch(59.155% 0.202026 21.2388deg),
+    oklch(66.59% 0.16 21.2388deg)
+  ); /* #dc3545 / ~#e56568 */
+  /* --ra-light/--ra-dark are absolutes by name: .btn-light stays a light button
+     and .table-dark a dark table in both schemes, so their arms match. The
+     scheme-flipping muted surface is --ra-surface-muted below. */
+  --ra-light: light-dark(
+    oklch(98.1639% 0.001707 247.8395deg),
+    oklch(98.1639% 0.001707 247.8395deg)
+  ); /* #f8f9fa */
+  --ra-dark: light-dark(
+    oklch(26.2093% 0.009493 248.1898deg),
+    oklch(26.2093% 0.009493 248.1898deg)
+  ); /* #212529 */
+
+  /* Neutrals (internal). White and black are scheme-locked absolutes on purpose:
+     the .navbar-light/.navbar-dark ladders, the solid-button text pairs, the
+     bg-white/bg-black utilities and the modal backdrop mean "really white/black",
+     not "the scheme's paper color" — giving these arms would flip the navbar
+     skins with the OS scheme. */
+  --ra-white: oklch(100% 0 0deg); /* #fff */
+  --ra-black: oklch(0% 0 0deg); /* #000 */
+  /* Gray ladder (internal). Dark arms mirror the ladder: 200 lands on Bootstrap's
+     gray-800, 300↔700, 400↔600 and 900↔200, so "subtle background" stays
+     subtle and "border" stays border-weight against the dark surface. The one
+     asymmetry: gray-600 (muted text) takes gray-500's value, not gray-400's,
+     so muted text stays visibly muted next to the dark body color. */
+  --ra-gray-200: light-dark(
+    oklch(94.1654% 0.005176 247.8791deg),
+    oklch(34.5143% 0.013291 248.2124deg)
+  ); /* #e9ecef / #343a40 */
+  --ra-gray-300: light-dark(
+    oklch(91.0874% 0.006959 247.9015deg),
+    oklch(42.7562% 0.014702 248.1716deg)
+  ); /* #dee2e6 / #495057 */
+  --ra-gray-400: light-dark(
+    oklch(86.7074% 0.010568 247.9486deg),
+    oklch(55.7535% 0.016495 244.8934deg)
+  ); /* #ced4da / #6c757d */
+  --ra-gray-500: light-dark(
+    oklch(76.9244% 0.014518 248.0166deg),
+    oklch(76.9244% 0.014518 248.0166deg)
+  ); /* #adb5bd, both schemes — the ladder's pivot */
+  --ra-gray-600: light-dark(
+    oklch(55.7535% 0.016495 244.8934deg),
+    oklch(76.9244% 0.014518 248.0166deg)
+  ); /* #6c757d / #adb5bd */
+  --ra-gray-700: light-dark(
+    oklch(42.7562% 0.014702 248.1716deg),
+    oklch(91.0874% 0.006959 247.9015deg)
+  ); /* #495057 / #dee2e6 */
+  --ra-gray-900: light-dark(
+    oklch(26.2093% 0.009493 248.1898deg),
+    oklch(94.1654% 0.005176 247.8791deg)
+  ); /* #212529 / #e9ecef */
+
+  /* Body surface and text (public). The dark page is a near-black neutral
+     (distinct from the locked --ra-dark) under light-gray text. */
+  --ra-body-color: light-dark(
+    oklch(26.2093% 0.009493 248.1898deg),
+    oklch(91.0874% 0.006959 247.9015deg)
+  ); /* #212529 / #dee2e6 */
+  --ra-body-bg: light-dark(
+    oklch(100% 0 0deg),
+    oklch(22% 0.0095 248.19deg)
+  ); /* #fff / ~#171b1f */
+
+  /* The muted surface behind .bg-light (sidebar, filter cards). Light arm equals
+     --ra-light (#f8f9fa) so light rendering is unchanged; unlike --ra-light it
+     turns into a raised dark surface under the dark scheme. */
+  --ra-surface-muted: light-dark(
+    oklch(98.1639% 0.001707 247.8395deg),
+    oklch(30.6326% 0.011412 248.2deg)
+  ); /* #f8f9fa / #2b3035 */
+
+  /* Semantic derivations (internal; --ra-link-color itself is public) */
+  --ra-link-color: color-mix(
+    in srgb,
+    light-dark(var(--ra-primary), var(--ra-white)) 40%,
+    var(--ra-primary)
+  ); /* light: mixing primary into itself is a no-op, so this stays exactly
+        --ra-primary; dark: primary tinted 40% toward white — no fill color can
+        be both AA text on the dark bg and an AA backdrop for its own label, so
+        link text derives lighter while fills keep --ra-primary. Follows host
+        --ra-primary overrides in both schemes. */
+  --ra-link-hover-color: color-mix(
+    in srgb,
+    var(--ra-shade-target) 20%,
+    var(--ra-link-color)
+  ); /* matches Bootstrap 5.1.3's shade-color($link-color, 20%): #0a58ca */
+  --ra-border-color: var(--ra-gray-300);
+  --ra-focus-ring-color: color-mix(
+    in srgb,
+    var(--ra-primary) 25%,
+    transparent
+  ); /* matches Bootstrap 5.1.3's rgba(13, 110, 253, 0.25) */
+  --ra-input-focus-border-color: color-mix(
+    in srgb,
+    var(--ra-white) 50%,
+    var(--ra-primary)
+  ); /* Matches Bootstrap 5.1.3's tint-color($primary, 50%) (#86b7fe). Mixes
+        toward locked white, not the flipping tint target: a focus border must
+        lift off the input surface in both schemes, and mixing toward black in
+        dark would sink it into the bg. */
+
+  /* One-off component colors (internal) */
+  --ra-code-color: light-dark(
+    oklch(59.5598% 0.20859 355.4835deg),
+    oklch(73.01% 0.15 355.4835deg)
+  ); /* #d63384 / ~#ef7cac */
+  --ra-icon-close: light-dark(
+    oklch(0% 0 0deg),
+    oklch(100% 0 0deg)
+  ); /* the .btn-close X glyph: matches Bootstrap 5.1.3's data-URI black exactly,
+        white in dark (the element's own opacity supplies the 50/75% strength) */
+  --ra-header-sort-shadow: light-dark(
+    oklch(98.1639% 0.001707 247.8395deg),
+    oklch(22% 0.0095 248.19deg)
+  ); /* #f8f9fa halo behind sorted-header text; the dark arm matches the dark
+        body bg so it stays a surface-colored halo, not a glow */
+  --ra-mark-bg: light-dark(
+    oklch(97.6656% 0.027837 98.0579deg),
+    oklch(35% 0.055 98.0579deg)
+  ); /* #fcf8e3 / ~#423b16 — muted dark amber keeps AA under the light body text */
+  --ra-nested-form-accent-1: light-dark(
+    oklch(84.7875% 0.109283 212.4507deg),
+    oklch(52% 0.075 212.4507deg)
+  ); /* #6ce0f7 / ~#2a7482 */
+  --ra-nested-form-accent-2: light-dark(
+    oklch(93.1505% 0.092939 91.5476deg),
+    oklch(52% 0.07 91.5476deg)
+  ); /* #ffe7a0 / ~#786837 */
+  --ra-nested-form-accent-3: light-dark(
+    oklch(85.7197% 0.115462 162.7335deg),
+    oklch(52% 0.085 162.7335deg)
+  ); /* #84e8ba / ~#33785a */
+  --ra-sticky-sort-bg: light-dark(
+    oklch(94.4459% 0.016779 230.9098deg),
+    oklch(30% 0.03 230.9098deg)
+  ); /* #e2eff6 / ~#1e313a */
+
+  /* Typography and misc */
+  --ra-font-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --ra-font-monospace: SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --ra-gradient: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ra-white) 15%, transparent),
+    color-mix(in srgb, var(--ra-white) 0%, transparent)
+  );
+  --ra-body-font-family: var(--ra-font-sans-serif);
+  --ra-body-font-size: 0.85rem;
+  --ra-body-font-weight: 400;
+  --ra-body-line-height: 1.5;
+}
+
+/*
+ * UPGRADING mapping (--bs-* -> --ra-*)
+ *
+ * Renamed (same meaning; read/override the new name):
+ *   --bs-body-bg              -> --ra-body-bg
+ *   --bs-body-color           -> --ra-body-color
+ *   --bs-body-font-family     -> --ra-body-font-family
+ *   --bs-body-font-size       -> --ra-body-font-size
+ *   --bs-body-font-weight     -> --ra-body-font-weight
+ *   --bs-body-line-height     -> --ra-body-line-height
+ *   --bs-body-text-align      -> --ra-body-text-align (still undeclared by default;
+ *                                set it to opt in, exactly like Bootstrap's knob)
+ *   --bs-breadcrumb-divider   -> --ra-breadcrumb-divider
+ *   --bs-font-monospace       -> --ra-font-monospace
+ *   --bs-font-sans-serif      -> --ra-font-sans-serif
+ *   --bs-gradient             -> --ra-gradient
+ *   --bs-gutter-x             -> --ra-gutter-x (grid-scoped)
+ *   --bs-gutter-y             -> --ra-gutter-y (grid-scoped)
+ *   --bs-table-bg             -> --ra-table-bg (table-scoped; likewise
+ *                                -accent-bg, -striped-bg, -striped-color,
+ *                                -active-bg, -active-color, -hover-bg, -hover-color)
+ *
+ * Renamed with a value-space change (number -> percentage):
+ *   --bs-bg-opacity: 0.5      -> --ra-bg-opacity: 50%
+ *   --bs-text-opacity: 0.5    -> --ra-text-opacity: 50%
+ *
+ * Previously declared but consumed by nothing — now live semantic tokens
+ * (overriding the --bs-* name never did anything; the --ra-* name works):
+ *   --bs-primary   -> --ra-primary      --bs-warning -> --ra-warning
+ *   --bs-secondary -> --ra-secondary    --bs-danger  -> --ra-danger
+ *   --bs-success   -> --ra-success      --bs-light   -> --ra-light
+ *   --bs-info      -> --ra-info         --bs-dark    -> --ra-dark
+ *
+ * Removed — replaced by derivation (never override these; override the base token):
+ *   --bs-primary-rgb, --bs-secondary-rgb, --bs-success-rgb, --bs-info-rgb,
+ *   --bs-warning-rgb, --bs-danger-rgb, --bs-light-rgb, --bs-dark-rgb,
+ *   --bs-white-rgb, --bs-black-rgb, --bs-body-color-rgb, --bs-body-bg-rgb
+ *     -> gone; utilities now derive translucency via
+ *        color-mix(in srgb, var(--ra-*) <pct>, transparent)
+ *
+ * Removed without replacement (declared but never consumed):
+ *   --bs-blue, --bs-indigo, --bs-purple, --bs-pink, --bs-red, --bs-orange,
+ *   --bs-yellow, --bs-green, --bs-teal, --bs-cyan (raw color ladder; the code-pink
+ *   role of --bs-pink lives on as the internal --ra-code-color),
+ *   --bs-white, --bs-gray, --bs-gray-dark, --bs-gray-100 ... --bs-gray-900
+ *   (the grays the CSS actually uses exist as internal --ra-gray-* tokens),
+ *   --bs-position (set by .dropdown-menu-end for Bootstrap's dropdown JS,
+ *   which this engine does not ship)
+ */

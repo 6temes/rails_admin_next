@@ -1,0 +1,472 @@
+/*
+ * rails_admin_next — the engine's own widgets, inline-SVG icons, and admin skin.
+ * Loaded by rails_admin.css into the ra.skin cascade layer; see that file's header for the
+ * browser floor and the styled-vocabulary contract.
+ *
+ * Written with native CSS nesting, always under single-selector parents: `&` resolves via
+ * :is(), whose specificity for a single-item list equals the flat form, so every selector
+ * here matches with exactly the specificity of its pre-nesting equivalent.
+ */
+
+/* === Multiselect widget ================================================= */
+.ra-multiselect {
+  .ra-multiselect-header {
+    margin-bottom: 5px;
+    clear: right;
+  }
+  .ra-multiselect-search {
+    width: 180px;
+  }
+  .ra-multiselect-column {
+    float: left;
+    .wrapper {
+      overflow-x: auto;
+      select {
+        height: auto;
+        min-height: 120px;
+        margin-bottom: 5px;
+        min-width: 200px;
+      }
+    }
+  }
+  .ra-multiselect-center {
+    width: 30px;
+    padding-top: 15px;
+    text-align: center;
+    a {
+      display: block;
+      margin: 5px auto;
+    }
+  }
+  .ra-multiselect-item-add,
+  .ra-multiselect-item-remove,
+  .ra-multiselect-item-up,
+  .ra-multiselect-item-down,
+  .ra-multiselect-item-add-all,
+  .ra-multiselect-item-remove-all {
+    color: var(--ra-gray-400);
+    font-size: 16px;
+    margin-right: 4px;
+    text-decoration: none;
+    &:hover {
+      color: var(--ra-gray-700);
+    }
+  }
+}
+
+/* === Form widget extras ================================================= */
+.controls img.preview {
+  max-height: 200px;
+  max-width: 300px;
+}
+.form-group.hidden_type {
+  display: none;
+}
+.links .list-inline .disabled span {
+  color: var(--ra-gray-600);
+}
+/* Submit rows lay out with flex + gap so a wrapped row (narrow viewport,
+   many buttons) breathes instead of touching. The .extra_buttons grouping
+   span joins the same flex row via display: contents. */
+.form-actions {
+  &,
+  > [class*="col-"] {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .extra_buttons {
+    display: contents;
+  }
+}
+
+/* === Inline-SVG icons =================================================== */
+/* Inline-SVG icons (RailsAdminNext::ApplicationHelper#rails_admin_icon). Sized
+   like a text glyph and tinted by currentColor so icons flow inline with text.
+   Width is left to auto so each glyph keeps its own viewBox aspect ratio. */
+.rails-admin-icon {
+  display: inline-block;
+  height: 1em;
+  width: auto;
+  overflow: visible;
+  vertical-align: -0.125em;
+  fill: currentColor;
+  /* Collapsed form-legend chevron: rotate a single chevron-down 90° to point
+     right instead of swapping in a second glyph for the collapsed state. The
+     sidebar's <details> groups rotate theirs via details:not([open]) instead. */
+  &.collapsed {
+    transform: rotate(-90deg);
+  }
+}
+
+/* === Admin skin: layout and navbar ====================================== */
+body.rails_admin {
+  padding-top: 3.275rem;
+  .navbar .edit_user_root_link {
+    position: relative;
+    img {
+      position: absolute;
+      top: calc((40px - 30px) / 2);
+      + span {
+        margin-left: 35px;
+      }
+    }
+  }
+}
+
+/* === Admin skin: sidebar navigation ===================================== */
+/* Each group is a native <details>/<summary> disclosure; the chevron icon is
+   the marker, so the browser's default one is suppressed. */
+body.rails_admin .sidebar.btn-toggle-nav {
+  padding: 0;
+  summary.btn-toggle {
+    margin-top: calc(1.5rem / 2);
+    padding: 3px calc(1.5rem / 2);
+    font-weight: bold;
+    color: var(--ra-gray-600);
+    cursor: pointer;
+    list-style: none;
+    &::marker,
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+  details[open] > summary.btn-toggle {
+    color: var(--ra-gray-700);
+  }
+  /* Collapsed group: rotate the chevron-down 90° to point right, matching the
+     .rails-admin-icon.collapsed rotation the form legends still use. */
+  details:not([open]) .rails-admin-icon {
+    transform: rotate(-90deg);
+  }
+  .btn-toggle-nav > li > a {
+    padding: calc(0.5rem / 2) calc(1.5rem / 2);
+    /* Label is white in light, black in dark — AA on the
+       lightened dark --ra-primary fill, matching the button/badge pairing. */
+    &.active {
+      background-color: var(--ra-primary);
+      color: var(--ra-tint-target);
+    }
+    &:hover {
+      background-color: var(--ra-primary);
+      color: var(--ra-tint-target);
+    }
+    &.nav-level-1 {
+      padding-left: 1.5rem;
+    }
+    &.nav-level-2 {
+      padding-left: 2.25rem;
+    }
+    &.nav-level-3 {
+      padding-left: 3rem;
+    }
+  }
+}
+
+/* === Admin skin: edit form and nested-field tabs ======================== */
+body.rails_admin form.main {
+  .control-group .hidden_type {
+    display: none;
+  }
+  .tab-content {
+    .tab-pane {
+      border-left: 5px solid var(--ra-primary);
+      position: relative;
+      fieldset {
+        padding-top: 30px;
+      }
+      .form-group {
+        margin-right: 0;
+        margin-left: -5px;
+      }
+      > .remove_nested_fields {
+        display: block;
+        opacity: 0;
+        position: absolute;
+        top: 0px;
+        left: 5px;
+        transition: opacity 0.15s ease;
+        @media (prefers-reduced-motion: reduce) {
+          transition: none;
+        }
+      }
+      &:hover > .remove_nested_fields {
+        opacity: 1;
+      }
+      &.marked_for_destruction {
+        opacity: 0.4;
+        > .remove_nested_fields {
+          opacity: 1;
+        }
+      }
+    }
+    /* Nested sub-forms: each nesting level re-tints the pane's accent bar and
+       walks the pane and its controls rightward. Deeper selectors carry higher
+       specificity, so each level overrides the one above it. */
+    .tab-content {
+      .tab-pane {
+        border-color: var(--ra-nested-form-accent-1);
+        margin-left: 10px;
+        .form-group {
+          margin-left: -15px;
+        }
+      }
+      .tab-content {
+        .tab-pane {
+          border-color: var(--ra-nested-form-accent-2);
+          margin-left: 20px;
+          .form-group {
+            margin-left: -25px;
+          }
+        }
+        .tab-content .tab-pane {
+          border-color: var(--ra-nested-form-accent-3);
+          margin-left: 30px;
+          .form-group {
+            margin-left: -35px;
+          }
+        }
+      }
+    }
+  }
+}
+/* Singular (has_one / belongs_to) associations hold at most one subform, so the
+   add control hides while a subform occupies the container — INCLUDING one
+   marked for destruction: singular fields_for renders unindexed names, so a
+   marked subform plus a fresh replacement would post colliding attributes and
+   silently update the record instead of destroy+create. Removing the subform
+   outright (new records) reshows the control. Child combinators keep a nested
+   inner association's subforms from occupying the outer slot. */
+body.rails_admin
+  [data-controller~="nested-form"][data-nested-form-singular-value="true"]:has(
+    > [data-nested-form-target="container"]
+      > [data-nested-form-target="subform"]
+  )
+  > .add_nested_fields {
+  display: none;
+}
+body.rails_admin .nav.nav-tabs {
+  li.nav-item.icon + li.nav-item.dropdown {
+    margin-left: auto;
+  }
+  .dropdown-menu {
+    margin: 0;
+  }
+}
+
+/* === Admin skin: list table ============================================= */
+body.rails_admin .table {
+  height: 100%;
+  /* Numerals align down columns (ids, counts, dates). */
+  font-variant-numeric: tabular-nums;
+  > thead > tr > th,
+  > tbody > tr > th,
+  > tfoot > tr > th {
+    border-bottom: 0px;
+  }
+  .header {
+    cursor: pointer;
+    padding-right: 18px;
+    &:after {
+      content: "";
+      float: right;
+      margin-top: 7px;
+      margin-left: 8px;
+      margin-right: -16px;
+      border-width: 0 4px 4px;
+      border-style: solid;
+      border-color: var(--ra-body-color) transparent;
+      visibility: hidden;
+    }
+    &:hover:after {
+      visibility: visible;
+    }
+  }
+  .headerSortUp,
+  .headerSortDown {
+    background-color: color-mix(in srgb, var(--ra-info) 25%, transparent);
+    /* Surface-colored halo behind the sorted-header label; its token's dark
+       arm matches the dark body bg so it never reads as a glow. */
+    text-shadow: 0 1px 1px
+      color-mix(in srgb, var(--ra-header-sort-shadow) 75%, transparent);
+  }
+  .headerSortDown {
+    &:after,
+    &:hover:after {
+      visibility: visible;
+      opacity: 0.6;
+    }
+  }
+  .headerSortUp:after {
+    border-bottom: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--ra-body-color);
+    visibility: visible;
+    opacity: 0.6;
+  }
+  th {
+    white-space: nowrap;
+  }
+  td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+  th,
+  td {
+    padding: 5px 10px;
+  }
+  .sticky {
+    position: sticky;
+  }
+  th.last,
+  td.last {
+    position: sticky;
+    right: 0px;
+  }
+  /* Bulk-selected rows: a quiet primary tint on every cell (td-level so the
+     position: sticky cells tint too). Painted as an extra inset box-shadow
+     layered over the striped/hover accent shadow it replaces — shadows paint
+     above background-color, so the translucent tint composes over the opaque
+     #sidescroll body-bg cells and any row_css_class contextual variant bg
+     (table-danger etc.), where a background overlay would be masked or mask. */
+  tr:has(input[name="bulk_ids[]"]:checked) > td {
+    box-shadow: inset 0 0 0 9999px
+        color-mix(in srgb, var(--ra-primary) 8%, transparent),
+      inset 0 0 0 9999px var(--ra-table-accent-bg);
+  }
+  td.links {
+    max-width: none;
+    .list-inline {
+      margin-bottom: 0;
+      li {
+        display: inline-block;
+        padding: 0 3px;
+        .nav-link {
+          padding: 0 0.1em;
+        }
+      }
+    }
+  }
+  .shrink {
+    width: 1px;
+    white-space: nowrap;
+  }
+  th.created_at {
+    width: 160px;
+  }
+  th.username {
+    width: 140px;
+  }
+  th.item {
+    width: 60px;
+  }
+  .progress {
+    height: 100%;
+  }
+}
+
+/* === Admin skin: filters, side-scroll, pagination ======================= */
+/* The filter rows ARE the state: everything downstream derives from them via
+   :has(), with no JS mirroring. The divider follows row presence; each row's
+   additional value fieldsets follow its operator <select>. */
+
+/* Divider: visible only while filter rows exist. Keyed on .filter presence,
+   not :empty — whitespace text nodes would defeat :empty. */
+body.rails_admin #filters_box:not(:has(.filter)) + hr.filters_box {
+  display: none;
+}
+
+body.rails_admin #filters_box {
+  .form-control {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+  }
+  /* Operator-driven fieldset switching. Every rule is scoped to
+     select.switch-additional-fieldsets: enum and boolean rows reuse a <select>
+     as the VALUE control, and an unscoped option:checked[...] would
+     false-trigger on it. */
+  .filter .additional-fieldset {
+    display: inline-block;
+  }
+  /* default/between operand fieldsets (date, datetime, time, numeric) show
+     only while the matching operator option is selected; operators with no
+     operand (today, this_week, presence checks, "...") hide them all. A row
+     built from a nil server-sent operator marks the valueless disabled
+     separator selected (a #buildOperator quirk: getAttribute("value") and a
+     nil operator are both null), so the :not([value]) arm targets that same
+     state and shows the default operand fieldset for a nil operator. Users
+     can never re-select the disabled separator, so the arm is inert after
+     any operator change. */
+  .filter .additional-fieldset.between,
+  .filter:has(select.switch-additional-fieldsets) .additional-fieldset.default {
+    display: none;
+  }
+  .filter:has(
+      select.switch-additional-fieldsets
+        option:checked:is([data-additional-fieldset="default"], :not([value]))
+    )
+    .additional-fieldset.default,
+  .filter:has(
+      select.switch-additional-fieldsets
+        option:checked[data-additional-fieldset="between"]
+    )
+    .additional-fieldset.between {
+    display: inline-block;
+  }
+  /* String-like rows have a single bare value fieldset that stays visible
+     through the "..." discard operator (matching the server-driven initial
+     render); only the valueless presence operators hide it. */
+  .filter:has(
+      select.switch-additional-fieldsets
+        option:checked:is([value="_present"], [value="_blank"])
+    )
+    .additional-fieldset:not(.default, .between) {
+    display: none;
+  }
+}
+body.rails_admin #sidescroll {
+  margin-bottom: 20px;
+  overflow-x: auto;
+  /* Horizontal wheel/trackpad scrolls stop at the table edge instead of
+     chaining into a browser back/forward navigation gesture. */
+  overscroll-behavior: contain;
+  .table {
+    margin-bottom: 0;
+  }
+  .table-striped > tbody > tr > td,
+  .table-striped > thead > tr > th {
+    background-color: var(--ra-body-bg);
+  }
+  .table {
+    .sticky.headerSortUp,
+    .sticky.headerSortDown,
+    .last.headerSortUp,
+    .last.headerSortDown {
+      background-color: var(--ra-sticky-sort-bg);
+    }
+  }
+}
+body.rails_admin .pagination .page-item {
+  white-space: nowrap;
+}
+
+/* === Admin skin: responsive adjustments ================================= */
+@media screen and (min-width: 576px) {
+  body.rails_admin .sidebar.btn-toggle-nav {
+    position: fixed;
+    top: 3.275rem;
+    bottom: 0;
+    overflow-y: auto;
+    /* Sidebar scrolling stops at its own ends instead of chaining to the
+       page, and (with classic scrollbars) the nav keeps its width whether or
+       not the vertical scrollbar is showing. */
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}

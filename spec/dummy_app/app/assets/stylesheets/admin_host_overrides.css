@@ -1,0 +1,20 @@
+/*
+ * Host-override fixture: a plain (unlayered) host rule that contests a property the engine
+ * sets inside its ra.framework cascade layer. Because engine CSS is layered and host CSS is
+ * not, this rule must always win — that guarantee is public API, pinned by
+ * spec/integration/host_css_override_spec.rb (which injects this stylesheet at runtime so the
+ * override never leaks into other specs).
+ */
+.badge {
+  border-radius: 7px;
+}
+
+/*
+ * One-token re-brand fixture: overriding the public --ra-primary token from unlayered host
+ * CSS must recolor everything the engine derives from it (button backgrounds and their
+ * hover/active/focus-ring derivations, links, active states). Pinned by
+ * spec/integration/rebrand_spec.rb, which injects this stylesheet the same way.
+ */
+:root {
+  --ra-primary: #663399;
+}

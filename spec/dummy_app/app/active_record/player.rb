@@ -7,20 +7,17 @@ class Player < ActiveRecord::Base
 
   validates_presence_of(:name)
   validates_numericality_of(:number, only_integer: true)
-  validates_uniqueness_of(:number, scope: :team_id, message: 'There is already a player with that number on this team')
+  validates_uniqueness_of(:number, scope: :team_id, message: "There is already a player with that number on this team")
   validates_each :name do |record, _attr, value|
-    record.errors.add(:base, 'Player is cheating') if /on steroids/.match?(value.to_s)
+    record.errors.add(:base, "Player is cheating") if /on steroids/.match?(value.to_s)
   end
 
-  if ActiveRecord.gem_version >= Gem::Version.new('7.0')
-    enum :formation, {start: 'start', substitute: 'substitute'}
-  else
-    enum formation: {start: 'start', substitute: 'substitute'}
-  end
+  enum :formation, {start: "start", substitute: "substitute"}
 
   before_destroy :destroy_hook
 
   scope :rails_admin_search, ->(query) { where(name: query.reverse) }
 
-  def destroy_hook; end
+  def destroy_hook
+  end
 end

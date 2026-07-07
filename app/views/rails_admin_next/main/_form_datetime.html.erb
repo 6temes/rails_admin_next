@@ -1,0 +1,14 @@
+<%# locals: (field:, form:) -%>
+<%
+  helper =
+    case field.type
+    when :date then :date_field
+    when :time then :time_field
+    else :datetime_field
+    end
+-%>
+<div class="row">
+  <div class="col-sm-4">
+    <%= form.public_send(helper, field.method_name, field.html_attributes.reverse_merge(autocomplete: 'off', class: 'form-control', value: field.form_value)) %>
+  </div>
+</div>
