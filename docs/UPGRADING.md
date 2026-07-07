@@ -34,6 +34,11 @@ RailsAdminNext.config do |config|
   config.model User do
     # …
   end
+
+  # DELETE this line if your old initializer had it — the option was removed
+  # (there is a single importmap + Propshaft pipeline now; leaving it in place
+  # only logs a deprecation warning):
+  # config.asset_source = :importmap
 end
 
 # config/routes.rb
@@ -46,9 +51,24 @@ class Team < ApplicationRecord
   end
 end
 
-# route helpers
+# route helpers — these also hide in mailers and regular views
+# (`rails_admin_url(...)` → `rails_admin_next_url(...)`) and inside field blocks
+# (`bindings[:view].rails_admin.show_path(...)` → `bindings[:view].rails_admin_next.show_path(...)`)
 rails_admin_next.dashboard_path
 rails_admin_next.edit_path(model_name: 'team', id: team.id)
+```
+
+**Keep the mount alias `rails_admin_next`.** The engine's own views resolve routes through
+the `rails_admin_next` route proxy, so the mount must expose that helper name — either
+`as: 'rails_admin_next'` as above, or no `as:` at all (it defaults to the engine name).
+Aliasing the mount to something else to preserve old helper names (e.g. `as: 'rails_admin'`)
+breaks every engine page at render time with
+`undefined local variable or method 'rails_admin_next'`.
+
+Find every host-side call site that needs the rename with:
+
+```bash
+grep -rnE 'rails_admin_url|rails_admin_path|\.rails_admin\.' app config
 ```
 
 Running `rails g rails_admin_next:install` writes the new initializer and mount for you.
