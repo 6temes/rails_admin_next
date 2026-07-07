@@ -26,7 +26,10 @@ module RailsAdminNext
               @objects = list_entries(@model_config, :export)
               index
             else
-              render @action.template_name
+              # A format-suffixed URL (a bookmarked `GET /export.csv`) reaches this branch
+              # with request.format already csv/json/xml; render the form explicitly as HTML
+              # so the link fails into the form instead of a MissingTemplate error.
+              render @action.template_name, formats: :html
             end
           end
         end

@@ -18,6 +18,14 @@ RSpec.describe "Export action is not GET-exfiltratable", type: :request do
     expect(response.body).not_to include(player.name)
   end
 
+  it "renders the form for a format-suffixed GET (a bookmarked export.csv) instead of erroring" do
+    get export_path(model_name: "player", format: :csv, all: true, schema: {only: ["name"]})
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq("text/html")
+    expect(response.body).to include("Select fields to export")
+    expect(response.body).not_to include(player.name)
+  end
+
   it "streams data on a CSRF-protected POST that carries format params" do
     post export_path(model_name: "player", csv: true, all: true, schema: {only: ["name"]}, csv_options: {generator: {col_sep: ","}})
     expect(response).to have_http_status(:ok)
