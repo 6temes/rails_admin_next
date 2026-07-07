@@ -151,12 +151,18 @@ RSpec.describe "Filtering select widget", type: :request, js: true do
       visit new_path(model_name: "player")
     end
 
+    # Each remote search is a full server round-trip; under a loaded CI runner the
+    # debounce + request + render chain can exceed Capybara's 2s default wait, so
+    # anchor on the expected option text with a longer wait before asserting the
+    # settled count.
     it "supports filtering" do
       filter("ge")
+      expect(page).to have_selector('[role="option"]', text: "Texas Rangers", wait: 10)
       expect(page).to have_selector('[role="option"]', count: 2)
       expect(option_labels).to match_array ["Los Angeles Dodgers", "Texas Rangers"]
       teams[0].update name: "Cincinnati Reds"
       filter("Red")
+      expect(page).to have_selector('[role="option"]', text: "Cincinnati Reds", wait: 10)
       expect(page).to have_selector('[role="option"]', count: 1)
       expect(option_labels).to eq ["Cincinnati Reds"]
     end
@@ -164,6 +170,7 @@ RSpec.describe "Filtering select widget", type: :request, js: true do
     it "matches on fields other than the label when searching remotely" do
       teams[0].update manager: "Roberts"
       filter("Roberts")
+      expect(page).to have_selector('[role="option"]', text: "Los Angeles Dodgers", wait: 10)
       expect(page).to have_selector('[role="option"]', count: 1)
       expect(option_labels).to eq ["Los Angeles Dodgers"]
     end
