@@ -27,10 +27,28 @@ jobs:
       - name: Configure RubyGems credentials
         uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
 
-      # The gemspec reads the version from the RailsAdminNext::Version constant, so `gem build`
-      # runs standalone (no bundler); the tag just names the built artifact to push. The tag
-      # version reaches the shell via env (never interpolated into run:), and the push fails
-      # loudly if the tag and the gemspec constant disagree.
+      # The release tag is the single source of the released version: stamp it into
+      # version.rb before building, so publishing a Release-Drafter draft needs no
+      # version-bump commit and the SHIPPED gem still carries a real constant at host-app
+      # runtime (an ENV-fallback constant would degrade to a dev placeholder there).
+      # Integer() makes a malformed or non-three-part tag fail loudly before anything builds.
+      - name: Stamp the tag version into version.rb
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ruby -e '
+            major, minor, patch = ENV.fetch("VERSION").split(".", 3)
+            path = "lib/rails_admin_next/version.rb"
+            src = File.read(path)
+            src.sub!(/MAJOR = \d+/, "MAJOR = #{Integer(major)}")
+            src.sub!(/MINOR = \d+/, "MINOR = #{Integer(minor)}")
+            src.sub!(/PATCH = \d+/, "PATCH = #{Integer(patch)}")
+            File.write(path, src)
+          '
+
+      # `gem build` reads the (freshly stamped) RailsAdminNext::Version constant standalone
+      # (no bundler). The tag version reaches the shell via env (never interpolated into
+      # run:), and the push still fails loudly if the artifact and tag ever disagree.
       - name: Build and push gem
         env:
           VERSION: ${{ steps.version.outputs.version }}

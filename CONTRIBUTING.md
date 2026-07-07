@@ -128,3 +128,11 @@ pull request with failing specs.
 
 [fork]: https://docs.github.com/en/get-started/quickstart/fork-a-repo
 [pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
+
+## Releasing (maintainers)
+
+Every push to `master` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
+draft with an auto-bumped version and the merged PR titles. Releasing is publishing that
+draft: the created tag triggers the `Publish Gem` workflow, which stamps the tag's version
+into `lib/rails_admin_next/version.rb`, builds the gem, and pushes it to RubyGems via
+trusted publishing. No version-bump commit and no local step are needed.
