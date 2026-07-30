@@ -98,12 +98,11 @@ opening a pull request:
 ```bash
 bundle exec standardrb                 # Ruby style
 bundle exec brakeman -A --no-pager     # static security analysis
-bundle exec bundler-audit check --update  # gem advisory audit
 npx --yes prettier@2.8.8 --check .     # JS/CSS formatting (no package.json; pinned via npx)
 ```
 
 `bundle exec rake` runs the default task — the spec suite followed by Standard. It does
-**not** run Prettier, Brakeman, or bundler-audit, so run those separately.
+**not** run Prettier or Brakeman, so run those separately.
 
 The importmap pins the engine self-hosts are a [Dependabot blind spot](SECURITY.md);
 they are audited by hand on the cadence documented in [SECURITY.md](SECURITY.md).

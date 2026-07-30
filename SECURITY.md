@@ -25,13 +25,14 @@ Content-Security-Policy posture (and the one host opt-in), see [`docs/security.m
 
 CI gates every push and pull request on:
 
-- **bundler-audit** — Ruby gem advisories (`bundle exec bundler-audit check --update`). Reviewed,
-  justified ignores live in [`.bundler-audit.yml`](.bundler-audit.yml) (currently a few
-  test/development-only advisories that are not in the gem's runtime dependency closure).
 - **brakeman** — static analysis (`bundle exec brakeman -A`). Reviewed false positives live in
   [`config/brakeman.ignore`](config/brakeman.ignore), each with a written justification.
 - **Dependabot** — weekly `bundler` and `github-actions` update PRs
-  ([`.github/dependabot.yml`](.github/dependabot.yml)).
+  ([`.github/dependabot.yml`](.github/dependabot.yml)), plus alerts and automated security
+  fixes. Dependabot is the only channel for gem advisories: the `bundler-audit` CI gate was
+  retired in July 2026, so gem advisories are no longer checked on push. Advisories Dependabot
+  cannot fix — one with no patched release exists, `CVE-2026-38969` in `webrick` — are tracked
+  by hand as issues.
 - **Standard** and **Prettier** — Ruby and JS/CSS style gates.
 
 ## Importmap pins: fully self-hosted (jspm blind spot closed)
