@@ -12,7 +12,6 @@ end
 
 group :test do
   gem "brakeman", require: false
-  gem "bundler-audit", require: false
   gem "cancancan", "~> 3.0"
   gem "cuprite", "!= 0.15.1"
   gem "database_cleaner-active_record", ">= 2.0", require: false
