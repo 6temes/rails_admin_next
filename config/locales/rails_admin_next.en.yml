@@ -53,6 +53,7 @@ en:
     flash:
       successful: "%{name} successfully %{action}"
       error: "%{name} failed to be %{action}"
+      delete_restricted: "%{name} failed to be deleted: %{reason}"
       noaction: "No actions were taken"
       model_not_found: "Model '%{model}' could not be found"
       object_not_found: "%{model} with id '%{id}' could not be found"

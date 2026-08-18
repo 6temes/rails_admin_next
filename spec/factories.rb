@@ -28,6 +28,7 @@ FactoryBot.define do
 
     factory :managed_team, class: ManagedTeam
     factory :restricted_team, class: RestrictedTeam
+    factory :exception_restricted_team, class: ExceptionRestrictedTeam
   end
 
   factory :league do

@@ -87,6 +87,42 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  context "with a record restricted by dependent: :restrict_with_exception", active_record: true do
+    # Created before the deletable one so it sorts first under the default primary-key
+    # order: the batch has to survive the raise and still reach the records behind it.
+    let!(:restricted) { FactoryBot.create(:player, team: FactoryBot.create(:exception_restricted_team)).team }
+    let!(:deletable) { FactoryBot.create :exception_restricted_team }
+
+    it "deletes the unrestricted records and reports the restricted ones" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "exception_restricted_team", bulk_ids: [restricted.id, deletable.id]))
+
+      expect(response.response_code).to eq 302
+      expect(flash[:success]).to match(/1 Exception restricted team successfully deleted/i)
+      expect(flash[:error]).to match(/1 Exception restricted team failed to be deleted/i)
+      expect(Team.where(id: deletable.id)).not_to exist
+      expect(Team.where(id: restricted.id)).to exist
+    end
+
+    it "reports every record when all of them are restricted" do
+      also_restricted = FactoryBot.create(:player, team: FactoryBot.create(:exception_restricted_team)).team
+
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "exception_restricted_team", bulk_ids: [restricted.id, also_restricted.id]))
+
+      expect(flash[:success]).to be_nil
+      expect(flash[:error]).to match(/2 Exception restricted teams failed to be deleted/i)
+      expect(Team.where(id: [restricted.id, also_restricted.id]).count).to eq 2
+    end
+
+    it "records nothing for the restricted record" do
+      RailsAdminNext.config do |config|
+        config.audit_with :paper_trail
+      end
+      expect_any_instance_of(RailsAdminNext::Extensions::PaperTrail::AuditingAdapter).to receive(:delete_object).once
+
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "exception_restricted_team", bulk_ids: [deletable.id, restricted.id]))
+    end
+  end
+
   context "with composite primary keys", composite_primary_keys: true do
     let!(:fanships) { FactoryBot.create_list(:fanship, 3) }
 

@@ -125,6 +125,63 @@ RSpec.describe "Delete action", type: :request do
     end
   end
 
+  context "on destroy error by dependent: :restrict_with_exception" do
+    let!(:player) { FactoryBot.create :player, team: FactoryBot.create(:exception_restricted_team) }
+
+    it "does not destroy the object and explains which association blocks it", active_record: true do
+      visit delete_path(model_name: "exception_restricted_team", id: player.team.id)
+      click_button "Yes, I'm sure"
+
+      expect(Team.where(id: player.team.id)).to exist
+      is_expected.to have_content("Cannot delete record because of dependent players")
+    end
+
+    it "redirects to the index instead of raising", active_record: true do
+      delete delete_path(model_name: "exception_restricted_team", id: player.team.id)
+
+      expect(response.response_code).to eq(303)
+      expect(URI.parse(response.headers["Location"]).path).to eq(index_path(model_name: "exception_restricted_team"))
+    end
+
+    it "honors return_to", active_record: true do
+      delete delete_path(model_name: "exception_restricted_team", id: player.team.id, return_to: index_path(model_name: "player"))
+
+      expect(URI.parse(response.headers["Location"]).path).to eq(index_path(model_name: "player"))
+    end
+  end
+
+  context "with an auditing adapter", active_record: true do
+    let(:auditing_adapter) { RailsAdminNext::Extensions::PaperTrail::AuditingAdapter }
+
+    before do
+      RailsAdminNext.config do |config|
+        config.audit_with :paper_trail
+      end
+    end
+
+    it "records the deletion of a destroyed object" do
+      player = FactoryBot.create :player
+      expect_any_instance_of(auditing_adapter).to receive(:delete_object)
+
+      delete delete_path(model_name: "player", id: player.id)
+    end
+
+    it "records nothing when the destroy is restricted" do
+      player = FactoryBot.create :player, team: FactoryBot.create(:exception_restricted_team)
+      expect_any_instance_of(auditing_adapter).not_to receive(:delete_object)
+
+      delete delete_path(model_name: "exception_restricted_team", id: player.team.id)
+    end
+
+    it "records nothing when the destroy is aborted" do
+      allow_any_instance_of(Player).to receive(:destroy_hook) { throw :abort }
+      player = FactoryBot.create :player
+      expect_any_instance_of(auditing_adapter).not_to receive(:delete_object)
+
+      delete delete_path(model_name: "player", id: player.id)
+    end
+  end
+
   context "on cancel" do
     before do
       @player = FactoryBot.create :player
