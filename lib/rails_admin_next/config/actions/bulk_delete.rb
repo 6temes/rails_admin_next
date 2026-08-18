@@ -34,9 +34,14 @@ module RailsAdminNext
               unless params[:bulk_ids].blank?
                 @objects = list_entries(@model_config, :destroy)
                 unless @objects.blank?
-                  processed_objects = @abstract_model.destroy(@objects)
-                  destroyed = processed_objects.select(&:destroyed?)
-                  not_destroyed = processed_objects - destroyed
+                  # Destroy one at a time: a record kept alive by dependent: :restrict_with_exception
+                  # raises, and a batch-wide raise would abandon the records after it.
+                  destroyed, not_destroyed = Array.wrap(@objects).partition do |object|
+                    object.destroy
+                    object.destroyed?
+                  rescue ActiveRecord::DeleteRestrictionError
+                    false
+                  end
                   destroyed.each do |object|
                     @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
                   end
