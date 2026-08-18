@@ -318,6 +318,34 @@ sidebar's `.collapse` no longer appear:
 | Dropdown menus (filters, bulk actions) | `<a role="button">` toggles + `.dropdown .show` | `<button popovertarget>` toggles + `popover="auto"` menus, positioned with CSS anchor positioning |
 | Sidebar navigation groups | `.collapse` + Bootstrap collapse classes | native `<details>`/`<summary>` disclosures |
 
+## Required `belongs_to` associations
+
+A `belongs_to` your model actually requires is now rendered as required. Previously only a
+presence or numericality validator on the association or its foreign key was detected, and
+Rails registers the validator it adds for a required `belongs_to` with an `if:` condition that
+the detection skipped.
+
+On `load_defaults 7.1` or later, `belongs_to_required_by_default` is on, so this affects every
+plain `belongs_to` whose foreign key carries no such validator. For those fields:
+
+- the help text reads "Required." instead of "Optional."
+- the input carries `required`, so the browser blocks submission while it is empty
+- the association select no longer offers its clear-selection entry
+- the index filter loses the "is present" and "is blank" operators
+
+If a model fills the association server-side — in a `before_validation` callback, for example —
+the browser will now block a form the server would have accepted. Mark the field optional:
+
+```ruby
+RailsAdminNext.config Order do
+  edit do
+    field :customer do
+      optional true
+    end
+  end
+end
+```
+
 ## Dropped support
 
 These are intentionally gone — migrate off them before upgrading:
