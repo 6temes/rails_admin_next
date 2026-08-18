@@ -108,6 +108,16 @@ module RailsAdminNext
           options[:inverse_of].try :to_sym
         end
 
+        # Rails guards the presence validator it adds for a required belongs_to with
+        # an `if:` condition, and the validator scan in Fields::Base#required? skips
+        # conditional validators, so required-ness has to come from the reflection.
+        def required?
+          return false unless type == :belongs_to
+
+          optional = options[:optional]
+          optional.nil? ? model.belongs_to_required_by_default : !optional
+        end
+
         def read_only?
           (klass.all.instance_exec(&scope).readonly_value if scope.is_a?(Proc) && scope.arity == 0) ||
             association.nested? ||
