@@ -34,8 +34,8 @@ module RailsAdminNext
               unless params[:bulk_ids].blank?
                 @objects = list_entries(@model_config, :destroy)
                 unless @objects.blank?
-                  # Destroy one at a time: a record kept alive by dependent: :restrict_with_exception
-                  # raises, and a batch-wide raise would abandon the records after it.
+                  # Rescue per record: dependent: :restrict_with_exception raises, and an
+                  # escaping raise would abandon every record behind it in the batch.
                   destroyed, not_destroyed = Array.wrap(@objects).partition do |object|
                     object.destroy
                     object.destroyed?
