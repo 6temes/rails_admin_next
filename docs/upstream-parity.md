@@ -21,13 +21,13 @@ Commits are listed newest first, as `git log` reports them.
 | `0690a5e6` | Start development for 4.0.0 | n/a — upstream release chore | — |
 | `50fbbcd9` | Remove @babel/runtime as a direct dependency | n/a — no npm build here | — |
 | `e4ad87b7` | Replace deprecated jQuery functions with native ones | n/a — jQuery removed | — |
-| `77e5d0bc` | Improve intermittent autocomplete failures due to stale element | **deferred** — the underlying wait-on-any-element race exists here | [#18](https://github.com/6temes/rails_admin_next/issues/18) |
+| `77e5d0bc` | Improve intermittent autocomplete failures due to stale element | n/a — measured: the widget stamps and aborts its own requests, and each query renders once | [#18](https://github.com/6temes/rails_admin_next/issues/18) |
 | `26bb8763` | Declare JavaScript package is a module | n/a — no npm package | — |
 | `336845f4` | Remove string mutation | adapted | [#16](https://github.com/6temes/rails_admin_next/pull/16) |
 | `b72badeb` | Add a "sass" entry point to package.json | n/a — no npm/webpack build | — |
 | `9b21e3ba` | Update rails/ujs NPM package | n/a — UJS removed, Turbo replaces it | — |
 | `ca2d0954` | Use a non-beta trix package in dummy_app | n/a — trix is self-hosted from `action_text-trix`, not an npm pin | — |
-| `1f681b48` | Add nonce to css/js tags | **partly adapted** — the inline `<style>` nonce is already present; stylesheet tags still lack one | [#20](https://github.com/6temes/rails_admin_next/issues/20) |
+| `1f681b48` | Add nonce to css/js tags | adapted — `csp_meta_tag` deliberately left out, see below | [#22](https://github.com/6temes/rails_admin_next/pull/22) |
 | `54a23401` | Add belongs_to optional/required support to `required?` | adapted | [#13](https://github.com/6temes/rails_admin_next/pull/13) |
 | `c18592a1` | Draw routes before the suite goes multi-threaded | adapted — premise corrected, see PR | [#17](https://github.com/6temes/rails_admin_next/pull/17) |
 | `91e9cca8` | Resolve the inverse of a polymorphic association | adapted — 3 divergences, see below | [#14](https://github.com/6temes/rails_admin_next/pull/14) |
@@ -51,6 +51,10 @@ Where a port deliberately differs from upstream's own patch. Each is correct *fo
 
 **`FormBuilder#nested_field_association?`** (from the same commit) limits its hoisted name-match branch to association fields. Upstream's hoist is unconstrained. A polymorphic `as:` is never validated against the child class, so without the limit a plain column sharing that name can be suppressed from a subform.
 
+**`sanitize_params_for!`** drops the parent's inverse from the nested allowlist, which upstream does not do at all — its permitted keys are derived purely from the visible fields. Hiding the back-reference without narrowing the allowlist left a collection subform re-parentable through a crafted `<assoc>_attributes[n]`, since `assign_nested_attributes_for_collection_association` assigns straight onto an already-associated record ([#24](https://github.com/6temes/rails_admin_next/pull/24)).
+
+**The engine's stylesheet and style-preload tags carry the CSP nonce** (from `1f681b48`), but `csp_meta_tag` does not ship. Turbo reads that meta to re-nonce scripts it re-activates, and this engine renders no body script for it to re-activate; the nonce generator here is also per-request random, which a cached Turbo snapshot would carry stale. Adding the meta wants that generator decision alongside it.
+
 ## Assessing the next batch
 
 ```bash
@@ -60,4 +64,6 @@ git log --oneline 0690a5e6..upstream/master
 
 Triage each commit by the **underlying problem**, not by the API, selector, or library its diff happens to touch. State the problem without naming any of them; if that sentence describes something possible here, the commit is relevant even when its diff is entirely in code this fork deleted.
 
-`77e5d0bc` above is the cautionary case: it was first dismissed as jQuery-UI-only, and the wait-on-any-element race it describes then failed this fork's CI the same night.
+`77e5d0bc` above is the cautionary case, and it cuts both ways. It was first dismissed as jQuery-UI-only, which was the wrong reason — the race it describes is stated in terms of a selector, and dismissing it on that vocabulary is exactly the mistake the rule above exists to prevent. But the CI failure that seemed to confirm the re-triage turned out to be an unrelated bug: an example reading the database before the server had answered ([#23](https://github.com/6temes/rails_admin_next/pull/23)). The widget itself stamps and aborts its requests, and instrumenting it showed one render per query, so the upstream race has no counterpart here.
+
+**A coincident failure is not confirmation.** Look past a commit's vocabulary to decide whether it *could* apply, then measure this fork's own code before concluding that it does.
