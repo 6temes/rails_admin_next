@@ -20,9 +20,10 @@ destructive-action controls itself; a few things are left for the host to opt in
 ## Content Security Policy (opt-in)
 
 The engine enforces **no** CSP by default. When you opt in, it applies the policy per-request to
-admin responses only (never to the host app) and threads a per-request nonce onto every inline tag
-it emits (the importmap JSON, the import entry point, the index column-width `<style>`), so a
-`:self` + nonce policy does not block the admin's own pinned modules.
+admin responses only (never to the host app) and threads a per-request nonce onto the tags it
+emits — the importmap JSON, the import entry point and its module preloads, the index
+column-width `<style>`, and the engine's stylesheet and style-preload links — so a `:self` +
+nonce policy does not block the admin's own assets.
 
 ```ruby
 # config/initializers/rails_admin_next.rb
