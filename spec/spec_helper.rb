@@ -86,6 +86,11 @@ RSpec.configure do |config|
 
   config.verbose_retry = true
   config.display_try_failure_messages = true
+  # A js example that clicks a submit control gets control back before the server has
+  # answered, so reading the database next can read the row as it was. Assert something the
+  # response puts on the page first — the flash, an injected option label — and let Capybara
+  # wait on that. Nothing below catches the mistake: the read succeeds, returns the old value,
+  # and the retry re-runs an example that is only wrong when the runner is loaded.
   config.around :each, :js do |example|
     example.run_with_retry retry: ((ENV["CI"] && RUBY_ENGINE == "jruby") ? 3 : 2)
   end

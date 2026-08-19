@@ -85,6 +85,7 @@ RSpec.describe "Nested one widget", type: :request, js: true do
   it "is optional" do
     visit edit_path(model_name: "field_test", id: field_test.id)
     click_button "Save"
+    is_expected.to have_content("Field test successfully updated")
     expect(field_test.reload.comment).to be_nil
   end
 
