@@ -7,6 +7,12 @@ require "spec_helper"
 # opts in, the engine threads a per-request nonce onto its inline tags so the policy can use
 # `:self` + nonces without blocking the admin's own pinned modules.
 RSpec.describe "Security headers", type: :request do
+  # Every link tag the engine's head emits that the style-src directive governs: the stylesheets
+  # themselves and the preloads of the sheets the entry stylesheet @imports.
+  def style_tags
+    page.body.scan(/<link\b[^>]*>/).grep(/rel="stylesheet"|as="style"/)
+  end
+
   it "sets X-Frame-Options: SAMEORIGIN on admin responses" do
     visit dashboard_path
     expect(page.response_headers["X-Frame-Options"]).to eq("SAMEORIGIN")
@@ -17,6 +23,12 @@ RSpec.describe "Security headers", type: :request do
       visit dashboard_path
       expect(page.response_headers["Content-Security-Policy"]).to be_nil
       expect(page.response_headers["Content-Security-Policy-Report-Only"]).to be_nil
+    end
+
+    it "renders no nonce attribute on style tags when no policy is configured" do
+      visit dashboard_path
+      expect(style_tags).not_to be_empty
+      expect(style_tags.join).not_to include("nonce")
     end
 
     context "when a host opts in" do
@@ -35,6 +47,16 @@ RSpec.describe "Security headers", type: :request do
         expect(csp).to include("default-src 'self'")
         expect(csp).to match(/script-src 'self' 'nonce-[^']+'/)
         expect(page.body).to match(/<script type="importmap"[^>]*\bnonce="[^"]+"/)
+      end
+
+      # A nonce-based style-src blocks a preload as readily as a stylesheet, so both kinds of
+      # link tag are asserted together, and against the same nonce the scripts were given.
+      it "threads that same nonce onto every stylesheet and style-preload tag" do
+        visit dashboard_path
+        nonce = page.body[/<script type="importmap"[^>]*\bnonce="([^"]+)"/, 1]
+
+        expect(style_tags).not_to be_empty
+        expect(style_tags).to all(include(%(nonce="#{nonce}")))
       end
     end
 
