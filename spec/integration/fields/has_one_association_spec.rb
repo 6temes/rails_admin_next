@@ -188,6 +188,12 @@ RSpec.describe "HasOneAssociation field", type: :request do
         expect(fan.fanship.team).to eq team
         expect(fan.fanship.since).to eq Date.new(2020, 1, 23)
       end
+
+      it "omits the fanship's link back to the fan being edited", js: false do
+        visit edit_path(model_name: "nested_fan", id: fanship.fan_id)
+        expect(page.body).to include("nested_fan_fanship_attributes_team_id")
+        expect(page.body).not_to include("nested_fan_fanship_attributes_fan_id")
+      end
     end
   end
 end

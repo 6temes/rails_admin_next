@@ -101,6 +101,47 @@ RSpec.describe "Nested one widget", type: :request, js: true do
     end
   end
 
+  context "when the child points back at the record being edited" do
+    it "hides the polymorphic back-reference on an existing subform", js: false do
+      FactoryBot.create :comment, commentable: field_test
+      visit edit_path(model_name: "field_test", id: field_test.id)
+
+      expect(page.body).to include("field_test_comment_attributes_content")
+      expect(page.body).not_to include("field_test_comment_attributes_commentable_type")
+      expect(page.body).not_to include("field_test_comment_attributes_commentable_id")
+    end
+
+    it "hides it in the blank template too", js: false do
+      visit new_path(model_name: "field_test")
+
+      expect(page.body).to include("field_test_comment_attributes_content")
+      expect(page.body).not_to include("field_test_comment_attributes_commentable_type")
+      expect(page.body).not_to include("field_test_comment_attributes_commentable_id")
+    end
+
+    context "when neither side of the pair declares inverse_of" do
+      let(:team) { FactoryBot.create :team }
+      let(:nested_player) { NestedPlayer.create! name: "Sluggo", number: 42 }
+      before do
+        RailsAdminNext.config(NestedPlayer) do
+          field :name
+          field :draft
+        end
+        Draft.create! player: nested_player, team: team, date: Date.new(2020, 1, 23), round: 1, pick: 1, overall: 1
+      end
+
+      # Draft#player is a required belongs_to, so leaving it rendered asks the browser
+      # to block a create over a field only the nested save can fill.
+      it "hides the child's required back-reference and keeps its other association", js: false do
+        visit edit_path(model_name: "nested_player", id: nested_player.id)
+
+        expect(page.body).to include("nested_player_draft_attributes_college")
+        expect(page.body).to include("nested_player_draft_attributes_team_id")
+        expect(page.body).not_to include("nested_player_draft_attributes_player_id")
+      end
+    end
+  end
+
   context "when the nested field contains a required field" do
     before do
       RailsAdminNext.config Comment do
