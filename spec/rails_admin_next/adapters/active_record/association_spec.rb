@@ -55,6 +55,27 @@ class AROptionalByDefault < Tableless
   belongs_to :a_r_blog
 end
 
+class ARInverseNote < Tableless
+  belongs_to :notable, polymorphic: true
+  belongs_to :author, polymorphic: true
+end
+
+class ARInverseHost < Tableless
+  has_one :a_r_inverse_note, as: :notable
+  has_many :a_r_inverse_notes, as: :notable
+  has_many :authored_notes, class_name: "ARInverseNote", as: :notable, inverse_of: :author
+end
+
+# Rails derives an inverse's name from the class name, so this pair stays
+# automatically resolvable only while both names follow the convention.
+class InverseGuest < Tableless
+  belongs_to :inverse_host
+end
+
+class InverseHost < Tableless
+  has_many :inverse_guests
+end
+
 RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_record: true do
   before :all do
     RailsAdminNext::AbstractModel.reset_polymorphic_parents
@@ -262,9 +283,31 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_rec
       expect(subject.key_accessor).to eq :a_r_comment_ids
       expect(subject.as).to eq :commentable
       expect(subject.polymorphic?).to be_falsey
-      expect(subject.inverse_of).to be_nil
+      expect(subject.inverse_of).to eq :commentable
       expect(subject.read_only?).to be_falsey
       expect(subject.nested_options).to be_nil
+    end
+  end
+
+  describe "inverse_of" do
+    def association_for(model, name)
+      RailsAdminNext::AbstractModel.new(model).associations.detect { |a| a.name == name }
+    end
+
+    it "answers with the declared inverse_of even when an as: is also given" do
+      expect(association_for(ARInverseHost, :authored_notes).inverse_of).to eq :author
+    end
+
+    it "answers with the as: of a polymorphic has_one" do
+      expect(association_for(ARInverseHost, :a_r_inverse_note).inverse_of).to eq :notable
+    end
+
+    it "answers with the as: of a polymorphic has_many" do
+      expect(association_for(ARInverseHost, :a_r_inverse_notes).inverse_of).to eq :notable
+    end
+
+    it "answers with the inverse Rails resolves for a pair that declares nothing" do
+      expect(association_for(InverseHost, :inverse_guests).inverse_of).to eq :inverse_host
     end
   end
 

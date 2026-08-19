@@ -104,8 +104,11 @@ module RailsAdminNext
           options[:polymorphic] || false
         end
 
+        # A polymorphic `as:` names the belongs_to on the other side, and Rails resolves
+        # an inverse for conventional pairs that declare nothing — both are the
+        # association's inverse for form-nesting purposes.
         def inverse_of
-          options[:inverse_of].try :to_sym
+          options[:inverse_of].try(:to_sym) || association.inverse_of&.name || as
         end
 
         # Rails guards the presence validator it adds for a required belongs_to with
