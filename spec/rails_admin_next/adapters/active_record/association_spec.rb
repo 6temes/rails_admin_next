@@ -43,6 +43,7 @@ class ARRequiredness < Tableless
   belongs_to :non_optional_blog, class_name: "ARBlog", optional: false
   belongs_to :required_blog, class_name: "ARBlog", required: true
   belongs_to :optional_librarian, polymorphic: true, optional: true
+  belongs_to :defaulted_blog, class_name: "ARBlog", default: -> { ARBlog.new }
   has_one :a_r_profile
   has_one :required_profile, class_name: "ARProfile", required: true
   has_many :a_r_posts
@@ -293,6 +294,10 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_rec
 
       it "is true when declared required: true" do
         expect(association_for(ARRequiredness, :required_blog).required?).to be true
+      end
+
+      it "is false when the association carries a default, since a callback fills it" do
+        expect(association_for(ARRequiredness, :defaulted_blog).required?).to be false
       end
 
       it "is false for a polymorphic association declared optional: true" do

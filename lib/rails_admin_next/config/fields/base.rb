@@ -217,7 +217,7 @@ module RailsAdminNext
 
           # An association Rails treats as optional can still be required by a validator on its
           # foreign key, so the reflection answer widens the validator scan instead of replacing it.
-          (@required ||= {})[context] ||= (association? && properties.required?) || !!([name] + children_fields).uniq.detect do |column_name|
+          (@required ||= {})[context] ||= (association? && properties.try(:required?)) || !!([name] + children_fields).uniq.detect do |column_name|
             abstract_model.model.validators_on(column_name).detect do |v|
               !(v.options[:allow_nil] || v.options[:allow_blank]) &&
                 %i[presence numericality attachment_presence].include?(v.kind) &&

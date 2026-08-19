@@ -325,16 +325,21 @@ presence or numericality validator on the association or its foreign key was det
 Rails registers the validator it adds for a required `belongs_to` with an `if:` condition that
 the detection skipped.
 
-On `load_defaults 7.1` or later, `belongs_to_required_by_default` is on, so this affects every
-plain `belongs_to` whose foreign key carries no such validator. For those fields:
+`belongs_to_required_by_default` has been on since `load_defaults 5.0`. On `load_defaults 7.1`
+or later Rails also sets `belongs_to_required_validates_foreign_key = false`, which is what makes
+the presence validator conditional and invisible to the old detection — so this affects every
+plain `belongs_to` whose foreign key carries no validator of its own. For those fields:
 
 - the help text reads "Required." instead of "Optional."
-- the input carries `required`, so the browser blocks submission while it is empty
+- a plain association select carries `required`, so the browser blocks submission while it is
+  empty; polymorphic association fields change help text and filter operators only, because
+  their partial does not apply the field's HTML attributes
 - the association select no longer offers its clear-selection entry
 - the index filter loses the "is present" and "is blank" operators
 
-If a model fills the association server-side — in a `before_validation` callback, for example —
-the browser will now block a form the server would have accepted. Mark the field optional:
+An association declared with `default:` is left optional, since Rails fills it in a
+`before_validation` callback. If a model fills the association server-side some other way, the
+browser will now block a form the server would have accepted. Mark the field optional:
 
 ```ruby
 RailsAdminNext.config Order do

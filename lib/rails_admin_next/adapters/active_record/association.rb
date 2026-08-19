@@ -113,6 +113,9 @@ module RailsAdminNext
         # conditional validators, so required-ness has to come from the reflection.
         def required?
           return false unless type == :belongs_to
+          # A `default:` association is filled by a before_validation callback, so the
+          # record validates without the user choosing anything.
+          return false if options[:default]
 
           optional = options[:optional]
           optional.nil? ? model.belongs_to_required_by_default : !optional

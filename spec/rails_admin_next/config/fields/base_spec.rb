@@ -126,6 +126,20 @@ RSpec.describe RailsAdminNext::Config::Fields::Base do
         end
       end
 
+      describe "for an association field type declared over a plain column" do
+        it "falls back to the validator scan instead of asking the column for required-ness" do
+          RailsAdminNext.config(Team) do
+            edit do
+              field :name, :belongs_to_association
+            end
+          end
+          field = RailsAdminNext.config(Team).edit.fields.detect { |f| f.name == :name }
+
+          expect(field.properties).to be_a(RailsAdminNext::Adapters::ActiveRecord::Property)
+          expect(field.required?).to be_falsey
+        end
+      end
+
       describe "for an association required by belongs_to_required_by_default" do
         it "is required" do
           expect(@fields.detect { |f| f.name == :team }.required?).to be_truthy
