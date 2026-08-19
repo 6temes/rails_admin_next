@@ -164,10 +164,17 @@ module RailsAdminNext
 
     private
 
+    # A field the parent association names as its inverse is the child's link back to
+    # the record being edited, so the user is never asked to fill it. That name match
+    # stands on its own: a polymorphic child such as Comment#commentable declares no
+    # inverse_of, so gating it on the child's own inverse_of would never let it fire.
+    # It stays limited to association fields because a polymorphic `as:` is never checked
+    # against the child class, and a plain column could otherwise match it by name.
     def nested_field_association?(field, nested_in)
-      field.inverse_of.presence && nested_in.presence && field.inverse_of == nested_in.name &&
-        (@template.instance_variable_get(:@model_config).abstract_model == field.abstract_model ||
-         field.name == nested_in.inverse_of)
+      nested_in.presence &&
+        ((field.is_a?(Config::Fields::Association) && field.name == nested_in.inverse_of) ||
+         (field.inverse_of.presence && field.inverse_of == nested_in.name &&
+          @template.instance_variable_get(:@model_config).abstract_model == field.abstract_model))
     end
   end
 end
