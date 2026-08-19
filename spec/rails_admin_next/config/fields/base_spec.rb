@@ -88,9 +88,15 @@ RSpec.describe RailsAdminNext::Config::Fields::Base do
           column :league_id, :integer
           column :division_id, :integer, nil, false
           column :player_id, :integer
+          column :team_id, :integer
+          column :fan_id, :integer
+          column :ball_id, :integer
           belongs_to :league, optional: true
           belongs_to :division, optional: true
           belongs_to :player, optional: true
+          belongs_to :team
+          belongs_to :fan, optional: false
+          belongs_to :ball, required: true
           validates_numericality_of(:player_id, only_integer: true)
         end)
         @fields = RailsAdminNext.config(RelTest).create.fields
@@ -111,6 +117,63 @@ RSpec.describe RailsAdminNext::Config::Fields::Base do
       describe "for column with nullable foreign key and a numericality model validation" do
         it "is required" do
           expect(@fields.detect { |f| f.name == :player }.required?).to be_truthy
+        end
+
+        it "is required through the validator while the reflection reports optional", :aggregate_failures do
+          field = @fields.detect { |f| f.name == :player }
+          expect(field.properties.required?).to be false
+          expect(field.required?).to be_truthy
+        end
+      end
+
+      describe "for an association field type declared over a plain column" do
+        it "falls back to the validator scan instead of asking the column for required-ness" do
+          RailsAdminNext.config(Team) do
+            edit do
+              field :name, :belongs_to_association
+            end
+          end
+          field = RailsAdminNext.config(Team).edit.fields.detect { |f| f.name == :name }
+
+          expect(field.properties).to be_a(RailsAdminNext::Adapters::ActiveRecord::Property)
+          expect(field.required?).to be_falsey
+        end
+      end
+
+      describe "for an association required by belongs_to_required_by_default" do
+        it "is required" do
+          expect(@fields.detect { |f| f.name == :team }.required?).to be_truthy
+        end
+      end
+
+      describe "for an association declared optional: false" do
+        it "is required" do
+          expect(@fields.detect { |f| f.name == :fan }.required?).to be_truthy
+        end
+      end
+
+      describe "for an association declared required: true" do
+        it "is required" do
+          expect(@fields.detect { |f| f.name == :ball }.required?).to be_truthy
+        end
+      end
+
+      describe "for an association whose foreign key is validated on: :update only" do
+        before do
+          stub_const("ContextRelTest", Class.new(Tableless) do
+            column :league_id, :integer
+            belongs_to :league, optional: true
+            validates_numericality_of(:league_id, on: :update)
+          end)
+        end
+
+        it "is required per binding context", :aggregate_failures do
+          field = RailsAdminNext.config(ContextRelTest).edit.fields.detect { |f| f.name == :league }
+          persisted = ContextRelTest.new
+          allow(persisted).to receive(:persisted?).and_return(true)
+
+          expect(field.with(object: ContextRelTest.new).required?).to be_falsey
+          expect(field.with(object: persisted).required?).to be_truthy
         end
       end
     end

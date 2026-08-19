@@ -37,6 +37,24 @@ class ARComment < Tableless
   belongs_to :commentable, polymorphic: true
 end
 
+class ARRequiredness < Tableless
+  belongs_to :default_blog, class_name: "ARBlog"
+  belongs_to :optional_blog, class_name: "ARBlog", optional: true
+  belongs_to :non_optional_blog, class_name: "ARBlog", optional: false
+  belongs_to :required_blog, class_name: "ARBlog", required: true
+  belongs_to :optional_librarian, polymorphic: true, optional: true
+  belongs_to :defaulted_blog, class_name: "ARBlog", default: -> { ARBlog.new }
+  has_one :a_r_profile
+  has_one :required_profile, class_name: "ARProfile", required: true
+  has_many :a_r_posts
+end
+
+class AROptionalByDefault < Tableless
+  self.belongs_to_required_by_default = false
+
+  belongs_to :a_r_blog
+end
+
 RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_record: true do
   before :all do
     RailsAdminNext::AbstractModel.reset_polymorphic_parents
@@ -247,6 +265,58 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_rec
       expect(subject.inverse_of).to be_nil
       expect(subject.read_only?).to be_falsey
       expect(subject.nested_options).to be_nil
+    end
+  end
+
+  describe "required?" do
+    def association_for(model, name)
+      RailsAdminNext::AbstractModel.new(model).associations.detect { |a| a.name == name }
+    end
+
+    context "for a belongs_to association" do
+      it "is true when the model requires belongs_to by default", :aggregate_failures do
+        expect(ARRequiredness.belongs_to_required_by_default).to be true
+        expect(association_for(ARRequiredness, :default_blog).required?).to be true
+      end
+
+      it "is false when the model does not require belongs_to by default", :aggregate_failures do
+        expect(AROptionalByDefault.belongs_to_required_by_default).to be false
+        expect(association_for(AROptionalByDefault, :a_r_blog).required?).to be false
+      end
+
+      it "is false when declared optional: true" do
+        expect(association_for(ARRequiredness, :optional_blog).required?).to be false
+      end
+
+      it "is true when declared optional: false" do
+        expect(association_for(ARRequiredness, :non_optional_blog).required?).to be true
+      end
+
+      it "is true when declared required: true" do
+        expect(association_for(ARRequiredness, :required_blog).required?).to be true
+      end
+
+      it "is false when the association carries a default, since a callback fills it" do
+        expect(association_for(ARRequiredness, :defaulted_blog).required?).to be false
+      end
+
+      it "is false for a polymorphic association declared optional: true" do
+        expect(association_for(ARRequiredness, :optional_librarian).required?).to be false
+      end
+    end
+
+    context "for a non-belongs_to association" do
+      it "is false for has_many" do
+        expect(association_for(ARRequiredness, :a_r_posts).required?).to be false
+      end
+
+      it "is false for has_one" do
+        expect(association_for(ARRequiredness, :a_r_profile).required?).to be false
+      end
+
+      it "is false for has_one declared required: true" do
+        expect(association_for(ARRequiredness, :required_profile).required?).to be false
+      end
     end
   end
 end
