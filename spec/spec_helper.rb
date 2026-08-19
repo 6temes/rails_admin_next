@@ -2,22 +2,6 @@
 
 # Configure Rails Environment
 ENV["RAILS_ENV"] = "test"
-PK_COLUMN = :id
-
-require "simplecov"
-require "simplecov-lcov"
-
-SimpleCov.formatters = [SimpleCov::Formatter::HTMLFormatter, SimpleCov::Formatter::LcovFormatter]
-
-SimpleCov.start do
-  add_filter "/spec/"
-  add_filter "/vendor/bundle/"
-end
-
-SimpleCov::Formatter::LcovFormatter.config do |c|
-  c.report_with_single_file = true
-  c.single_report_path = "coverage/lcov.info"
-end
 
 require File.expand_path("dummy_app/config/environment", __dir__)
 
@@ -41,21 +25,19 @@ Rails.backtrace_cleaner.remove_silencers!
 require "capybara/cuprite"
 Capybara.javascript_driver = :cuprite
 Capybara.register_driver(:cuprite) do |app|
-  # Refs. https://github.com/rubycdp/ferrum/issues/470
-  Capybara::Cuprite::Driver.new(app, flatten: RUBY_ENGINE != "jruby", js_errors: true, logger: ConsoleLogger)
+  # js_errors makes an unhandled error or promise rejection fail the example. With no bundler,
+  # no type checker and no JS linter in CI, that is the only thing exercising src/rails_admin.
+  Capybara::Cuprite::Driver.new(app, js_errors: true, logger: ConsoleLogger)
 end
+# Not the Puma default: puma is not in this bundle, and webrick is (via ferrum). Capybara names
+# this line itself as the remedy when it cannot load puma.
 Capybara.server = :webrick
 
 RailsAdminNext.setup_all_extensions
 
 RSpec.configure do |config|
-  config.expect_with :rspec do |c|
-    c.syntax = :expect
-  end
-
   config.disable_monkey_patching!
 
-  config.include RSpec::Matchers
   # Finalize the engine's routes so its dynamically-drawn helpers (new_path, edit_path, …)
   # are materialized on the url_helpers module before it is included. Without this, a request
   # spec that runs before any other (order-dependent) hits `undefined method 'new_path'`.
@@ -92,7 +74,7 @@ RSpec.configure do |config|
   # wait on that. Nothing below catches the mistake: the read succeeds, returns the old value,
   # and the retry re-runs an example that is only wrong when the runner is loaded.
   config.around :each, :js do |example|
-    example.run_with_retry retry: ((ENV["CI"] && RUBY_ENGINE == "jruby") ? 3 : 2)
+    example.run_with_retry retry: 2
   end
   config.retry_callback = proc do |example|
     example.metadata[:retry] = 6 if [Ferrum::DeadBrowserError, Ferrum::NoExecutionContextError, Ferrum::TimeoutError].include?(example.exception.class)
@@ -122,14 +104,11 @@ RSpec.configure do |config|
     RailsAdminNext::Config.color_scheme = :light if example.metadata[:js]
   end
 
-  # Restore the locale after every example so a spec that leaves I18n.locale dirty
-  # (e.g. edit_spec's I18n cases) can't bleed into a later locale-sensitive spec.
-  # Runs after the example body, so specs that set their own locale via `around` are unaffected.
+  # Restoring the locale matters because a spec that leaves I18n.locale dirty (edit_spec's I18n
+  # cases) bleeds into any later locale-sensitive spec. This runs after the example body, so
+  # specs that set their own locale via `around` are unaffected.
   config.after(:each) do
     I18n.locale = I18n.default_locale
-  end
-
-  config.after(:each) do
     Warden.test_reset!
     DatabaseCleaner.clean
   end

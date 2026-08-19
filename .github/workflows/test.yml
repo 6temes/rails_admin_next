@@ -47,10 +47,6 @@ jobs:
         with:
           ruby-version: "4.0.5"
           bundler-cache: true
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: "24"
       - name: Install libvips
         # ActiveStorage's :vips variant processor; ruby-vips dlopens the libvips shared library.
         # libvips-dev is the version-stable package name (the runtime lib is libvips42t64 on

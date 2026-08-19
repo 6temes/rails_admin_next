@@ -166,7 +166,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the base table" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable Player => :team_id
@@ -183,7 +183,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the target table" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable Team => :name
@@ -200,7 +200,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the target table with a table name specified as a hash" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable teams: :name
@@ -217,7 +217,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the target table with a table name specified as a string" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable "teams.name"
@@ -234,7 +234,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the label method by default" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team
         end
@@ -249,7 +249,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a belongs_to attribute over the target table when an attribute is specified" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable :name
@@ -266,7 +266,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search over more than one attribute" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :team do
             searchable [:name, {Player => :team_id}]
@@ -289,7 +289,7 @@ RSpec.describe "Index action", type: :request do
     it "allows to search a has_many attribute over the target table" do
       RailsAdminNext.config Player do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :comments do
             searchable :content
@@ -401,7 +401,7 @@ RSpec.describe "Index action", type: :request do
     it "shows some fields on demand with fields list, respect ordering and configure them" do
       RailsAdminNext.config Fan do
         list do
-          fields :name, PK_COLUMN do
+          fields :name, :id do
             label do
               "Modified #{label}"
             end
@@ -417,7 +417,7 @@ RSpec.describe "Index action", type: :request do
       RailsAdminNext.config Fan do
         list do
           include_all_fields
-          field PK_COLUMN
+          field :id
           field :name
         end
       end
@@ -431,7 +431,7 @@ RSpec.describe "Index action", type: :request do
         list do
           field :updated_at
           field :name
-          field PK_COLUMN
+          field :id
           field :created_at
         end
       end
@@ -443,7 +443,7 @@ RSpec.describe "Index action", type: :request do
     it "only lists the defined fields if some fields are defined" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN
+          field :id
           field :name
         end
       end
@@ -466,7 +466,7 @@ RSpec.describe "Index action", type: :request do
     it "is renameable" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN do
+          field :id do
             label "Identifier"
           end
           field :name
@@ -514,7 +514,7 @@ RSpec.describe "Index action", type: :request do
     it "has option to disable sortability" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN do
+          field :id do
             sortable false
           end
           field :name
@@ -531,7 +531,7 @@ RSpec.describe "Index action", type: :request do
           fields_of_type :datetime do
             sortable false
           end
-          field PK_COLUMN
+          field :id
           field :name
           field :created_at
           field :updated_at
@@ -550,7 +550,7 @@ RSpec.describe "Index action", type: :request do
           fields_of_type :datetime do
             sortable false
           end
-          field PK_COLUMN
+          field :id
           field :name
           field :created_at
           field :updated_at
@@ -592,7 +592,7 @@ RSpec.describe "Index action", type: :request do
     it "has option to customize column width" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN do
+          field :id do
             column_width 200
           end
           field :name
@@ -604,14 +604,14 @@ RSpec.describe "Index action", type: :request do
       visit index_path(model_name: "fan")
       # NOTE: Capybara really doesn't want us to look at invisible text. This test
       # could break at any moment.
-      expect(find("style").native.text).to include("#list th.#{PK_COLUMN}_field")
-      expect(find("style").native.text).to include("#list td.#{PK_COLUMN}_field")
+      expect(find("style").native.text).to include("#list th.id_field")
+      expect(find("style").native.text).to include("#list td.id_field")
     end
 
     it "has option to customize output formatting" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN
+          field :id
           field :name do
             formatted_value do
               value.to_s.upcase
@@ -630,7 +630,7 @@ RSpec.describe "Index action", type: :request do
     it "has a simple option to customize output formatting of date fields" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :created_at do
             date_format :short
@@ -646,7 +646,7 @@ RSpec.describe "Index action", type: :request do
     it "has option to customize output formatting of date fields" do
       RailsAdminNext.config Fan do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :created_at do
             strftime_format "%Y-%m-%d"
@@ -662,7 +662,7 @@ RSpec.describe "Index action", type: :request do
     it "allows addition of virtual fields (object methods)" do
       RailsAdminNext.config Team do
         list do
-          field PK_COLUMN
+          field :id
           field :name
           field :player_names_truncated
         end

@@ -1,16 +1,9 @@
 # Generated / build output
-coverage
-spec/dummy_app/app/assets/builds
 spec/dummy_app/public
 spec/dummy_app/tmp
 
 # Install-generator templates (copied verbatim into host apps; not ours to reformat)
 lib/generators/rails_admin_next/templates
-
-# Vendored / third-party assets kept byte-faithful to upstream
-vendor
-app/assets/stylesheets/font-awesome.css
-app/assets/stylesheets/flatpickr.css
 
 # Hand-authored prose docs (markdown reflow is noisy; owned by the docs unit)
 CLAUDE.md
