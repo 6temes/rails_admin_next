@@ -21,7 +21,7 @@ Commits are listed newest first, as `git log` reports them.
 | `0690a5e6` | Start development for 4.0.0 | n/a — upstream release chore | — |
 | `50fbbcd9` | Remove @babel/runtime as a direct dependency | n/a — no npm build here | — |
 | `e4ad87b7` | Replace deprecated jQuery functions with native ones | n/a — jQuery removed | — |
-| `77e5d0bc` | Improve intermittent autocomplete failures due to stale element | n/a — measured: the widget stamps and aborts its own requests, and each query renders once | [#18](https://github.com/6temes/rails_admin_next/issues/18) |
+| `77e5d0bc` | Improve intermittent autocomplete test failures due to stale element | n/a — measured: the widget stamps and aborts its own requests, and each query renders once | [#18](https://github.com/6temes/rails_admin_next/issues/18) |
 | `26bb8763` | Declare JavaScript package is a module | n/a — no npm package | — |
 | `336845f4` | Remove string mutation | adapted | [#16](https://github.com/6temes/rails_admin_next/pull/16) |
 | `b72badeb` | Add a "sass" entry point to package.json | n/a — no npm/webpack build | — |
