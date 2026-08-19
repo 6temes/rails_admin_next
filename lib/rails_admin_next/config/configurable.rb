@@ -55,9 +55,13 @@ module RailsAdminNext
           option_name = option_name.to_s
           options[option_name] = nil
 
-          # If it's a boolean create an alias for it and remove question mark
+          # If it's a boolean create an alias for it and remove question mark. The
+          # rebinding is what the rest of the method reads: the getter, the setter, the
+          # @<name>_registered variable and the recursion key all want the chopped name,
+          # while @config_options keeps the un-chopped one it was registered under.
           if option_name.end_with?("?")
-            scope.send(:define_method, "#{option_name.chop!}?") do
+            option_name = option_name.chop
+            scope.send(:define_method, "#{option_name}?") do
               send(option_name)
             end
           end
