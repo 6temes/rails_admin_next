@@ -81,6 +81,7 @@ RSpec.describe "BelongsToAssociation field", type: :request do
         expect(page).to have_selector('[role="option"]')
         find('[role="option"]', text: "ManagingUser ##{users[1].id}").click
         click_button "Save"
+        is_expected.to have_content "Managed team successfully updated"
         teams[0].reload
         expect(teams[0].user).to eq users[1]
       end

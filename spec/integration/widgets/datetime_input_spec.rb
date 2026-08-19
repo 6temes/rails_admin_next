@@ -32,6 +32,7 @@ RSpec.describe "Datetime native input widget", type: :request, js: true do
     find('[name="field_test[datetime_field]"]').set("2015-10-08T14:30:15")
     expect(find('[name="field_test[datetime_field]"]').value).to eq "2015-10-08T14:30:15"
     click_button "Save"
+    is_expected.to have_content "Field test successfully created"
     expect(FieldTest.first.datetime_field).to eq DateTime.new(2015, 10, 8, 14, 30, 15)
   end
 
