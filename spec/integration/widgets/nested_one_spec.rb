@@ -25,7 +25,7 @@ RSpec.describe "Nested one widget", type: :request, js: true do
     expect(field_test.reload.comment.content.strip).to eq("nested comment content")
   end
 
-  it "edits a persisted nested item in place", js: false do
+  it "edits a persisted nested item in place", :aggregate_failures, js: false do
     comment = FactoryBot.create :comment, commentable: field_test
     visit edit_path(model_name: "field_test", id: field_test.id)
 
@@ -157,7 +157,7 @@ RSpec.describe "Nested one widget", type: :request, js: true do
 
       # The back-reference never round-trips through the form, so the save depends on
       # Rails wiring the inverse in memory.
-      it "still saves the subform, with the link back intact", js: false do
+      it "still saves the subform, with the link back intact", :aggregate_failures, js: false do
         draft_id = nested_player.draft.id
         visit edit_path(model_name: "nested_player", id: nested_player.id)
         fill_in "nested_player_draft_attributes_college", with: "Riverside"
