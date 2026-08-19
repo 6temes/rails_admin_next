@@ -108,10 +108,17 @@ module RailsAdminNext
       model_config.send(action).with(controller: self, view: view_context, object: @object).visible_fields
     end
 
-    def sanitize_params_for!(action, model_config = @model_config, target_params = params[@abstract_model.param_key])
+    def sanitize_params_for!(action, model_config = @model_config, target_params = params[@abstract_model.param_key], nested_in = nil)
       return unless target_params.present?
 
-      fields = visible_fields(action, model_config)
+      # A subform never draws the child's link back to the record being edited — the parent
+      # association names it, and FormBuilder#nested_field_association? skips it on that name.
+      # Deriving the allowlist from visible_fields alone would keep permitting keys no form of
+      # ours submits, so drop that one field here too. Only at nested depth: editing a Comment
+      # on its own is a legitimate way to set its commentable.
+      fields = visible_fields(action, model_config).reject do |field|
+        nested_in && field.is_a?(Config::Fields::Association) && field.name == nested_in.inverse_of
+      end
       allowed_methods = fields.collect(&:allowed_methods).flatten.uniq.collect(&:to_s) << "id" << "_destroy"
       fields.each { |field| field.parse_input(target_params) }
       target_params.slice!(*allowed_methods)
@@ -132,7 +139,7 @@ module RailsAdminNext
             []
           end
         children_params.each do |children_param|
-          sanitize_params_for!(:nested, association.associated_model_config, children_param) if children_param.respond_to?(:values)
+          sanitize_params_for!(:nested, association.associated_model_config, children_param, association) if children_param.respond_to?(:values)
         end
       end
     end

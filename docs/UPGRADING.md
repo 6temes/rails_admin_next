@@ -368,13 +368,23 @@ above, that field could be marked required while being one only the nested save 
 Two consequences worth checking in a host app:
 
 - A subform for a pair that relies on Rails' automatic inverse detection now hides one more
-  field than before. The submitted `<assoc>_attributes[...]` structure is unchanged, and the
-  parameter stays permitted — this is a rendering change.
+  field than before, and its key is no longer permitted inside `<assoc>_attributes[...]` either.
+  Only at nested depth: editing the child on its own still permits its own association, which is
+  a legitimate way to set it.
 - `field.inverse_of` in your own configuration blocks now returns a symbol for associations
   that previously returned `nil`.
 
+**Narrowing the allowlist is a security fix, for collections.** Saving a singular association re-applies
+the owner to the child, so a submitted back-reference never survived there. A collection does not:
+`assign_nested_attributes_for_collection_association` assigns straight onto an already-associated
+record, so a crafted back-reference inside `<assoc>_attributes[n]` moved that child onto a
+different parent — one the submitter may have had no rights over. Dropping the key from the
+allowlist closes it, because it never reaches the assignment.
+
 `inverse_of: false` on the association is honoured, as in Rails. To keep the back-reference
-visible for one field without touching the model, disable the parent field's inverse:
+visible — and permitted — for one field without touching the model, disable the parent field's
+inverse. On a collection that re-opens the re-parenting described above, so scope it to the one
+field that needs it:
 
 ```ruby
 RailsAdminNext.config FieldTest do
