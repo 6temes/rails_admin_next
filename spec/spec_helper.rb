@@ -59,7 +59,13 @@ RSpec.configure do |config|
   # Finalize the engine's routes so its dynamically-drawn helpers (new_path, edit_path, …)
   # are materialized on the url_helpers module before it is included. Without this, a request
   # spec that runs before any other (order-dependent) hits `undefined method 'new_path'`.
-  Rails.application.reload_routes!
+  #
+  # This also leaves the routes reloader marked loaded, so nothing later in the suite draws
+  # routes from whatever the action registry happens to hold at that moment — see the heal
+  # below for what that would cost. `reload_routes!` would draw and then clear the flag again,
+  # re-arming the lazy path. The method is :nodoc: rather than private, and has been stable
+  # since Rails 7.1.
+  Rails.application.reload_routes_unless_loaded
   config.include RailsAdminNext::Engine.routes.url_helpers
 
   # The engine draws its routes from the GLOBAL action registry (config/routes.rb reads
