@@ -64,6 +64,7 @@ class ARInverseHost < Tableless
   has_one :a_r_inverse_note, as: :notable
   has_many :a_r_inverse_notes, as: :notable
   has_many :authored_notes, class_name: "ARInverseNote", as: :notable, inverse_of: :author
+  has_many :declined_notes, class_name: "ARInverseNote", as: :notable, inverse_of: false
 end
 
 # Rails derives an inverse's name from the class name, so this pair stays
@@ -308,6 +309,10 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord::Association", active_rec
 
     it "answers with the inverse Rails resolves for a pair that declares nothing" do
       expect(association_for(InverseHost, :inverse_guests).inverse_of).to eq :inverse_host
+    end
+
+    it "answers nil when the association declines an inverse, even with an as: given" do
+      expect(association_for(ARInverseHost, :declined_notes).inverse_of).to be_nil
     end
   end
 

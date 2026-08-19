@@ -371,7 +371,9 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
             },
             "comment_attributes" => {
               "unallowed_field" => "I shouldn't be here",
-              "created_at" => "2010-08-04T00:00:00"
+              "created_at" => "2010-08-04T00:00:00",
+              "commentable_type" => "FieldTest",
+              "commentable_id" => "1"
             }
           }
         )
@@ -394,7 +396,11 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
             }
           },
           "comment_attributes" => {
-            "created_at" => ::Time.zone.parse("Wed, 04 Aug 2010 00:00:00 UTC +00:00")
+            "created_at" => ::Time.zone.parse("Wed, 04 Aug 2010 00:00:00 UTC +00:00"),
+            # The form no longer renders these, but the allowlist is derived from
+            # visible_fields, not from what the form builder chose to draw.
+            "commentable_type" => "FieldTest",
+            "commentable_id" => "1"
           }
         )
       end

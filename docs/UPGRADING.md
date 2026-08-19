@@ -351,6 +351,43 @@ RailsAdminNext.config Order do
 end
 ```
 
+## Nested forms hide the link back to the parent
+
+A nested subform no longer renders the child's association back to the record being edited.
+Editing a `FieldTest` with `has_one :comment, as: :commentable` used to ask, from inside that
+form, which record the comment belonged to — a choice the parent had already made and that the
+nested save overwrote anyway.
+
+This widened along with the association's notion of an inverse. `inverse_of` now answers with
+the declared `inverse_of:`, otherwise the inverse ActiveRecord resolves for the reflection,
+otherwise a polymorphic `as:`. It previously answered only the declared option, so a pair that
+declared nothing on either side — the conventional case Rails resolves on its own — reported no
+inverse and the back-reference stayed on screen. Combined with required `belongs_to` detection
+above, that field could be marked required while being one only the nested save can fill.
+
+Two consequences worth checking in a host app:
+
+- A subform for a pair that relies on Rails' automatic inverse detection now hides one more
+  field than before. The submitted `<assoc>_attributes[...]` structure is unchanged, and the
+  parameter stays permitted — this is a rendering change.
+- `field.inverse_of` in your own configuration blocks now returns a symbol for associations
+  that previously returned `nil`.
+
+`inverse_of: false` on the association is honoured, as in Rails. To keep the back-reference
+visible for one field without touching the model, disable the parent field's inverse:
+
+```ruby
+RailsAdminNext.config FieldTest do
+  edit do
+    field :comment do
+      inverse_of { false }
+    end
+  end
+end
+```
+
+Note the block: a bare `inverse_of nil` reads the option rather than setting it.
+
 ## Dropped support
 
 These are intentionally gone — migrate off them before upgrading:

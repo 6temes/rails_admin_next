@@ -130,14 +130,25 @@ RSpec.describe "Nested one widget", type: :request, js: true do
         Draft.create! player: nested_player, team: team, date: Date.new(2020, 1, 23), round: 1, pick: 1, overall: 1
       end
 
-      # Draft#player is a required belongs_to, so leaving it rendered asks the browser
-      # to block a create over a field only the nested save can fill.
+      # Draft#player is a required belongs_to, so leaving it rendered marks a field only
+      # the nested save can fill, and the browser refuses to submit the form.
       it "hides the child's required back-reference and keeps its other association", js: false do
         visit edit_path(model_name: "nested_player", id: nested_player.id)
 
         expect(page.body).to include("nested_player_draft_attributes_college")
         expect(page.body).to include("nested_player_draft_attributes_team_id")
         expect(page.body).not_to include("nested_player_draft_attributes_player_id")
+      end
+
+      # The back-reference never round-trips through the form, so the save depends on
+      # Rails wiring the inverse in memory.
+      it "still saves the subform, with the link back intact", js: false do
+        visit edit_path(model_name: "nested_player", id: nested_player.id)
+        fill_in "nested_player_draft_attributes_college", with: "Riverside"
+        click_button "Save"
+
+        expect(nested_player.reload.draft.college).to eq "Riverside"
+        expect(nested_player.draft.player_id).to eq nested_player.id
       end
     end
   end
