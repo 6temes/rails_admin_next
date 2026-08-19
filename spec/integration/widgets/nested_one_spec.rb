@@ -25,6 +25,21 @@ RSpec.describe "Nested one widget", type: :request, js: true do
     expect(field_test.reload.comment.content.strip).to eq("nested comment content")
   end
 
+  it "edits a persisted nested item in place", :aggregate_failures, js: false do
+    comment = FactoryBot.create :comment, commentable: field_test
+    visit edit_path(model_name: "field_test", id: field_test.id)
+
+    fill_in "field_test_comment_attributes_content", with: "nested comment content edited"
+    click_button "Save"
+    is_expected.to have_content("Field test successfully updated")
+
+    expect(field_test.reload.comment.content.strip).to eq("nested comment content edited")
+    # A replacement child would satisfy the content assertion too. The id is what proves
+    # the hand-rendered hidden id round-tripped, so Rails updated instead of rebuilding.
+    expect(field_test.comment.id).to eq comment.id
+    expect(Comment.count).to eq 1
+  end
+
   it "hides the add control once a subform is present" do
     visit edit_path(model_name: "field_test", id: field_test.id)
     within "#field_test_comment_attributes_field" do
@@ -142,13 +157,17 @@ RSpec.describe "Nested one widget", type: :request, js: true do
 
       # The back-reference never round-trips through the form, so the save depends on
       # Rails wiring the inverse in memory.
-      it "still saves the subform, with the link back intact", js: false do
+      it "still saves the subform, with the link back intact", :aggregate_failures, js: false do
+        draft_id = nested_player.draft.id
         visit edit_path(model_name: "nested_player", id: nested_player.id)
         fill_in "nested_player_draft_attributes_college", with: "Riverside"
         click_button "Save"
 
         expect(nested_player.reload.draft.college).to eq "Riverside"
         expect(nested_player.draft.player_id).to eq nested_player.id
+        # dependent: :destroy would clean up an orphan, so a replacement child leaves the
+        # count alone and only the id shows it.
+        expect(nested_player.draft.id).to eq draft_id
       end
     end
   end
