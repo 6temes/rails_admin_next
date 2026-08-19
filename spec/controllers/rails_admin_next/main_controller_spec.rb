@@ -395,12 +395,10 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
               "created_at" => ::Time.zone.parse("Tue, 03 Aug 2010 00:00:00 UTC +00:00")
             }
           },
+          # commentable_type/commentable_id are gone: the subform does not draw the link back
+          # to the FieldTest being edited, so nothing legitimate submits them here.
           "comment_attributes" => {
-            "created_at" => ::Time.zone.parse("Wed, 04 Aug 2010 00:00:00 UTC +00:00"),
-            # The form no longer renders these, but the allowlist is derived from
-            # visible_fields, not from what the form builder chose to draw.
-            "commentable_type" => "FieldTest",
-            "commentable_id" => "1"
+            "created_at" => ::Time.zone.parse("Wed, 04 Aug 2010 00:00:00 UTC +00:00")
           }
         )
       end
@@ -498,6 +496,48 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
         records = controller.params["field_test"]["nested_field_tests_attributes"]
         expect(records.map(&:to_h)).to eq([{"title" => "ok"}])
         expect(records.first.permitted?).to be_truthy
+      end
+
+      # The back-reference is not an "unallowed key" in the usual sense — it names a real,
+      # visible field of the child. It is dropped at nested depth only, because the parent
+      # already decides it and the form does not ask.
+      it "drops a crafted back-reference from a singular nested record" do
+        controller.params = ActionController::Parameters.new(
+          "field_test" => {
+            "comment_attributes" => {
+              "content" => "ok",
+              "commentable_type" => "Team",
+              "commentable_id" => "1"
+            }
+          }
+        )
+        controller.send(:sanitize_params_for!, :create, RailsAdminNext.config(FieldTest), controller.params["field_test"])
+        expect(controller.params["field_test"]["comment_attributes"].to_h).to eq("content" => "ok")
+      end
+
+      it "drops a crafted back-reference from every record of a nested collection" do
+        controller.params = ActionController::Parameters.new(
+          "nested_team" => {
+            "comments_attributes" => {
+              "new_1" => {"content" => "ok", "commentable_type" => "Team", "commentable_id" => "1"},
+              "new_2" => {"content" => "also ok", "commentable_id" => "2"}
+            }
+          }
+        )
+        controller.send(:sanitize_params_for!, :create, RailsAdminNext.config(NestedTeam), controller.params["nested_team"])
+        expect(controller.params["nested_team"]["comments_attributes"].values.map(&:to_h))
+          .to eq([{"content" => "ok"}, {"content" => "also ok"}])
+      end
+
+      it "still permits the back-reference when the child is edited on its own" do
+        controller.params = ActionController::Parameters.new(
+          "comment" => {"commentable_type" => "Team", "commentable_id" => "1"}
+        )
+        RailsAdminNext.config Comment do
+          field :commentable
+        end
+        controller.send(:sanitize_params_for!, :create, RailsAdminNext.config(Comment), controller.params["comment"])
+        expect(controller.params["comment"].to_h).to eq("commentable_type" => "Team", "commentable_id" => "1")
       end
 
       it "drops unallowed keys when a singular nested param is flipped to an array, without raising" do

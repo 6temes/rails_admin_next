@@ -15,7 +15,9 @@ destructive-action controls itself; a few things are left for the host to opt in
   carry `data-turbo-confirm` on the destructive submit (Turbo's confirmation, not `@rails/ujs`).
 - **Mass assignment.** Submitted attributes are sliced to the model config's `visible_fields`
   before `permit!`, at the top level and at every nested depth, regardless of the submitted
-  nested-attributes cardinality (hash or array).
+  nested-attributes cardinality (hash or array). At nested depth the slice also drops the child's
+  link back to the record being edited — the field the subform does not draw — so a crafted
+  back-reference cannot move a nested record onto a different parent.
 
 ## Content Security Policy (opt-in)
 
