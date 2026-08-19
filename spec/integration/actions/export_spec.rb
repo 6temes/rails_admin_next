@@ -94,11 +94,11 @@ RSpec.describe "Export action", type: :request do
     let(:custom_schema) do
       # removed schema=>only=>created_at
       {
-        "only" => [PK_COLUMN.to_s, "updated_at", "deleted_at", "name", "position", "number", "retired", "injured", "born_on", "notes", "suspended"],
+        "only" => ["id", "updated_at", "deleted_at", "name", "position", "number", "retired", "injured", "born_on", "notes", "suspended"],
         "include" => {
-          "team" => {"only" => [PK_COLUMN.to_s, "created_at", "updated_at", "name", "logo_url", "manager", "ballpark", "mascot", "founded", "wins", "losses", "win_percentage", "revenue", "color"]},
-          "draft" => {"only" => [PK_COLUMN.to_s, "created_at", "updated_at", "date", "round", "pick", "overall", "college", "notes"]},
-          "comments" => {"only" => [PK_COLUMN.to_s, "content", "created_at", "updated_at"]}
+          "team" => {"only" => ["id", "created_at", "updated_at", "name", "logo_url", "manager", "ballpark", "mascot", "founded", "wins", "losses", "win_percentage", "revenue", "color"]},
+          "draft" => {"only" => ["id", "created_at", "updated_at", "date", "round", "pick", "overall", "college", "notes"]},
+          "comments" => {"only" => ["id", "content", "created_at", "updated_at"]}
         }
       }
     end

@@ -140,7 +140,7 @@ RSpec.describe RailsAdminNext::AbstractModel do
     end
 
     it "returns a single page of records carrying pagination metadata", :aggregate_failures do
-      collection = @abstract_model.all(sort: PK_COLUMN, page: 1, per: 2)
+      collection = @abstract_model.all(sort: :id, page: 1, per: 2)
       expect(collection.count).to eq(2)
       expect(collection.current_page).to eq(1)
       expect(collection.total_count).to eq(5)
@@ -148,7 +148,7 @@ RSpec.describe RailsAdminNext::AbstractModel do
     end
 
     it "offsets to the requested page", :aggregate_failures do
-      collection = @abstract_model.all(sort: PK_COLUMN, page: 3, per: 2)
+      collection = @abstract_model.all(sort: :id, page: 3, per: 2)
       expect(collection.current_page).to eq(3)
       expect(collection.count).to eq(1)
     end
