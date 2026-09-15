@@ -20,9 +20,11 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
+            # HTML first: an Accept-less request arrives as */*, which matches every
+            # registered type, so Rails falls back to whichever is declared first.
             respond_to do |format|
-              format.json { render json: @object }
               format.html { render @action.template_name }
+              format.json { render json: @object }
             end
           end
         end
