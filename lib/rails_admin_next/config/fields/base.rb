@@ -199,13 +199,14 @@ module RailsAdminNext
 
         # Accessor for field's length restrictions per validations
         #
-        # A bound given as a Proc can only be resolved at validation time, so it is
-        # dropped rather than compared against the column limit. Devise's password
-        # length validation declares its bounds that way.
+        # ActiveModel also accepts a bound as a Proc or a Symbol, which it resolves
+        # against the record at validation time. Neither can be compared against the
+        # column limit here, so both are dropped. Devise's password length validation
+        # declares its bounds as Procs.
         register_instance_option :valid_length do
           @valid_length ||=
             (abstract_model.model.validators_on(name).detect { |v| v.kind == :length }.try(&:options) || {})
-              .reject { |option, bound| LENGTH_BOUNDS.include?(option) && bound.is_a?(Proc) }
+              .reject { |option, bound| LENGTH_BOUNDS.include?(option) && (bound.is_a?(Proc) || bound.is_a?(Symbol)) }
         end
 
         register_instance_option :partial do
