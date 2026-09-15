@@ -398,6 +398,27 @@ end
 
 Note the block: a bare `inverse_of nil` reads the option rather than setting it.
 
+## The show action answers HTML by default
+
+`show` used to declare its JSON format before its HTML one, so a request carrying no
+`Accept` header — `curl`, a bare `fetch()`, most HTTP client libraries — arrived as
+`*/*`, matched every registered type, and got JSON back. Every other action answered
+HTML for the same request.
+
+It now declares HTML first. A client that explicitly sends `Accept: application/json`,
+or requests the `.json` extension, is unaffected.
+
+If you have a script relying on the unheadered JSON response, send the header or use
+`.json`:
+
+```bash
+curl -H 'Accept: application/json' https://example.com/admin/player/1
+curl https://example.com/admin/player/1.json
+```
+
+Note that the JSON branch renders the whole record, including columns the model config
+hides from the show view.
+
 ## Dropped support
 
 These are intentionally gone — migrate off them before upgrading:
