@@ -319,7 +319,14 @@ RSpec.describe "Filter box widget", type: :request, js: true do
       input = find('[name^="f[time_field]"][name$="[v][]"]', match: :first)
       expect(input[:type]).to eq "time"
       expect(input.value).to be_blank
-      input.set("2000-01-01T14:00:00")
+
+      # Capybara only formats a time input's value when given a Time, and then as %H:%M --
+      # a String is sent as raw keystrokes instead. Neither round-trips the %H:%M:%S that
+      # step="1" makes this control accept, so assign the value and fire the event directly.
+      page.execute_script(
+        "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('change', { bubbles: true }))",
+        input, "14:00:00"
+      )
       expect(input.value).to eq "14:00:00"
     end
   end
