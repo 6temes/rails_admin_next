@@ -63,11 +63,6 @@ module RailsAdminNext
             :form_datetime
           end
 
-          # Picker-only legacy option; native HTML5 inputs render per the browser locale, so it is ignored.
-          register_deprecated_instance_option :momentjs_format do
-            RailsAdminNext.deprecator.warn("The momentjs_format configuration option is deprecated and ignored; date/time fields now use native HTML5 inputs.")
-          end
-
           # The native <input type="datetime-local" step="1"> control accepts and emits ISO 8601 only.
           def form_value
             value&.in_time_zone&.strftime("%Y-%m-%dT%H:%M:%S") || form_default_value

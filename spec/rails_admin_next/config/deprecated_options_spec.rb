@@ -2,50 +2,46 @@
 
 require "spec_helper"
 
-# Rails 8.1 made the class-level ActiveSupport::Deprecation.warn private, so every
-# deprecated-option shim must go through RailsAdminNext.deprecator (an instance
-# deprecator) instead. Each example below touches a deprecated option and asserts
-# the warning is emitted via the instance deprecator AND that touching it never raises.
-RSpec.describe "deprecated configuration options" do
-  describe "the generic register_deprecated_instance_option shim (Configurable)" do
-    it "warns via the deprecator and delegates to the replacement, without raising", :aggregate_failures do
-      RailsAdminNext.config Team do
-        field :players do
-          eager_load true
-        end
+# Rails 8.1 made the class-level ActiveSupport::Deprecation.warn private, so the shim
+# must go through RailsAdminNext.deprecator (an instance deprecator) instead. The engine
+# declares no deprecated options of its own any more, but extensions and host apps use
+# this mechanism for theirs, so it stays covered.
+RSpec.describe RailsAdminNext::Config::Configurable do
+  let(:configurable) do
+    Class.new do
+      include RailsAdminNext::Config::Configurable
+
+      register_instance_option :replacement do
+        "the value"
       end
-      field = RailsAdminNext.config(Team).fields.detect { |f| f.name == :players }
+    end.new
+  end
 
-      expect(RailsAdminNext.deprecator).to receive(:warn).with(/eager_load/)
-      expect { expect(field.eager_load?).to eq(true) }.not_to raise_error
+  describe "an option with a replacement" do
+    it "warns via the deprecator and delegates, without raising", :aggregate_failures do
+      configurable.register_deprecated_instance_option :legacy, :replacement
+
+      expect(RailsAdminNext.deprecator).to receive(:warn).with(/legacy.*replacement/)
+      expect(configurable.legacy).to eq("the value")
     end
   end
 
-  describe "RailsAdminNext::Config.total_columns_width=" do
-    it "warns via the deprecator without raising" do
-      expect(RailsAdminNext.deprecator).to receive(:warn).with(/total_columns_width/)
-      expect { RailsAdminNext.config.total_columns_width = 900 }.not_to raise_error
+  describe "an option removed with a custom message" do
+    it "yields the block instead of raising" do
+      configurable.register_deprecated_instance_option :legacy do
+        RailsAdminNext.deprecator.warn("The legacy configuration option was removed.")
+      end
+
+      expect(RailsAdminNext.deprecator).to receive(:warn).with(/legacy/)
+      configurable.legacy
     end
   end
 
-  describe "RailsAdminNext::Config.sidescroll=" do
-    it "warns via the deprecator without raising" do
-      expect(RailsAdminNext.deprecator).to receive(:warn).with(/sidescroll/)
-      expect { RailsAdminNext.config.sidescroll = false }.not_to raise_error
-    end
-  end
+  describe "an option removed without a replacement" do
+    it "raises, so the host is not left believing it still applies" do
+      configurable.register_deprecated_instance_option :legacy
 
-  describe "RailsAdminNext::Config::Sections::List#sidescroll" do
-    it "warns via the deprecator without raising" do
-      expect(RailsAdminNext.deprecator).to receive(:warn).with(/sidescroll/)
-      expect { RailsAdminNext.config(Player).list.sidescroll }.not_to raise_error
-    end
-  end
-
-  describe "RailsAdminNext::Config::Sections::List#sort_reverse" do
-    it "warns via the deprecator without raising" do
-      expect(RailsAdminNext.deprecator).to receive(:warn).with(/sort_reverse/)
-      expect { RailsAdminNext.config(Player).list.sort_reverse }.not_to raise_error
+      expect { configurable.legacy }.to raise_error(/legacy.*removed without replacement/)
     end
   end
 end
