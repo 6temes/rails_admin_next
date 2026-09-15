@@ -2,7 +2,7 @@
 
 Assessed through upstream `897ffc13` (2026-09-13). Fork point: `d8e0809e` (2025-09-14).
 
-Divergence from the fork point: 785 files, +20,480 / −73,367 lines.
+Divergence from the fork point: 787 files, +20,899 / −73,565 lines.
 
 ## How this fork tracks upstream
 
@@ -18,16 +18,16 @@ Commits are listed newest first, as `git log` reports them.
 
 | upstream | subject | verdict | ours |
 |---|---|---|---|
-| `897ffc13` | Fix _discard leaking into SQL for multi-select enum filters | relevant — server half only; the client half is already covered differently here | [#30](https://github.com/6temes/rails_admin_next/issues/30) |
-| `11f214f6` | Remove config options deprecated before RailsAdmin 3.0 | partly done — `RailsAdminNext.deprecator` already ships; the six removals do not | [#34](https://github.com/6temes/rails_admin_next/issues/34) |
-| `cbea80b1` | Match GET in http_methods case-insensitively | relevant — both call sites present verbatim | [#31](https://github.com/6temes/rails_admin_next/issues/31) |
-| `9336ec71` | Drop Proc bounds from a field's length validation | relevant — measured: `generic_help` raises `ArgumentError: comparison of Integer with Proc failed` | [#29](https://github.com/6temes/rails_admin_next/issues/29) |
+| `897ffc13` | Fix _discard leaking into SQL for multi-select enum filters | adapted — server half only; the client half was already stronger here (disabled options), so upstream's JS was deliberately not ported | [#36](https://github.com/6temes/rails_admin_next/pull/36) |
+| `11f214f6` | Remove config options deprecated before RailsAdmin 3.0 | adapted — the deprecator half already shipped; this removed the six options | [#40](https://github.com/6temes/rails_admin_next/pull/40) |
+| `cbea80b1` | Match GET in http_methods case-insensitively | adapted — `Actions::Base#linkable?` | [#38](https://github.com/6temes/rails_admin_next/pull/38) |
+| `9336ec71` | Drop Proc bounds from a field's length validation | adapted — widened beyond upstream to Symbol bounds, which crash identically | [#35](https://github.com/6temes/rails_admin_next/pull/35) |
 | `331841ea` | Remove duplicate global assignment of window.jQuery | n/a — jQuery removed | — |
 | `71852cd8` | Fix malformed rubocop directive comment | n/a — measured: standardrb clean, and no `has_option?` directive here to malform | — |
 | `cfc17e0d` | Pin json to < 3 for the test suite | n/a — dependency churn, Dependabot's job | — |
-| `316c299d` | Change default response format of the show action to HTML | relevant — `format.json` still declared first | [#32](https://github.com/6temes/rails_admin_next/issues/32) |
+| `316c299d` | Change default response format of the show action to HTML | adapted | [#39](https://github.com/6temes/rails_admin_next/pull/39) |
 | `0f4f765e` | Use the same widget which works for nullable booleans also for non nullable | declined — cosmetic consistency change; alters every boolean field in every host app and fixes no defect | — |
-| `495cc864` | Filter ferrum 0.18's console stack-frame log lines | relevant — latent: logger byte-identical to upstream's pre-fix version, and `action_text_spec` carries the stubbing pattern that breaks | [#33](https://github.com/6temes/rails_admin_next/issues/33) |
+| `495cc864` | Filter ferrum 0.18's console stack-frame log lines | adapted — landed before the cuprite bump that would trigger it | [#37](https://github.com/6temes/rails_admin_next/pull/37) |
 | `2eed28e1` | Fully specify all ESM imports with an extension | n/a — measured: every relative import in `src/` already carries `.js`; browser-native ESM requires it | — |
 | `e8dec57a` | Upgrade @hotwired/turbo-rails to resolve security warning | n/a — turbo comes from the `turbo-rails` gem (2.0.23), which Dependabot reads | — |
 | `07b2066a` | Replace `asset-url` with `url` in Sass files | n/a — no Sass; one hand-owned CSS file | — |
@@ -70,6 +70,18 @@ Where a port deliberately differs from upstream's own patch. Each is correct *fo
 **`FormBuilder#nested_field_association?`** (from the same commit) limits its hoisted name-match branch to association fields. Upstream's hoist is unconstrained. A polymorphic `as:` is never validated against the child class, so without the limit a plain column sharing that name can be suppressed from a subform.
 
 **`sanitize_params_for!`** drops the parent's inverse from the nested allowlist, which upstream does not do at all — its permitted keys are derived purely from the visible fields. Hiding the back-reference without narrowing the allowlist left a collection subform re-parentable through a crafted `<assoc>_attributes[n]`, since `assign_nested_attributes_for_collection_association` assigns straight onto an already-associated record ([#24](https://github.com/6temes/rails_admin_next/pull/24)).
+
+**`Field::Base#valid_length` drops Symbol bounds as well as Proc ones** (from `9336ec71`), and drops them only from the three keys that get compared (`LENGTH_BOUNDS`). Upstream drops every Proc-valued entry and no Symbols at all.
+
+- ActiveModel sanctions four bound types and resolves Proc and Symbol against the record at validation time, so neither can be compared against the column limit. Measured here: `minimum: :some_method` raised the same `ArgumentError` upstream's fix addresses for Procs, and a surviving `maximum: :some_method` rendered "Length up to max_len" as help text.
+- The narrowing to three keys exists because `valid_length` is a `register_instance_option` that host apps read. Rejecting every Proc, as upstream does, would also strip `if:`/`unless:` conditions from the hash.
+- `:in` and `:within` need no entry: ActiveModel collapses them to `:minimum`/`:maximum` at validator construction, and a Proc passed as `:in` raises at declaration time.
+
+**`StatementBuilder#to_statement` excludes `between` from the `_discard` strip** (from `897ffc13`), and strips only when the array actually contained the sentinel. Upstream strips unconditionally.
+
+- `between` reads its value array by index, so removing an element shifts the range ends. Measured: `["ignored", "_discard", "20"]` became a `>= 20` filter where it had been `<= 20`.
+- An array that arrived empty is not an array the strip emptied. A date filter legitimately submits `{v: [], o: "today"}`, carrying its meaning in the operator alone; returning early on any empty array breaks it.
+- Upstream's client-side half is deliberately not ported. `filter_box_controller` here sets `disabled` on the sentinel options in multi-select mode, not merely `hidden`, and a disabled `<option>` is excluded from form submission — a stronger guarantee than upstream's deselect.
 
 **The engine's stylesheet and style-preload tags carry the CSP nonce** (from `1f681b48`), but `csp_meta_tag` does not ship. Turbo reads that meta to re-nonce scripts it re-activates, and this engine renders no body script for it to re-activate; the nonce generator here is also per-request random, which a cached Turbo snapshot would carry stale. Adding the meta wants that generator decision alongside it.
 
