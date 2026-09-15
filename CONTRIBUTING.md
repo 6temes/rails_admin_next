@@ -130,7 +130,7 @@ pull request with failing specs.
 
 ## Releasing (maintainers)
 
-Every push to `master` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
+Every push to `main` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
 draft with an auto-bumped version and the merged PR titles. Releasing is publishing that
 draft: the created tag triggers the `Publish Gem` workflow, which stamps the tag's version
 into `lib/rails_admin_next/version.rb`, builds the gem, and pushes it to RubyGems via
