@@ -135,7 +135,10 @@ module RailsAdminNext
         # be stripped out of one rather than compared against it. An array emptied by
         # that strip discards the filter, but one that arrived empty does not: a date
         # filter carries its meaning in the operator alone ("today", "this_week").
-        if @value.is_a?(Array) && @value.include?("_discard")
+        #
+        # "between" is excluded because it alone reads the array by index, so removing
+        # an element would shift the range ends rather than discard anything.
+        if @value.is_a?(Array) && @operator != "between" && @value.include?("_discard")
           @value -= ["_discard"]
           return if @value.empty?
         end
