@@ -25,6 +25,51 @@ RSpec.describe RailsAdminNext::Config::Fields::Types::String do
     end
   end
 
+  describe "#valid_length" do
+    before :each do
+      RailsAdminNext.config Ball do
+        field "color", :string
+      end
+    end
+
+    let(:string_field) do
+      RailsAdminNext.config("Ball").fields.detect do |f|
+        f.name == :color
+      end.with(object: Ball.new)
+    end
+
+    def stub_length_validator(**options)
+      validator = ActiveModel::Validations::LengthValidator.new(attributes: [:color], **options)
+      allow(Ball).to receive(:validators_on).with(:color).and_return([validator])
+    end
+
+    it "drops bounds given as a Proc" do
+      stub_length_validator(minimum: -> { 6 }, maximum: -> { 128 })
+
+      expect(string_field.valid_length).to eq({})
+      expect { string_field.generic_help }.not_to raise_error
+    end
+
+    it "drops an exact length given as a Proc" do
+      stub_length_validator(is: -> { 8 })
+
+      expect(string_field.valid_length).to eq({})
+    end
+
+    it "keeps bounds given as integers" do
+      stub_length_validator(minimum: 6, maximum: 128)
+
+      expect(string_field.valid_length).to include(minimum: 6, maximum: 128)
+    end
+
+    it "keeps options that are not length bounds" do
+      condition = -> { true }
+      stub_length_validator(maximum: 128, if: condition)
+
+      expect(string_field.valid_length).to include(maximum: 128, if: condition)
+    end
+  end
+
   it_behaves_like "a generic field type", :string_field
 
   it_behaves_like "a string-like field type", :string_field

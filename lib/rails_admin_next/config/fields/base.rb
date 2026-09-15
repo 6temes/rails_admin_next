@@ -16,6 +16,9 @@ module RailsAdminNext
         include RailsAdminNext::Config::Groupable
         include RailsAdminNext::Config::Inspectable
 
+        # The length-validation options that are compared against the column limit.
+        LENGTH_BOUNDS = %i[is maximum minimum].freeze
+
         attr_reader :name, :properties, :abstract_model, :parent, :root
         attr_accessor :defined, :order, :section
 
@@ -196,8 +199,13 @@ module RailsAdminNext
 
         # Accessor for field's length restrictions per validations
         #
+        # A bound given as a Proc can only be resolved at validation time, so it is
+        # dropped rather than compared against the column limit. Devise's password
+        # length validation declares its bounds that way.
         register_instance_option :valid_length do
-          @valid_length ||= abstract_model.model.validators_on(name).detect { |v| v.kind == :length }.try(&:options) || {}
+          @valid_length ||=
+            (abstract_model.model.validators_on(name).detect { |v| v.kind == :length }.try(&:options) || {})
+              .reject { |option, bound| LENGTH_BOUNDS.include?(option) && bound.is_a?(Proc) }
         end
 
         register_instance_option :partial do
