@@ -147,6 +147,13 @@ module RailsAdminNext
 
         # Off API.
 
+        # Whether visiting the action's URL performs it, so it can be rendered as a
+        # plain link rather than a button. Verbs are host-supplied, so they may be
+        # written as :GET or "get".
+        def linkable?
+          http_methods.include?(:get) || http_methods.any? { |verb| verb.to_s.casecmp?("get") }
+        end
+
         def key
           self.class.key
         end

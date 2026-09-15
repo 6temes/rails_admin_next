@@ -144,7 +144,7 @@ module RailsAdminNext
           content_tag(:li, class: ["breadcrumb-item", current_action?(a, am, o) && "active"]) do
             if current_action?(a, am, o)
               wording_for(:breadcrumb, a, am, o)
-            elsif a.http_methods.include?(:get)
+            elsif a.linkable?
               link_to rails_admin_next.url_for(action: a.action_name, controller: "rails_admin_next/main", model_name: am.try(:to_param), id: o.try(:persisted?) && o.try(:id) || nil) do
                 wording_for(:breadcrumb, a, am, o)
               end
@@ -159,7 +159,7 @@ module RailsAdminNext
     # parent => :root, :collection, :member
     # perf matters here (no action view trickery)
     def menu_for(parent, abstract_model = nil, object = nil, only_icon = false)
-      actions = actions(parent, abstract_model, object).select { |a| a.http_methods.include?(:get) && a.show_in_menu }
+      actions = actions(parent, abstract_model, object).select { |a| a.linkable? && a.show_in_menu }
       actions.collect do |action|
         wording = wording_for(:menu, action)
         li_class = ["nav-item", "icon", "#{action.key}_#{parent}_link"]
