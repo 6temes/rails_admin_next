@@ -304,6 +304,15 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
       end
     end
 
+    it "strips '_discard' out of a multi-valued filter", :aggregate_failures do
+      expect(build_statement(:enum, ["_discard"], nil)).to be_nil
+      expect(build_statement(:enum, %w[_discard foo bar], nil)).to eq(["(field IN (?))", %w[foo bar]])
+    end
+
+    it "leaves a 'between' range alone, since it reads its array by index" do
+      expect(build_statement(:integer, ["ignored", "_discard", "20"], "between")).to eq(["(field <= ?)", 20])
+    end
+
     describe "string type queries" do
       it "supports string type query" do
         expect(build_statement(:string, "", nil)).to be_nil
