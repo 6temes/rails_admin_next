@@ -1,8 +1,8 @@
 # Upstream parity
 
-Assessed through upstream `0690a5e6` (2026-08-08). Fork point: `d8e0809e` (2025-09-14).
+Assessed through upstream `897ffc13` (2026-09-13). Fork point: `d8e0809e` (2025-09-14).
 
-Divergence from the fork point: 771 files, +20,217 / −73,168 lines.
+Divergence from the fork point: 785 files, +20,480 / −73,367 lines.
 
 ## How this fork tracks upstream
 
@@ -18,6 +18,24 @@ Commits are listed newest first, as `git log` reports them.
 
 | upstream | subject | verdict | ours |
 |---|---|---|---|
+| `897ffc13` | Fix _discard leaking into SQL for multi-select enum filters | relevant — server half only; the client half is already covered differently here | [#30](https://github.com/6temes/rails_admin_next/issues/30) |
+| `11f214f6` | Remove config options deprecated before RailsAdmin 3.0 | partly done — `RailsAdminNext.deprecator` already ships; the six removals do not | [#34](https://github.com/6temes/rails_admin_next/issues/34) |
+| `cbea80b1` | Match GET in http_methods case-insensitively | relevant — both call sites present verbatim | [#31](https://github.com/6temes/rails_admin_next/issues/31) |
+| `9336ec71` | Drop Proc bounds from a field's length validation | relevant — measured: `generic_help` raises `ArgumentError: comparison of Integer with Proc failed` | [#29](https://github.com/6temes/rails_admin_next/issues/29) |
+| `331841ea` | Remove duplicate global assignment of window.jQuery | n/a — jQuery removed | — |
+| `71852cd8` | Fix malformed rubocop directive comment | n/a — measured: standardrb clean, and no `has_option?` directive here to malform | — |
+| `cfc17e0d` | Pin json to < 3 for the test suite | n/a — dependency churn, Dependabot's job | — |
+| `316c299d` | Change default response format of the show action to HTML | relevant — `format.json` still declared first | [#32](https://github.com/6temes/rails_admin_next/issues/32) |
+| `0f4f765e` | Use the same widget which works for nullable booleans also for non nullable | declined — cosmetic consistency change; alters every boolean field in every host app and fixes no defect | — |
+| `495cc864` | Filter ferrum 0.18's console stack-frame log lines | relevant — latent: logger byte-identical to upstream's pre-fix version, and `action_text_spec` carries the stubbing pattern that breaks | [#33](https://github.com/6temes/rails_admin_next/issues/33) |
+| `2eed28e1` | Fully specify all ESM imports with an extension | n/a — measured: every relative import in `src/` already carries `.js`; browser-native ESM requires it | — |
+| `e8dec57a` | Upgrade @hotwired/turbo-rails to resolve security warning | n/a — turbo comes from the `turbo-rails` gem (2.0.23), which Dependabot reads | — |
+| `07b2066a` | Replace `asset-url` with `url` in Sass files | n/a — no Sass; one hand-owned CSS file | — |
+| `a0946615` | Drop support for Rails 6.x and Ruby 2.5/2.6 | n/a — this fork is Rails ~> 8.1 / Ruby >= 4.0.5 only | — |
+| `0543cb3f` | Revert npm package.json version ahead of actual publish | n/a — no npm package | — |
+| `cf7b112e` | Run Prettier on migrated docs | n/a — upstream's vendored wiki | — |
+| `1c2b92a3` | Rewrite wiki cross-links to relative docs/ links | n/a — upstream's vendored wiki | — |
+| `70ca765e` | Merge wiki history into docs/ | n/a — upstream vendored its GitHub wiki; this fork ships its own docs | — |
 | `0690a5e6` | Start development for 4.0.0 | n/a — upstream release chore | — |
 | `50fbbcd9` | Remove @babel/runtime as a direct dependency | n/a — no npm build here | — |
 | `e4ad87b7` | Replace deprecated jQuery functions with native ones | n/a — jQuery removed | — |
@@ -59,8 +77,10 @@ Where a port deliberately differs from upstream's own patch. Each is correct *fo
 
 ```bash
 git fetch upstream
-git log --oneline 0690a5e6..upstream/master
+git log --oneline --first-parent 897ffc13..upstream/master
 ```
+
+`--first-parent` is load-bearing. Upstream folds whole histories in from time to time — `70ca765e` merged its GitHub wiki into `docs/`, and a plain `git log` across it turns an 18-commit batch into 1301, the extra 1283 being someone else's markdown. Check anything that is a merge (`git log -1 --format='%P %s' <sha>`) for what it actually brought in: vendored docs are one row, a merged feature branch needs its commits triaged individually.
 
 Triage each commit by the **underlying problem**, not by the API, selector, or library its diff happens to touch. State the problem without naming any of them; if that sentence describes something possible here, the commit is relevant even when its diff is entirely in code this fork deleted.
 
