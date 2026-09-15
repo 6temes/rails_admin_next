@@ -418,6 +418,23 @@ curl https://example.com/admin/player/1.json
 
 Note that the JSON branch renders the whole record, including columns the model config
 hides from the show view.
+## Removed: options deprecated before RailsAdmin 3.0
+
+These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for
+years. They are gone rather than carried into this gem's 1.0:
+
+| Removed | What to do |
+| --- | --- |
+| `config.total_columns_width=` | Nothing. It had no effect. |
+| `config.sidescroll=` | Nothing. Horizontal scroll with frozen columns is always on. |
+| `list.sidescroll` | Nothing. Same as above. The field-level `sticky?` still controls which columns freeze. |
+| `list.sort_reverse` | Nothing. It had no effect. The field-level `sort_reverse?` is unrelated and unaffected. |
+| `momentjs_format` | Nothing. Date/time fields are native HTML5 inputs and render per the browser locale. |
+| `eager_load?` | Rename to `eager_load`. |
+| `delete_key` (`:multiple_file_upload`) | Rename to `delete_value`. |
+
+`register_deprecated_instance_option` itself stays — extensions and host apps use it for
+their own options.
 
 ## Dropped support
 

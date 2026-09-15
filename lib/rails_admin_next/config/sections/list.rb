@@ -46,16 +46,8 @@ module RailsAdminNext
           ""
         end
 
-        register_deprecated_instance_option :sidescroll do
-          RailsAdminNext.deprecator.warn("The sidescroll configuration option was removed, it is always enabled now.")
-        end
-
         def fields_for_table
           visible_fields.partition(&:sticky?).flatten
-        end
-
-        register_deprecated_instance_option :sort_reverse do
-          RailsAdminNext.deprecator.warn("The sort_reverse configuration option is deprecated and has no effect.")
         end
       end
     end
