@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2024_09_21_171953) do
+ActiveRecord::Schema.define(version: 2026_10_13_000000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.string "name", null: false
     t.text "body"
@@ -159,6 +159,7 @@ ActiveRecord::Schema.define(version: 2024_09_21_171953) do
     t.integer "integer_enum_field"
     t.boolean "open"
     t.boolean "non_nullable_boolean_field", default: false, null: false
+    t.integer "order"
   end
 
   create_table "foo_bars", force: :cascade do |t|
