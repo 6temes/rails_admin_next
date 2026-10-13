@@ -182,13 +182,24 @@ module RailsAdminNext
 
         def add(field, value, operator)
           field.searchable_columns.flatten.each do |column_infos|
-            statement, value1, value2 = StatementBuilder.new(column_infos[:column], column_infos[:type], value, operator, @scope.connection.adapter_name).to_statement
+            statement, value1, value2 = StatementBuilder.new(quote(column_infos[:column]), column_infos[:type], value, operator, @scope.connection.adapter_name).to_statement
             @statements << statement if statement.present?
             @values << value1 unless value1.nil?
             @values << value2 unless value2.nil?
             table, column = column_infos[:column].split(".")
             @tables.push(table) if column
           end
+        end
+
+        # Columns arrive as bare "table.column", and a reserved-word name such as `order`
+        # is a syntax error unquoted. Anything else (raw SQL, already-quoted names) is
+        # passed through untouched.
+        def quote(column)
+          parts = column.split(".")
+          return column unless parts.size == 2 && parts.all?(/\A\w+\z/)
+
+          table, name = parts
+          "#{@scope.connection.quote_table_name(table)}.#{@scope.connection.quote_column_name(name)}"
         end
 
         def build
