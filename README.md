@@ -83,6 +83,22 @@ The install generator mounts the engine, writes
 `config/initializers/rails_admin_next.rb`, and does nothing else — the engine ships its
 own importmap and CSS, so there is no `yarn add`, no asset build, and no generated pins.
 
+### Agent skill
+
+RailsAdminNext is a [Rails Hyperdrive][hyperdrive] companion gem. It ships a
+`rails-admin-next` skill that teaches coding agents this fork's API rather than upstream
+RailsAdmin's. In an app running Hyperdrive, sync installs the skill, and each later
+release updates it:
+
+```bash
+bin/rails hyperdrive:sync
+```
+
+The skill points agents at the `docs/*.md` files packaged in the gem, so its references
+always match the installed version.
+
+[hyperdrive]: https://github.com/rails-hyperdrive/rails-hyperdrive
+
 ## Features
 
 - CRUD any data with ease
