@@ -15,12 +15,13 @@ Gem::Specification.new do |spec|
   spec.authors = ["Daniel López Prat"]
   spec.description = "A Rails engine that auto-generates an easy-to-use admin interface for your ActiveRecord data. A modernized fork of RailsAdmin, originally created by Erik Michaels-Ober, Bogdan Gaza, and contributors."
   spec.email = ["daniel@6temes.cat"]
-  spec.files = Dir["Gemfile", "LICENSE.md", "README.md", "Rakefile", "app/**/*", "config/**/*", "lib/**/*", "public/**/*", "src/**/*", "vendor/**/*"]
+  spec.files = Dir["Gemfile", "LICENSE.md", "README.md", "Rakefile", "app/**/*", "config/**/*", "docs/*.md", "lib/**/*", "public/**/*", "skills/**/*", "src/**/*", "vendor/**/*"]
   spec.licenses = %w[MIT]
   spec.homepage = "https://github.com/6temes/rails_admin_next"
   spec.metadata = {
     "bug_tracker_uri" => "https://github.com/6temes/rails_admin_next/issues",
     "changelog_uri" => "https://github.com/6temes/rails_admin_next/releases",
+    "hyperdrive_targets" => "rails_admin_next",
     "rubygems_mfa_required" => "true",
     "source_code_uri" => "https://github.com/6temes/rails_admin_next"
   }
