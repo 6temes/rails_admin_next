@@ -19,6 +19,10 @@ group :test do
   gem "generator_spec"
   gem "image_processing"
   gem "pundit"
+  # Pinned within 0.10: Gemfile.lock is not committed here, so CI resolves fresh on every run
+  # and no Dependabot PR stages a release first, and the discovery spec drives Hyperdrive's
+  # pre-1.0 discovery API, which has renamed keys within 0.x before.
+  gem "rails-hyperdrive", "~> 0.10.1", require: false
   gem "rspec-rails"
   gem "rspec-retry"
   gem "ruby-vips"
