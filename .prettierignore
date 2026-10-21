@@ -8,6 +8,7 @@ lib/generators/rails_admin_next/templates
 # Hand-authored prose docs (markdown reflow is noisy; owned by the docs unit)
 CLAUDE.md
 docs/
+skills/
 
 # Generated, machine-written, or intentionally-modified config
 spec/dummy_app/config/database.yml
