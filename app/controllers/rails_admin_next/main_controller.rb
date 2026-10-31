@@ -237,7 +237,11 @@ module RailsAdminNext
       source_model_config = source_abstract_model.config
       source_object = source_abstract_model.get(params[:source_object_id])
       action = params[:current_action].in?(%w[create update]) ? params[:current_action] : "edit"
-      @association = source_model_config.send(action).fields.detect { |f| f.name == params[:associated_collection].to_sym }.with(controller: self, object: source_object)
+      field = source_model_config.send(action).fields.detect { |f| f.name == params[:associated_collection].to_sym }
+      # The picker's params are client-supplied; a field that doesn't target this model would run its scope and labels on the wrong records.
+      return nil unless field&.association? && Array.wrap(field.associated_model_config).include?(@model_config)
+
+      @association = field.with(controller: self, object: source_object)
       @association.associated_collection_scope
     end
   end
