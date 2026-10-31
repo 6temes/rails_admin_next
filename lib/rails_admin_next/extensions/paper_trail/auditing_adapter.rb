@@ -143,7 +143,7 @@ module RailsAdminNext
 
           versions = object.nil? ? versions_for_model(model) : object.public_send(model.model.versions_association_name)
           versions = versions.where("event LIKE ?", "%#{query}%") if query.present?
-          versions = versions.order(sort)
+          versions = versions.reorder(sort)
 
           paginate_versions(versions, all, (page.presence || 1).to_i, per_page.to_i)
         end

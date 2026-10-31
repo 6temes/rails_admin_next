@@ -29,12 +29,12 @@ RSpec.describe RailsAdminNext::Extensions::PaperTrail::AuditingAdapter, active_r
     let(:model) { RailsAdminNext::AbstractModel.new(PaperTrailTest) }
 
     it "uses the given sort order" do
-      expect_any_instance_of(ActiveRecord::Relation).to receive(:order).with(whodunnit: :asc).and_call_original
+      expect_any_instance_of(ActiveRecord::Relation).to receive(:reorder).with(whodunnit: :asc).and_call_original
       subject.listing_for_model model, nil, :username, false, true, nil, 20
     end
 
     it "uses the default order when sort is not given" do
-      expect_any_instance_of(ActiveRecord::Relation).to receive(:order).with(id: :desc).and_call_original
+      expect_any_instance_of(ActiveRecord::Relation).to receive(:reorder).with(id: :desc).and_call_original
       subject.listing_for_model model, nil, false, false, true, nil, 20
     end
   end
