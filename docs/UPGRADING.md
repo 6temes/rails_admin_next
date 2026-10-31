@@ -8,9 +8,77 @@ the one-time changes a host app needs.
 
 The Ruby namespace is renamed **`RailsAdmin` → `RailsAdminNext`** (and `rails_admin` →
 `rails_admin_next`), so your initializer, engine mount, model macros, and route helpers
-need a mechanical rename. The **authorization contract is deliberately unchanged** — the
-`:access, :rails_admin` subject and the `admin.*` I18n namespace stay exactly as they were,
-so your CanCanCan abilities, Pundit policies, and translations need no edits.
+need a mechanical rename. The **authorization contract is deliberately unchanged** — every
+action's authorization key and the `admin.*` I18n namespace stay exactly as they were, so
+your Pundit policies and translations need no edits. CanCanCan is no longer a built-in
+adapter; see the 2.0 section below.
+
+## 2.0: CanCanCan support removed
+
+Pundit is the only built-in authorization adapter. `config.authorize_with :cancancan` now
+raises `ArgumentError` while the initializer loads, listing the registered adapters. Any
+other unregistered key does the same. Choose one of the two routes below.
+
+### Move to Pundit
+
+```ruby
+RailsAdminNext.config do |config|
+  config.authorize_with :pundit
+end
+```
+
+- **`ApplicationPolicy`.** The adapter falls back to `::ApplicationPolicy` for the dashboard
+  (record `nil`) and for any model without its own policy.
+- **Action predicates.** The adapter calls each action's authorization key with a `?`
+  suffix: `dashboard?`, `index?`, `show?`, `new?`, `edit?`, `export?`, `destroy?`,
+  `history?` and `show_in_app?`. Saving a new record also calls `create?`, and saving an
+  edit calls `update?`. Member actions pass the record; list-level checks pass the class.
+- **A `Scope` for every model the admin lists.** A model with no `Scope` lists nothing (see
+  [Pundit: a model with no policy Scope lists nothing](#pundit-a-model-with-no-policy-scope-lists-nothing)).
+- **Optional `attributes_for(action)`** on a policy returns the attributes a new record
+  starts with, for example `{suspended: true}` for `:new`.
+
+Three differences from CanCanCan to check before switching:
+
+- **One `Scope` bounds every list.** The adapter passes no action to the `Scope`, so the same
+  scope bounds index, export, bulk delete and the dashboard count. Bulk destroy deletes every
+  selected record that `Scope` returns, with no per-record `destroy?` check. If an ability
+  allowed destroy or export on fewer records than read, resolve the `Scope` to the narrowest
+  of them, or stay on a custom adapter whose `query` honours the action.
+- **Nothing checks `:access, :rails_admin`.** Admin access is decided by the same policies,
+  and the `ApplicationPolicy` fallback, that the rest of the app uses. If those admit
+  ordinary users, gate admin entry separately: in `config.authenticate_with`, or with
+  admin-specific `authorization_key` values per action.
+- **The block form only gates entry.** `config.authorize_with { ... }` runs before every
+  action, but it checks no records and does not scope lists.
+
+### Keep CanCanCan with a custom adapter
+
+Register an adapter before the `RailsAdminNext.config` block that names its key, or the
+`ArgumentError` above fires at boot:
+
+```ruby
+RailsAdminNext.add_extension(:cancancan, MyApp::CanCanCanAdmin, authorization: true)
+
+RailsAdminNext.config do |config|
+  config.authorize_with :cancancan
+end
+```
+
+The module defines an `AuthorizationAdapter` class. `authorize_with` builds it with
+`new(controller, *args, &block)` and it answers:
+
+- `authorize(action, abstract_model, object)`: raises when the action is denied.
+- `authorized?(action, abstract_model, object)`: returns a boolean, for links and buttons.
+- `query(action, abstract_model)`: returns the scope lists, export and bulk actions read from.
+- `attributes_for(action, abstract_model)`: returns the attributes a new record starts with.
+- `self.setup` (optional): runs once when `authorize_with` names the key.
+
+`lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` in the gem is the template.
+The removed CanCanCan adapter is a starting point you can copy:
+[v1.3.0 `extensions/cancancan/authorization_adapter.rb`](https://github.com/6temes/rails_admin_next/blob/v1.3.0/lib/rails_admin_next/extensions/cancancan/authorization_adapter.rb),
+with its module in `extensions/cancancan.rb` at the same tag. Abilities keep granting
+`can :access, :rails_admin`.
 
 ## 1. Gemfile
 
@@ -119,19 +187,19 @@ engine no longer provides it.
 
 ## Authorization (no change needed)
 
-The authorization contract is held stable — **do not touch your abilities or policies**:
+The authorization contract is held stable — **do not touch your policies**:
 
-- The access subject is `:rails_admin`.
 - Every action's authorization key (`:dashboard`, `:index`, `:show`, `:new`, `:edit`,
   `:export`, `:destroy`, `:history`, `:show_in_app`) is unchanged.
+- A custom adapter keeps the `:access, :rails_admin` subject by convention.
 
 ```ruby
-# This CanCanCan ability keeps working unchanged:
+# A custom CanCanCan adapter's ability still grants access with:
 can :access, :rails_admin
 ```
 
-The access subject is deliberately frozen and locked by a spec in the gem — a renamed
-subject can fail *open* (a `cannot` rule that no longer matches silently grants access).
+The authorization keys are locked by a spec in the gem — a renamed key can fail *open* (a
+deny rule that no longer matches silently grants access).
 
 ## Asset prerequisites
 
@@ -471,8 +539,6 @@ class PlayerPolicy < ApplicationPolicy
   end
 end
 ```
-
-CanCanCan hosts are unaffected.
 
 ## An `:enum` field with no option source offers no options
 
