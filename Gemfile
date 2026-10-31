@@ -11,6 +11,7 @@ group :development, :test do
 end
 
 group :test do
+  gem "action_policy"
   gem "brakeman", require: false
   gem "cancancan", "~> 3.0"
   gem "cuprite"
