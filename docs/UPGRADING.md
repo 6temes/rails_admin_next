@@ -504,6 +504,7 @@ field :salary # still hidden from non-admins
 If a field you hide conditionally started showing for everyone after a later `field` call, it is
 hidden again. A field hidden with a plain `visible false` is still shown again by a later
 declaration, as before.
+
 ## Serialized fields load only plain YAML
 
 A `serialized` field (the default for a `store` or `serialize` attribute) now shows its value
@@ -514,6 +515,7 @@ which the store wraps again on assignment. YAML naming any other class is reject
 The `safe_yaml` gem is no longer consulted, even when the host bundles it.
 `RailsAdminNext.yaml_load` and `RailsAdminNext.yaml_dump` are deprecated: call
 `YAML.safe_load` and `YAML.dump` directly.
+
 ## `config.model "::Order"` configures `Order`
 
 A model named as a string or symbol with a leading `::` used to register a second, separate
@@ -521,6 +523,7 @@ entry: its block never reached `Order`, and `Order` appeared twice in the naviga
 is now dropped, so the block applies to `Order`. If such a block was silently doing nothing,
 check that what it configures is what you want before upgrading. `included_models` and
 `excluded_models` drop a leading `::` the same way.
+
 ## Scope tabs apply to export and bulk delete
 
 The tab selected on a list (`list { scopes [...] }`) now also narrows export and bulk
@@ -558,6 +561,7 @@ so a `reorder` in it now decides the order. A plain `order` adds a secondary sor
 the list sort. Build on the relation the proc receives: returning a fresh relation discards
 the authorization scope, the picker's search query, sort and eager loads as well. Pickers
 never apply the picked model's scope tabs.
+
 ## CSV export follows the list sort
 
 CSV export used to walk records with `find_each`, which discards the list sort, so every file

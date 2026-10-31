@@ -85,13 +85,12 @@ module RailsAdminNext
       end
     end
 
-    # Keyset batching (find_each) can only follow a primary-key order, so any other
-    # order falls back to offset batches. sort_scope writes the list sort as a single
-    # "<table>.<column> <direction>" string, which is what this recognises.
+    # sort_scope writes the list sort as a single "<table>.<column> <direction>" string.
     def primary_key_direction
       primary_key = @model.primary_key
-      orders = @objects.order_values
       return unless primary_key.is_a?(String)
+
+      orders = @objects.order_values
       return :asc if orders.empty?
       return unless orders.one? && orders.first.is_a?(String)
 
