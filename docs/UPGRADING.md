@@ -615,3 +615,7 @@ These are intentionally gone — migrate off them before upgrading:
 
 The gem owns **no** history table. Auditing remains host/PaperTrail territory, so there is
 no gem migration to run — your existing `rails_admin_histories` table (if any) is unaffected.
+
+A record's history page now honours its column sort, and with no sort it lists newest
+first, like the model history page. It used to list a record's versions oldest first
+whatever the sort.
