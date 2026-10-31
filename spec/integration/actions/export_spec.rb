@@ -242,4 +242,36 @@ RSpec.describe "Export action", type: :request do
       is_expected.to have_content fanship.team.name
     end
   end
+
+  describe "CSV row order" do
+    before do
+      stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 2)
+      %w[Charlie Alice Echo Bob Delta].each { FactoryBot.create :player, name: it }
+    end
+
+    def exported_names(**params)
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, csv_options: {generator: {col_sep: ","}}, **params))
+      CSV.parse(page.driver.response.body).drop(1).flatten
+    end
+
+    it "follows the requested sort across batches" do
+      expect(exported_names(sort: "name")).to eq ["Alice", "Bob", "Charlie", "Delta", "Echo", player.name]
+    end
+
+    it "follows a sort on an association the export leaves out" do
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+      Player.where.not(id: player.id).find_each.with_index { |each_player, i| each_player.update!(team: FactoryBot.create(:team, name: "Team #{"EDCBA"[i]}")) }
+      player.update!(team: FactoryBot.create(:team, name: "Team Z"))
+
+      expect(exported_names(sort: "team")).to eq Player.joins(:team).order("teams.name").pluck(:name)
+    end
+
+    it "follows the list's default sort across batches" do
+      expect(exported_names).to eq Player.order(id: :desc).pluck(:name)
+    end
+  end
 end

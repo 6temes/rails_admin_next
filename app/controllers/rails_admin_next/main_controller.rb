@@ -94,9 +94,7 @@ module RailsAdminNext
     end
 
     def get_sort_hash(model_config)
-      field = model_config.list.fields.detect { |f| f.name.to_s == params[:sort] }
-      # If no sort param, default to the `sort_by` specified in the list config
-      field ||= model_config.list.possible_fields.detect { |f| f.name == model_config.list.sort_by.try(:to_sym) }
+      field = sort_field(model_config)
 
       column =
         if field.nil? || field.sortable == false # use default sort, asked field does not exist or is not sortable
@@ -107,6 +105,12 @@ module RailsAdminNext
 
       params[:sort_reverse] ||= "false"
       {sort: column, sort_reverse: (params[:sort_reverse] == (field&.sort_reverse&.to_s || "true"))}
+    end
+
+    def sort_field(model_config)
+      field = model_config.list.fields.detect { |f| f.name.to_s == params[:sort] }
+      # If no sort param, default to the `sort_by` specified in the list config
+      field || model_config.list.possible_fields.detect { |f| f.name == model_config.list.sort_by.try(:to_sym) }
     end
 
     def redirect_to_on_success
@@ -194,7 +198,8 @@ module RailsAdminNext
 
     def get_collection(model_config, scope, pagination)
       section = (@action.key == :export) ? model_config.export : model_config.list
-      eager_loads = section.fields.flat_map(&:eager_load_values)
+      # The sort comes from the list, so export must also load the association a list sort orders by.
+      eager_loads = (section.fields + Array(sort_field(model_config))).flat_map(&:eager_load_values).uniq
       options = {}
       options = options.merge(page: (params[:page] || 1).to_i, per: params[:per] || model_config.list.items_per_page) if pagination
       options = options.merge(include: eager_loads) unless eager_loads.blank?

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "csv"
 
 RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
   subject { page }
@@ -30,6 +31,7 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
           can :history, Player, retired: false if user.roles.include? :history_player
           can :show_in_app, Player, retired: false if user.roles.include? :show_in_app_player
           can :read, Fanship, since: nil if user.roles.include? :read_fanship
+          can %i[read export], Player, retired: false if user.roles.include? :export_player
         end
       end
     end)
@@ -230,6 +232,27 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
     it "GET /admin/player/1/delete should raise access denied" do
       @player = FactoryBot.create :player
       expect { visit delete_path(model_name: "player", id: @player.id) }.to raise_error(CanCan::AccessDenied)
+    end
+  end
+
+  describe "with export player role" do
+    before do
+      @user.update(roles: %i[admin export_player])
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+      stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 1)
+      %w[Charlie Alice].each { FactoryBot.create :player, name: it }
+      FactoryBot.create :player, name: "Bob", retired: true
+    end
+
+    it "POST /admin/player/export exports only permitted players, in the requested sort" do
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+      csv = CSV.parse(page.driver.response.body)
+
+      expect(csv).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
   end
 
