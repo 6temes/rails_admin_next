@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
-ARG RUBY_VERSION=3.1
+# Keep RUBY_VERSION at the gem's floor (required_ruby_version in rails_admin_next.gemspec)
+ARG RUBY_VERSION=4.0.9
 FROM ruby:$RUBY_VERSION-slim AS base
 
 LABEL fly_launch_runtime="rails"
