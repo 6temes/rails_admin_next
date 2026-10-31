@@ -249,7 +249,7 @@ module RailsAdminNext
 
       # pool of all found model names from the whole application
       def models_pool
-        (viable_models - excluded_models.collect(&:to_s)).uniq.sort
+        (viable_models - excluded_models.collect { it.to_s.delete_prefix("::") }).uniq.sort
       end
 
       # Loads a model configuration instance from the registry or registers
@@ -395,7 +395,7 @@ module RailsAdminNext
       private
 
       def viable_models
-        included_models.collect(&:to_s).presence || begin
+        included_models.collect { it.to_s.delete_prefix("::") }.presence || begin
           @@system_models ||= # memoization for tests
             ([Rails.application] + Rails::Engine.subclasses.collect(&:instance)).flat_map do |app|
               (app.paths["app/models"].to_a + app.config.eager_load_paths).collect do |load_path|

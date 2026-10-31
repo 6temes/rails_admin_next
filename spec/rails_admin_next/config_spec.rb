@@ -275,6 +275,21 @@ RSpec.describe RailsAdminNext::Config do
 
       expect(RailsAdminNext::Config.models_pool).to include("PaperTrail::Version")
     end
+
+    it "excludes a configured model listed with a leading ::" do
+      RailsAdminNext::Config.model "::PaperTrail::Version" do
+        visible false
+      end
+      RailsAdminNext::Config.excluded_models = ["::PaperTrail::Version"]
+
+      expect(RailsAdminNext::Config.models_pool).not_to include("PaperTrail::Version", "::PaperTrail::Version")
+    end
+
+    it "includes a model listed with a leading :: by its name" do
+      RailsAdminNext::Config.included_models = ["::Team"]
+
+      expect(RailsAdminNext::Config.models_pool).to eq ["Team"]
+    end
   end
 
   describe ".parent_controller" do
