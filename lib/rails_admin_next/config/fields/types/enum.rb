@@ -21,11 +21,17 @@ module RailsAdminNext
           end
 
           register_instance_option :enum_method do
-            @enum_method ||= (bindings[:object].class.respond_to?("#{name}_enum") || (bindings[:object] || abstract_model.model.new).respond_to?("#{name}_enum")) ? "#{name}_enum" : name
+            @enum_method ||= begin
+              method_name = "#{name}_enum"
+              method_name if (bindings[:object]&.class || abstract_model.model).respond_to?(method_name) ||
+                (bindings[:object] || abstract_model.model.new).respond_to?(method_name)
+            end
           end
 
           register_instance_option :enum do
-            if abstract_model.model.respond_to?(enum_method)
+            if enum_method.nil?
+              []
+            elsif abstract_model.model.respond_to?(enum_method)
               abstract_model.model.send(enum_method)
             else
               (bindings[:object] || abstract_model.model.new).send(enum_method)
