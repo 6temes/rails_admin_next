@@ -474,6 +474,50 @@ end
 
 CanCanCan hosts are unaffected.
 
+## ActionPolicy adapter
+
+[ActionPolicy](https://github.com/palkan/action_policy) is a built-in adapter next to Pundit.
+Bundle `action_policy` in your app, then:
+
+```ruby
+RailsAdminNext.config do |config|
+  config.authorize_with :action_policy
+  config.current_user_method(&:current_user)
+end
+```
+
+The adapter authorizes as the user `current_user_method` returns. It checks the record's
+policy with the rule names the Pundit adapter uses: `dashboard?`, `index?`, `show?`, `new?`,
+`edit?`, `export?`, `destroy?`, `history?`, `show_in_app?`, plus `create?` and `update?` when a
+form is submitted, and `<authorization_key>?` for custom actions. Two ActionPolicy defaults
+change how a ported Pundit policy behaves:
+
+- `new?` is an alias of `create?` unless the policy defines `new?` itself.
+- A rule the policy does not define resolves to `manage?`, which is `false` on
+  `ActionPolicy::Base`, instead of raising.
+
+A model with no policy, and the dashboard, are checked against `ApplicationPolicy`. Lists,
+export, bulk delete and dashboard counts use the policy's default `relation_scope`; a model
+with no policy, no relation scope, or only named ones lists nothing. To prefill new records,
+define `attributes_for(action)` on the policy, as with Pundit.
+
+```ruby
+class ApplicationPolicy < ActionPolicy::Base
+  def dashboard? = user.admin?
+  def index? = user.admin?
+  def show? = user.admin?
+  def create? = user.admin?
+  def update? = user.admin?
+  alias_rule :edit?, to: :update?
+  def destroy? = user.admin?
+  def export? = user.admin?
+end
+
+class PlayerPolicy < ApplicationPolicy
+  relation_scope { |relation| relation }
+end
+```
+
 ## An `:enum` field with no option source offers no options
 
 An `:enum` field takes its options from `enum_method`, which defaults to `<name>_enum` on the

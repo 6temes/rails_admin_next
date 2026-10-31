@@ -113,12 +113,13 @@ always match the installed version.
 - File uploads (ActiveStorage)
 - Rich text fields (ActionText / Trix)
 - Authentication (via [Devise][devise] or any other scheme)
-- Authorization (via [CanCanCan][cancancan] or [Pundit][pundit])
+- Authorization (via [CanCanCan][cancancan], [Pundit][pundit] or [ActionPolicy][action_policy])
 - User action history (via [PaperTrail][papertrail])
 
 [devise]: https://github.com/heartcombo/devise
 [cancancan]: https://github.com/CanCanCommunity/cancancan
 [pundit]: https://github.com/varvet/pundit
+[action_policy]: https://github.com/palkan/action_policy
 [papertrail]: https://github.com/paper-trail-gem/paper_trail
 
 ## Configuration
@@ -182,6 +183,15 @@ can :access, :rails_admin
 ```
 
 The `admin.*` I18n namespace is likewise unchanged.
+
+### ActionPolicy
+
+`config.authorize_with :action_policy` checks each action against the record's policy with
+the same `<key>?` rules the Pundit adapter calls (`index?`, `show?`, `new?`, `edit?`,
+`destroy?`, `export?`, `history?`, `show_in_app?`, `dashboard?`), and scopes lists, export
+and bulk delete through the policy's default `relation_scope`. A model with no policy, or a
+policy with no default relation scope, lists nothing. Bundle `action_policy` yourself; see
+the "ActionPolicy adapter" section of [docs/UPGRADING.md](docs/UPGRADING.md).
 
 ## Frontend and assets
 

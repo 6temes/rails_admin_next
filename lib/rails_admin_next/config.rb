@@ -179,6 +179,11 @@ module RailsAdminNext
       #     config.authorize_with :cancancan
       #   end
       #
+      # @example ActionPolicy
+      #   RailsAdminNext.config do |config|
+      #     config.authorize_with :action_policy
+      #   end
+      #
       # See the wiki[https://github.com/railsadminteam/rails_admin/wiki] for more on authorization.
       #
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
