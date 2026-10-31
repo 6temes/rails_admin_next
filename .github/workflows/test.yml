@@ -45,7 +45,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1
         with:
-          ruby-version: "4.0.7"
+          ruby-version: "4.0.9"
           bundler-cache: true
       - name: Install libvips
         # ActiveStorage's :vips variant processor; ruby-vips dlopens the libvips shared library.
@@ -67,7 +67,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1
         with:
-          ruby-version: "4.0.7"
+          ruby-version: "4.0.9"
           bundler-cache: true
       - name: Run Standard
         run: bundle exec standardrb
@@ -80,7 +80,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1
         with:
-          ruby-version: "4.0.7"
+          ruby-version: "4.0.9"
           bundler-cache: true
       # -A runs the full check set; reviewed false positives are recorded in config/brakeman.ignore.
       - name: Run Brakeman
@@ -94,7 +94,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1
         with:
-          ruby-version: "4.0.7"
+          ruby-version: "4.0.9"
           bundler-cache: true
       - name: Check Hyperdrive companion content
         run: bundle exec rake hyperdrive:skills:check hyperdrive:manifest:check
