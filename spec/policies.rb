@@ -3,6 +3,15 @@
 class ApplicationPolicy
   attr_reader :user, :record
 
+  class Scope
+    attr_reader :user, :scope
+
+    def initialize(user, scope)
+      @user = user
+      @scope = scope
+    end
+  end
+
   def initialize(user, record)
     @user = user
     @record = record
@@ -52,14 +61,7 @@ class ApplicationPolicy
 end
 
 class PlayerPolicy < ApplicationPolicy
-  class Scope
-    attr_reader :user, :scope
-
-    def initialize(user, scope)
-      @user = user
-      @scope = scope
-    end
-
+  class Scope < ApplicationPolicy::Scope
     def resolve
       user.roles.include?(:manage_player) ? scope.all : scope.where(retired: false)
     end
@@ -102,7 +104,6 @@ class PlayerPolicy < ApplicationPolicy
 
   private
 
-  # The class stands in for "some player" when a list-level link is checked.
   def active_player_role?(role)
     user.roles.include?(:manage_player) ||
       (user.roles.include?(role) && (!record.is_a?(Player) || !record.retired))
@@ -110,14 +111,7 @@ class PlayerPolicy < ApplicationPolicy
 end
 
 class FanshipPolicy < ApplicationPolicy
-  class Scope
-    attr_reader :user, :scope
-
-    def initialize(user, scope)
-      @user = user
-      @scope = scope
-    end
-
+  class Scope < ApplicationPolicy::Scope
     def resolve
       user.roles.include?(:read_fanship) ? scope.where(since: nil) : scope.none
     end
