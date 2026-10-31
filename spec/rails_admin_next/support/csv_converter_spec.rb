@@ -151,4 +151,77 @@ RSpec.describe RailsAdminNext::CSVConverter do
       end
     end
   end
+
+  describe "walking a relation" do
+    before do
+      RailsAdminNext.config(Player) do
+        export do
+          field :number
+          field :name
+        end
+      end
+      stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 2)
+    end
+
+    let(:schema) { {only: %i[number name]} }
+    let(:pk_sort) { "#{Player.quoted_table_name}.#{Player.connection.quote_column_name("id")} desc" }
+
+    def data_rows(objects, schema)
+      CSV.parse(RailsAdminNext::CSVConverter.new(objects, schema).to_csv({})[2]).drop(1)
+    end
+
+    it "keeps a column sort across batches" do
+      %w[Charlie Alice Echo Bob Delta].each { FactoryBot.create :player, name: it }
+
+      expect(data_rows(Player.order(:name), schema).map(&:last)).to eq %w[Alice Bob Charlie Delta Echo]
+    end
+
+    it "keeps a descending primary-key sort without discarding the scoped order" do
+      players = FactoryBot.create_list :player, 5
+      ActiveRecord.error_on_ignored_order = true
+
+      expect(data_rows(Player.reorder(pk_sort), schema).map(&:first)).to eq players.map(&:number).reverse.map(&:to_s)
+    ensure
+      ActiveRecord.error_on_ignored_order = false
+    end
+
+    it "keeps an unqualified primary-key sort" do
+      players = FactoryBot.create_list :player, 5
+
+      expect(data_rows(Player.reorder("id desc"), schema).map(&:first)).to eq players.map(&:number).reverse.map(&:to_s)
+    end
+
+    it "keeps a sort on an eager-loaded association's column" do
+      %w[Echo Bravo Delta Alpha Charlie].each { FactoryBot.create :player, name: "#{it} player", team: FactoryBot.create(:team, name: it) }
+      sort = "#{Team.quoted_table_name}.#{Team.connection.quote_column_name("name")} asc"
+
+      expect(data_rows(Player.includes(:team, :comments).reorder(sort), schema).map(&:last))
+        .to eq ["Alpha player", "Bravo player", "Charlie player", "Delta player", "Echo player"]
+    end
+
+    it "does not load the relation" do
+      FactoryBot.create_list :player, 3
+      objects = Player.all
+      RailsAdminNext::CSVConverter.new(objects, schema).to_csv({})
+
+      expect(objects).not_to be_loaded
+    end
+
+    it "writes the header for an empty relation" do
+      expect(RailsAdminNext::CSVConverter.new(Player.all, schema).to_csv({})[2]).to eq "Number,Name\n"
+    end
+
+    it "keeps the sort for a composite primary key", composite_primary_keys: true do
+      RailsAdminNext.config(Fanship) do
+        export do
+          field :since
+        end
+      end
+      fanships = [Date.new(2024, 3, 1), Date.new(2024, 2, 1), Date.new(2024, 1, 1)].map { FactoryBot.create :fanship, since: it }
+      since = RailsAdminNext.config(Fanship).export.fields.detect { it.name == :since }
+      expected = fanships.reverse.map { since.with(object: it).export_value }
+
+      expect(data_rows(Fanship.order(:since), {only: %i[since]}).flatten).to eq expected
+    end
+  end
 end

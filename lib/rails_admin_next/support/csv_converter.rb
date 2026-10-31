@@ -4,14 +4,17 @@ require "csv"
 
 module RailsAdminNext
   class CSVConverter
+    BATCH_SIZE = 1000
+
     def initialize(objects = [], schema = nil)
       @fields = []
       @associations = []
       schema ||= {}
 
-      return if (@objects = objects).blank?
+      @objects = objects
+      @model = objects.is_a?(ActiveRecord::Relation) ? objects.klass : objects.first&.class
+      return unless @model
 
-      @model = objects.dup.first.class
       @abstract_model = RailsAdminNext::AbstractModel.new(@model)
       @model_config = @abstract_model.config
       @methods = [(schema[:only] || []) + (schema[:methods] || [])].flatten.compact
@@ -63,14 +66,48 @@ module RailsAdminNext
 
     def generate_csv_string(options)
       generator_options = (options[:generator] || {}).symbolize_keys.delete_if { |_, value| value.blank? }
-      method = @objects.respond_to?(:find_each) ? :find_each : :each
-
       CSV.generate(**generator_options) do |csv|
         csv << generate_csv_header unless options[:skip_header]
 
-        @objects.send(method) do |object|
+        each_object do |object|
           csv << generate_csv_row(object)
         end
+      end
+    end
+
+    def each_object(&)
+      return @objects.each(&) unless @objects.is_a?(ActiveRecord::Relation)
+
+      if (direction = primary_key_direction)
+        @objects.unscope(:order).find_each(order: direction, batch_size: BATCH_SIZE, &)
+      else
+        each_in_offset_batches(&)
+      end
+    end
+
+    # Keyset batching (find_each) can only follow a primary-key order, so any other
+    # order falls back to offset batches. sort_scope writes the list sort as a single
+    # "<table>.<column> <direction>" string, which is what this recognises.
+    def primary_key_direction
+      primary_key = @model.primary_key
+      orders = @objects.order_values
+      return unless primary_key.is_a?(String)
+      return :asc if orders.empty?
+      return unless orders.one? && orders.first.is_a?(String)
+
+      table = Regexp.escape(@model.table_name)
+      column = Regexp.escape(primary_key)
+      orders.first[/\A(?:\W?#{table}\W?\.)?\W?#{column}\W? (asc|desc)\z/i, 1]&.downcase&.to_sym
+    end
+
+    # The primary-key tie-break makes the order total, so rows that tie on the sort
+    # column cannot shift between batches.
+    def each_in_offset_batches(&)
+      ordered = @objects.order(Array(@model.primary_key).index_with(:asc))
+      0.step(by: BATCH_SIZE) do |offset|
+        batch = ordered.limit(BATCH_SIZE).offset(offset).to_a
+        batch.each(&)
+        break if batch.size < BATCH_SIZE
       end
     end
 
