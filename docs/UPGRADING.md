@@ -398,6 +398,19 @@ end
 
 Note the block: a bare `inverse_of nil` reads the option rather than setting it.
 
+## Nested forms that can reach themselves stop at three levels
+
+A nested form for an association that leads back to its own model, such as a self-referential
+`has_many :children` with `accepts_nested_attributes_for`, used to render without end and fail
+with `SystemStackError`, as did saved records that point back at each other. It now nests the
+same association at most three times along one chain; past that, the association's rows, blank
+template and add control are left out of the form, so a deeper tree is edited from a lower
+record. Chains of distinct associations are not capped.
+
+The blank row's child-index placeholder is tagged by depth, `new_<depth>_<association>` (for
+example `new_1_comments`), rather than `new_<association>`. Host JavaScript that looked for the
+old token in a nested form's `<template>` needs the new one.
+
 ## The show action answers HTML by default
 
 `show` used to declare its JSON format before its HTML one, so a request carrying no
@@ -450,6 +463,55 @@ end
 ```
 
 CanCanCan hosts are unaffected.
+
+## An `:enum` field with no option source offers no options
+
+An `:enum` field takes its options from `enum_method`, which defaults to `<name>_enum` on the
+model class or the record. When neither defines it, the field used to call `<name>` itself and
+treat the record's current value as the option list: the index filter crashed, and the form
+offered that value instead of choices. It now offers no options.
+
+If a field's own method returns its option list, name it explicitly:
+
+```ruby
+field :colors, :enum do
+  enum_method :colors
+end
+```
+
+## A redeclared field keeps its `visible` block
+
+Declaring a field again in the same section used to discard a `visible { ... }` block set by an
+earlier declaration and show the field to everyone. The block now survives:
+
+```ruby
+field :salary do
+  visible { bindings[:view].current_user.admin? }
+end
+field :salary # still hidden from non-admins
+```
+
+If a field you hide conditionally started showing for everyone after a later `field` call, it is
+hidden again. A field hidden with a plain `visible false` is still shown again by a later
+declaration, as before.
+## Serialized fields load only plain YAML
+
+A `serialized` field (the default for a `store` or `serialize` attribute) now shows its value
+as plain YAML, without `!ruby/...` class tags, and loads the submitted YAML with only `Symbol`,
+`Date` and `Time` permitted. A store's `HashWithIndifferentAccess` comes back as a plain `Hash`,
+which the store wraps again on assignment. YAML naming any other class is rejected.
+
+The `safe_yaml` gem is no longer consulted, even when the host bundles it.
+`RailsAdminNext.yaml_load` and `RailsAdminNext.yaml_dump` are deprecated: call
+`YAML.safe_load` and `YAML.dump` directly.
+## `config.model "::Order"` configures `Order`
+
+A model named as a string or symbol with a leading `::` used to register a second, separate
+entry: its block never reached `Order`, and `Order` appeared twice in the navigation. The `::`
+is now dropped, so the block applies to `Order`. If such a block was silently doing nothing,
+check that what it configures is what you want before upgrading. `included_models` and
+`excluded_models` drop a leading `::` the same way.
+
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for

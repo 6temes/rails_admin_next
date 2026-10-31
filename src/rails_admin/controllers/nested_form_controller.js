@@ -7,7 +7,7 @@ import { Controller } from "@hotwired/stimulus";
 //
 //   - add: clones a blank subform from the <template>. For a has_many
 //     association the template carries a child-index placeholder
-//     (e.g. "new_nested_field_tests") which is swapped for a unique value so
+//     (e.g. "new_1_nested_field_tests") which is swapped for a unique value so
 //     each new row submits under its own index; has_one/belongs_to subforms
 //     have no placeholder. Focus then moves to the first visible field.
 //   - remove on an unsaved subform deletes it from the DOM.

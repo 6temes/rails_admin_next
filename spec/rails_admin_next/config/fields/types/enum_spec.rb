@@ -45,6 +45,35 @@ RSpec.describe RailsAdminNext::Config::Fields::Types::Enum do
     end
   end
 
+  describe "when only the class responds to '\#{method}_enum'" do
+    subject { RailsAdminNext.config(Team).field(:manager) }
+
+    before do
+      allow(Team).to receive(:manager_enum).and_return(%w[alice bob])
+    end
+
+    it "finds the class method with no object bound, as the index filter renders it" do
+      expect(subject.with({}).filter_operators).to include({label: "alice", value: "alice"}, {label: "bob", value: "bob"})
+      expect(subject.with(object: Team.new).enum).to eq %w[alice bob]
+    end
+  end
+
+  describe "when nothing responds to '\#{method}_enum'" do
+    subject { RailsAdminNext.config(FieldTest).field(:string_field) }
+
+    before do
+      RailsAdminNext.config FieldTest do
+        field :string_field, :enum
+      end
+    end
+
+    it "offers no options instead of the record's own value" do
+      expect(subject.with(object: FieldTest.new(string_field: "red")).enum).to eq []
+      expect(subject.with(object: FieldTest.new(string_field: "red")).filter_operators).to eq %w[_discard _separator _present _blank]
+      expect(subject.with({}).filter_operators).to eq %w[_discard _separator _present _blank]
+    end
+  end
+
   describe "the enum instance method" do
     before do
       Team.class_eval do

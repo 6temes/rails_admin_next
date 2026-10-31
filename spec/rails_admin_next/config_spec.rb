@@ -275,6 +275,21 @@ RSpec.describe RailsAdminNext::Config do
 
       expect(RailsAdminNext::Config.models_pool).to include("PaperTrail::Version")
     end
+
+    it "excludes a configured model listed with a leading ::" do
+      RailsAdminNext::Config.model "::PaperTrail::Version" do
+        visible false
+      end
+      RailsAdminNext::Config.excluded_models = ["::PaperTrail::Version"]
+
+      expect(RailsAdminNext::Config.models_pool).not_to include("PaperTrail::Version", "::PaperTrail::Version")
+    end
+
+    it "includes a model listed with a leading :: by its name" do
+      RailsAdminNext::Config.included_models = ["::Team"]
+
+      expect(RailsAdminNext::Config.models_pool).to eq ["Team"]
+    end
   end
 
   describe ".parent_controller" do
@@ -347,12 +362,33 @@ RSpec.describe RailsAdminNext::Config do
       end
     end
 
+    context "when the model is named with a leading ::" do
+      it "configures the same model as its class", :aggregate_failures do
+        described_class.model("::Team") { field :fans }
+        described_class.model(:"::Cms::BasicPage") { field :title }
+
+        expect(described_class.model("::Team")).to equal described_class.model(Team)
+        expect(described_class.model(:"::Cms::BasicPage")).to equal described_class.model(Cms::BasicPage)
+        expect(fields.map(&:name)).to match_array %i[players fans]
+        expect(described_class.models_pool).not_to include("::Team", "::Cms::BasicPage")
+      end
+    end
+
     context "when model has no table yet", active_record: true do
       it "does not try to apply the configuration block" do
         described_class.model(WithoutTable) do
           include_all_fields
         end
       end
+    end
+  end
+
+  describe ".reset_model" do
+    it "resets a model named with a leading ::" do
+      described_class.model(Team) { field :fans }
+      described_class.reset_model("::Team")
+
+      expect(described_class.model(Team).fields.map(&:name)).not_to eq [:fans]
     end
   end
 

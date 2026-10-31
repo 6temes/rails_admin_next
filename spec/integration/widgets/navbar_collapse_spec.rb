@@ -10,6 +10,14 @@ RSpec.describe "Navbar collapse widget", type: :request, js: true do
   before { page.current_window.resize_to(420, 760) }
   after { page.current_window.resize_to(1024, 768) }
 
+  it "keeps the toggler's label for screen readers only" do
+    visit dashboard_path
+
+    label = find(".navbar-toggler", text: "Toggle navigation")
+    width = page.evaluate_script("arguments[0].querySelector('span:not(.navbar-toggler-icon)').getBoundingClientRect().width", label)
+    expect(width).to be <= 1
+  end
+
   it "toggles the secondary navigation and tracks aria-expanded" do
     visit dashboard_path
 
