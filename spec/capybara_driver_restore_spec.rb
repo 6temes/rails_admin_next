@@ -3,8 +3,7 @@
 require "spec_helper"
 
 RSpec.describe "Capybara driver restore" do
-  # The inner group runs through the suite's real configuration, so the hooks under test apply
-  # to it. It must not be :js, or the retry around hook and the :js before hook would take over.
+  # Not :js: the retry around hook and Capybara's :js driver switch would take the inner example over.
   it "restores the default driver after a dead browser aborts the session reset" do
     group = RSpec.describe "dead browser", type: :request do
       it "leaves the browser driver selected" do
