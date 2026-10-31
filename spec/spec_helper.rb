@@ -104,6 +104,11 @@ RSpec.configure do |config|
     RailsAdminNext::Config.color_scheme = :light if example.metadata[:js]
   end
 
+  # Capybara's own after hook restores the driver only after resetting sessions, so a dead
+  # browser that raises in the reset leaves later examples on it. RSpec runs each after hook
+  # on its own, so this one restores the driver whatever Capybara's does.
+  config.after { Capybara.use_default_driver }
+
   # Restoring the locale matters because a spec that leaves I18n.locale dirty (edit_spec's I18n
   # cases) bleeds into any later locale-sensitive spec. This runs after the example body, so
   # specs that set their own locale via `around` are unaffected.
