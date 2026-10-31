@@ -12,6 +12,7 @@ require "rails_admin_next/extensions/paper_trail"
 require "rails_admin_next/support/csv_converter"
 require "rails_admin_next/support/hash_helper"
 require "rails_admin_next/support/paginated_collection"
+require "rails_admin_next/support/serialization_schema"
 require "yaml"
 
 module RailsAdminNext

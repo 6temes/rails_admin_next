@@ -22,7 +22,8 @@ module RailsAdminNext
             # table with attacker-chosen columns; the export form posts back to this same action.
             if format && !request.get?
               request.format = format
-              @schema = HashHelper.symbolize(params[:schema].slice(:except, :include, :methods, :only).permit!.to_h) if params[:schema] # to_json and to_xml expect symbols for keys AND values.
+              serialization_schema # built while @action is still export
+              @schema = serialization_schema.sanitize(params[:schema].slice(:include, :methods, :only).permit!.to_h) if params[:schema]
               @objects = list_entries(@model_config, :export)
               index
             else

@@ -11,6 +11,11 @@ destructive-action controls itself; a few things are left for the host to opt in
 - **Clickjacking.** Every admin response carries `X-Frame-Options: SAMEORIGIN`.
 - **Export.** The CSV/JSON/XML data stream requires a non-GET, CSRF-protected request; `GET` only
   renders the export form, so the table can't be exfiltrated via a crafted link.
+- **Serialization.** JSON and XML output is limited to the fields the section shows (`list`,
+  `show` or `export`). A submitted export `schema` is intersected with the export fields, so it
+  can't name a hidden column, an association the export doesn't show, or a method to call.
+- **Pundit scopes fail closed.** A model whose policy has no `Scope` lists no records, rather
+  than all of them.
 - **Destructive actions.** `delete` and `bulk_delete` render a confirmation page and additionally
   carry `data-turbo-confirm` on the destructive submit (Turbo's confirmation, not `@rails/ujs`).
 - **Mass assignment.** Submitted attributes are sliced to the model config's `visible_fields`
