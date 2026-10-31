@@ -107,6 +107,11 @@ RSpec.describe RailsAdminNext::Config do
   end
 
   describe ".authorize_with" do
+    it "offers Pundit as the only built-in adapter", :aggregate_failures do
+      expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).to include(pundit: RailsAdminNext::Extensions::Pundit::AuthorizationAdapter)
+      expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).not_to have_key(:cancancan)
+    end
+
     context "given a key for a extension with authorization" do
       before do
         RailsAdminNext.add_extension(:example, ExampleModule, authorization: true)

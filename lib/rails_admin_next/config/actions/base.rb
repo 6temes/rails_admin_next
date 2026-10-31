@@ -104,7 +104,7 @@ module RailsAdminNext
           key.to_sym
         end
 
-        # For CanCanCan and the like
+        # The name hosts' policies authorize this action under, so renaming it breaks their rules
         register_instance_option :authorization_key do
           key.to_sym
         end

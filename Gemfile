@@ -12,7 +12,6 @@ end
 
 group :test do
   gem "brakeman", require: false
-  gem "cancancan", "~> 3.0"
   gem "cuprite"
   gem "database_cleaner-active_record", require: false
   gem "factory_bot"

@@ -171,15 +171,20 @@ module RailsAdminNext
       #     end
       #   end
       #
-      # To use an authorization adapter, pass the name of the adapter. For example,
-      # to use with CanCanCan[https://github.com/CanCanCommunity/cancancan/], pass it like this.
+      # The block form only gates entry: it runs before every action, but nothing checks
+      # individual records or scopes the list.
       #
-      # @example CanCanCan
+      # To use an authorization adapter, pass the name of the adapter. For example,
+      # to use with Pundit[https://github.com/varvet/pundit], pass it like this.
+      #
+      # @example Pundit
       #   RailsAdminNext.config do |config|
-      #     config.authorize_with :cancancan
+      #     config.authorize_with :pundit
       #   end
       #
-      # See the wiki[https://github.com/railsadminteam/rails_admin/wiki] for more on authorization.
+      # A custom adapter is registered with
+      # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here.
+      # See docs/UPGRADING.md for the adapter contract.
       #
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
       def authorize_with(*args, &block)
