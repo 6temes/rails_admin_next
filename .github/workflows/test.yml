@@ -16,6 +16,9 @@ jobs:
   rspec:
     name: RSpec (${{ matrix.adapter }})
     runs-on: ubuntu-latest
+    # A green leg takes about 5 minutes; this only fires on a hang, which would otherwise
+    # sit on GitHub's 6-hour default without ever reporting.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +57,8 @@ jobs:
         # ActiveStorage's :vips variant processor; ruby-vips dlopens the libvips shared library.
         # libvips-dev is the version-stable package name (the runtime lib is libvips42t64 on
         # Ubuntu 24.04 after the t64 transition); installing -dev pulls in that runtime.
+        # A normal install takes about a minute; a stalled apt mirror fails here, fast.
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y libvips-dev
       # Chrome is pre-installed on ubuntu-latest; Cuprite/Ferrum auto-detect it for the js: true specs.
       - name: Provision the dummy app database
