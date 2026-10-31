@@ -49,6 +49,41 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  describe "flash wording" do
+    let(:players) { FactoryBot.create_list(:player, 2) }
+
+    before do
+      RailsAdminNext.config Player do
+        label "Squad member"
+        label_plural "Squad"
+      end
+    end
+
+    it "uses the configured plural label for several records" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: players.map(&:id)))
+      expect(flash[:success]).to eq("2 Squad successfully deleted")
+    end
+
+    it "uses the configured plural label for zero records" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: ""))
+      expect(flash[:error]).to eq("0 Squad failed to be deleted")
+    end
+
+    it "keeps the singular label for one record" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [players.first.id]))
+      expect(flash[:success]).to eq("1 Squad member successfully deleted")
+    end
+
+    it "follows a translated plural" do
+      I18n.backend.store_translations(:en, activerecord: {models: {team: {one: "Squad member", other: "Squad"}}})
+      teams = FactoryBot.create_list(:team, 2)
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "team", bulk_ids: teams.map(&:id)))
+      expect(flash[:success]).to eq("2 Squad successfully deleted")
+    ensure
+      I18n.reload!
+    end
+  end
+
   context "on destroy" do
     before do
       @players = Array.new(3) { FactoryBot.create(:player) }
