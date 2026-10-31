@@ -66,7 +66,7 @@ module RailsAdminNext
                       @objects.collect { |object| {id: object.id.to_s, label: object.send(@model_config.object_label_method).to_s} }
                     end
                   else
-                    @objects.to_json(@schema)
+                    @objects.to_json(@schema || serialization_schema.default)
                   end
 
                 if params[:send_data]
@@ -77,7 +77,7 @@ module RailsAdminNext
               end
 
               format.xml do
-                output = @objects.map { |object| object.serializable_hash(@schema || {}) }.to_xml(root: @abstract_model.model.model_name.plural)
+                output = @objects.map { |object| object.serializable_hash(@schema || serialization_schema.default) }.to_xml(root: @abstract_model.model.model_name.plural)
                 if params[:send_data]
                   send_data output, filename: "#{params[:model_name]}_#{DateTime.now.strftime("%Y-%m-%d_%Hh%Mm%S")}.xml"
                 else

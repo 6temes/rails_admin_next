@@ -416,8 +416,40 @@ curl -H 'Accept: application/json' https://example.com/admin/player/1
 curl https://example.com/admin/player/1.json
 ```
 
-Note that the JSON branch renders the whole record, including columns the model config
-hides from the show view.
+The JSON branch renders only the fields the show view displays (see below).
+
+## JSON and XML serialize only configured fields
+
+The index action's `.json`/`.xml`, the show action's `.json`, and the export action's JSON/XML
+used to serialize every attribute of the record, and export passed the submitted `schema` straight
+to `to_json`/`to_xml` — so any `methods` or `include` name in it was called on every record.
+
+They now serialize only what the matching section shows: `list` for index, `show` for show,
+`export` for export. Index and show also keep the foreign keys of the `belongs_to` associations
+they display. A submitted export `schema` is intersected with the export fields, and `except` is
+ignored.
+
+If a client relied on a column the section doesn't show, add that field to the section.
+
+## Pundit: a model with no policy Scope lists nothing
+
+A model whose policy defines no `Scope` used to list every record. It now lists none: the
+list, export, bulk delete and dashboard count all return an empty set. Bulk delete deletes
+whatever the scope returns, with no per-record check, so "no Scope" can't mean "everything".
+
+Define a `Scope` for each model the admin exposes:
+
+```ruby
+class PlayerPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      scope.all
+    end
+  end
+end
+```
+
+CanCanCan hosts are unaffected.
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for
