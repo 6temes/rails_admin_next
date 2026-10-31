@@ -116,6 +116,22 @@ RSpec.describe "RailsAdminNext PaperTrail auditing", active_record: true do
             end
           end
 
+          it "sorts an object history by the requested column" do
+            versions = @paper_trail_test.public_send(@model.model.versions_association_name)
+            versions.each_with_index { |version, i| version.update_columns(whodunnit: format("user %02d", 29 - i)) }
+
+            history = @adapter.listing_for_object @model, @paper_trail_test, nil, "username", false, true, nil
+            expect(history.map(&:username)).to eq versions.map(&:whodunnit).sort
+          end
+
+          it "lists an object history newest first by default" do
+            versions = @paper_trail_test.public_send(@model.model.versions_association_name).reorder(:id)
+            versions.each_with_index { |version, i| version.update_columns(whodunnit: format("user %02d", i)) }
+
+            history = @adapter.listing_for_object @model, @paper_trail_test, nil, nil, false, true, nil
+            expect(history.map(&:username)).to eq versions.map(&:whodunnit).reverse
+          end
+
           it "paginates an object history page", :aggregate_failures do
             versions = @adapter.listing_for_object @model, @paper_trail_test, nil, false, false, false, 2, 10
             expect(versions.total_count).to eq(30)
