@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Single supported runtime (Ruby 4.0.5 / Rails 8.1 / ActiveRecord / importmap + Propshaft).
+        # Single supported runtime (Ruby 4.0.9 / Rails 8.1 / ActiveRecord / importmap + Propshaft).
         # The adapter axis is kept because the filter/search SQL is generated per-adapter
         # (AbstractModel::StatementBuilder), so each adapter exercises a distinct code path.
         adapter: [sqlite3, postgresql, mysql2]

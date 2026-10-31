@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-`rails_admin_next` targets a single supported runtime: Ruby >= 4.0.5, Rails ~> 8.1,
+`rails_admin_next` targets a single supported runtime: Ruby >= 4.0.9, Rails ~> 8.1,
 ActiveRecord, and the importmap + Propshaft asset pipeline. Security fixes land on the
 latest `1.x` release.
 
