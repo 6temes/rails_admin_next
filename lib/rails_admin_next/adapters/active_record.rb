@@ -182,7 +182,10 @@ module RailsAdminNext
 
         def add(field, value, operator)
           field.searchable_columns.flatten.each do |column_infos|
-            statement, value1, value2 = StatementBuilder.new(quote(column_infos[:column]), column_infos[:type], value, operator, @scope.connection.adapter_name).to_statement
+            attribute_type = attribute_type(field, column_infos[:column])
+            statement, value1, value2 = StatementBuilder.new(quote(column_infos[:column]), column_infos[:type], value, operator, @scope.connection.adapter_name, column_type: attribute_type&.type).to_statement
+            statement, value1, value2 = "(1 = 0)" if out_of_range?(attribute_type, [value1, value2])
+
             @statements << statement if statement.present?
             @values << value1 unless value1.nil?
             @values << value2 unless value2.nil?
@@ -200,6 +203,29 @@ module RailsAdminNext
 
           table, name = parts
           "#{@scope.connection.quote_table_name(table)}.#{@scope.connection.quote_column_name(name)}"
+        end
+
+        # The column's own attribute type, resolved from the field's model or, for an
+        # association, the associated model. Nil for a column on any other table.
+        def attribute_type(field, column)
+          table, name = column.split(".")
+          return unless name
+
+          models = [field.abstract_model]
+          models.concat(Array.wrap(field.associated_model_config).map(&:abstract_model)) if field.association?
+          models.map(&:model).detect { it.table_name == table }&.type_for_attribute(name)
+        end
+
+        # A number too wide for the column (an int4 searched with a 10-digit term) makes
+        # PostgreSQL reject the whole query. No row can hold it, so the column matches
+        # nothing instead: a search still matches the other columns, a filter matches none.
+        def out_of_range?(attribute_type, values)
+          return false unless attribute_type
+
+          values.grep(Integer).each { attribute_type.serialize(it) }
+          false
+        rescue ActiveModel::RangeError
+          true
         end
 
         def build
@@ -225,11 +251,20 @@ module RailsAdminNext
 
       # filters example => {"string_field"=>{"0055"=>{"o"=>"like", "v"=>"test_value"}}, ...}
       # "0055" is the filter index, no use here. o is the operator, v the value
+      # Hand-written or stale params can have any shape, so anything that isn't
+      # field => index => filter with a scalar (or flat array) value, or names no
+      # filterable field, is skipped.
       def filter_scope(scope, filters, fields = config.list.fields.select(&:filterable?))
+        return scope unless filters.respond_to?(:each_pair)
+
         filters.each_pair do |field_name, filters_dump|
+          field = fields.detect { |f| f.name.to_s == field_name }
+          next unless field && filters_dump.respond_to?(:each_value)
+
           filters_dump.each_value do |filter_dump|
+            next unless filter_dump.respond_to?(:each_pair) && filter_value?(filter_dump[:v])
+
             wb = WhereBuilder.new(scope)
-            field = fields.detect { |f| f.name.to_s == field_name }
             value = parse_field_value(field, filter_dump[:v])
 
             wb.add(field, value, filter_dump[:o] || RailsAdminNext::Config.default_search_operator)
@@ -240,14 +275,19 @@ module RailsAdminNext
         scope
       end
 
+      def filter_value?(value)
+        Array.wrap(value).none? { it.is_a?(Array) || it.respond_to?(:each_pair) }
+      end
+
       def build_statement(column, type, value, operator)
         StatementBuilder.new(column, type, value, operator, model.connection.adapter_name).to_statement
       end
 
       class StatementBuilder < RailsAdminNext::AbstractModel::StatementBuilder
-        def initialize(column, type, value, operator, adapter_name)
+        def initialize(column, type, value, operator, adapter_name, column_type: nil)
           super(column, type, value, operator)
           @adapter_name = adapter_name
+          @column_type = column_type
         end
 
         protected
@@ -260,6 +300,9 @@ module RailsAdminNext
             uuid_unary_operators
           when :integer, :decimal, :float
             numeric_unary_operators
+          when :enum
+            # Only a string column can hold '' (and an integer one rejects the comparison).
+            %i[string text citext].include?(@column_type) ? generic_unary_operators : enum_unary_operators
           else
             generic_unary_operators
           end
@@ -288,6 +331,7 @@ module RailsAdminNext
         end
         alias_method :numeric_unary_operators, :boolean_unary_operators
         alias_method :uuid_unary_operators, :boolean_unary_operators
+        alias_method :enum_unary_operators, :boolean_unary_operators
 
         def range_filter(min, max)
           if min && max && min == max

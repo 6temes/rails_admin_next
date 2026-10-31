@@ -49,6 +49,73 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  describe "flash wording" do
+    let(:players) { FactoryBot.create_list(:player, 2) }
+
+    before do
+      RailsAdminNext.config Player do
+        label "Squad member"
+        label_plural "Squad"
+      end
+    end
+
+    it "uses the configured plural label for several records" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: players.map(&:id)))
+      expect(flash[:success]).to eq("2 Squad successfully deleted")
+    end
+
+    it "uses the configured plural label for zero records" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: ""))
+      expect(flash[:error]).to eq("0 Squad failed to be deleted")
+    end
+
+    it "keeps the singular label for one record" do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [players.first.id]))
+      expect(flash[:success]).to eq("1 Squad member successfully deleted")
+    end
+
+    it "follows a translated plural" do
+      I18n.backend.store_translations(:en, activerecord: {models: {team: {one: "Squad member", other: "Squad"}}})
+      teams = FactoryBot.create_list(:team, 2)
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "team", bulk_ids: teams.map(&:id)))
+      expect(flash[:success]).to eq("2 Squad successfully deleted")
+    ensure
+      I18n.reload!
+    end
+  end
+
+  describe "with a scope tab selected" do
+    let!(:red_team) { FactoryBot.create(:team, name: "Red Sox", color: "red") }
+    let!(:white_team) { FactoryBot.create(:team, name: "White Sox", color: "white") }
+
+    before do
+      RailsAdminNext.config Team do
+        list do
+          scopes [nil, :red, :white]
+        end
+      end
+    end
+
+    it "lists only the records in that tab on the confirmation page" do
+      post(bulk_action_path(bulk_action: "bulk_delete", model_name: "team", scope: "red", bulk_ids: [red_team.id, white_team.id]))
+      expect(response.body).to include("Red Sox")
+      expect(response.body).not_to include("White Sox")
+    end
+
+    it "carries the tab into the confirmation form" do
+      post(bulk_action_path(bulk_action: "bulk_delete", model_name: "team", scope: "red", bulk_ids: [red_team.id, white_team.id]))
+      form_action = Nokogiri::HTML(response.body).at_css("form[action*='bulk_delete']")["action"]
+      expect(Rack::Utils.parse_nested_query(URI.parse(form_action).query)).to include("scope" => "red")
+    end
+
+    it "destroys only the records in that tab, whatever ids are submitted" do
+      delete(bulk_delete_path(model_name: "team", scope: "red", bulk_ids: [red_team.id, white_team.id]))
+      expect(flash[:success]).to match(/1 Team successfully deleted/i)
+      expect(Team.where(id: red_team.id)).not_to exist
+      expect(Team.where(id: white_team.id)).to exist
+    end
+  end
+
   context "on destroy" do
     before do
       @players = Array.new(3) { FactoryBot.create(:player) }

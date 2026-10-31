@@ -430,6 +430,10 @@ body.rails_admin #filters_box {
     display: none;
   }
 }
+body.rails_admin .dashboard-statistics {
+  overflow-x: auto;
+  overscroll-behavior: contain;
+}
 body.rails_admin #sidescroll {
   margin-bottom: 20px;
   overflow-x: auto;

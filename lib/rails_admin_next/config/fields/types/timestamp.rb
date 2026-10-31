@@ -9,6 +9,7 @@ module RailsAdminNext
         class Timestamp < RailsAdminNext::Config::Fields::Types::Datetime
           # Register field type for the type loader
           RailsAdminNext::Config::Fields::Types.register(self)
+          RailsAdminNext::Config::Fields::Types.register(:timestamptz, self)
         end
       end
     end

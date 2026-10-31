@@ -21,4 +21,21 @@ RSpec.describe RailsAdminNext::Config::Fields::Types::Timestamp, active_record: 
       expect(@object.timestamp_field.strftime("%Y-%m-%d %H:%M")).to eq(@time.strftime("%Y-%m-%d %H:%M"))
     end
   end
+
+  describe "a PostgreSQL timestamptz column" do
+    let(:activerecord_config) { ::ActiveRecord::Base.connection_db_config.configuration_hash }
+
+    it "configures as a timestamp field and filters", :aggregate_failures do
+      if %w[postgresql postgis].include?(activerecord_config[:adapter])
+        ActiveRecord::Base.connection.create_table(:timestamptz_tests) { |t| t.timestamptz :at }
+        stub_const("TimestamptzTest", Class.new(ActiveRecord::Base) { self.table_name = "timestamptz_tests" })
+        today = TimestamptzTest.create!(at: Time.current)
+        TimestamptzTest.create!(at: 3.days.ago)
+
+        expect(RailsAdminNext.config(TimestamptzTest).fields.detect { |f| f.name == :at }.type).to eq(:timestamp)
+        expect(RailsAdminNext::AbstractModel.new(TimestamptzTest).all(filters: {"at" => {"0000" => {o: "today"}}}))
+          .to eq([today])
+      end
+    end
+  end
 end

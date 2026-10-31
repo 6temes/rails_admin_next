@@ -141,6 +141,29 @@ RSpec.describe "Export action", type: :request do
       is_expected.to have_content("Select fields to export")
     end
 
+    describe "with a scope tab selected" do
+      before do
+        RailsAdminNext.config Team do
+          list do
+            scopes [nil, :red, :white]
+          end
+        end
+        FactoryBot.create(:team, name: "Red Sox", color: "red")
+        FactoryBot.create(:team, name: "Cincinnati Reds", color: "red")
+        FactoryBot.create(:team, name: "White Sox", color: "white")
+        FactoryBot.create(:team, name: "Black Barons", color: "black")
+      end
+
+      it "exports only the records in that tab" do
+        visit index_path(model_name: "team", scope: "red")
+        click_link "Export found Teams"
+        click_button "Export to csv"
+        csv = CSV.parse(page.driver.response.body)
+        names = csv.drop(1).map { |row| row[csv.first.index("Name")] }
+        expect(names).to contain_exactly("Red Sox", "Cincinnati Reds")
+      end
+    end
+
     describe "with model scope" do
       let!(:comments) { %w[something anything].map { |content| FactoryBot.create :comment_confirmed, content: content } }
       before do
@@ -217,6 +240,38 @@ RSpec.describe "Export action", type: :request do
       click_button "Export to csv"
       is_expected.to have_content fanship.fan.name
       is_expected.to have_content fanship.team.name
+    end
+  end
+
+  describe "CSV row order" do
+    before do
+      stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 2)
+      %w[Charlie Alice Echo Bob Delta].each { FactoryBot.create :player, name: it }
+    end
+
+    def exported_names(**params)
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, csv_options: {generator: {col_sep: ","}}, **params))
+      CSV.parse(page.driver.response.body).drop(1).flatten
+    end
+
+    it "follows the requested sort across batches" do
+      expect(exported_names(sort: "name")).to eq ["Alice", "Bob", "Charlie", "Delta", "Echo", player.name]
+    end
+
+    it "follows a sort on an association the export leaves out" do
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+      Player.where.not(id: player.id).find_each.with_index { |each_player, i| each_player.update!(team: FactoryBot.create(:team, name: "Team #{"EDCBA"[i]}")) }
+      player.update!(team: FactoryBot.create(:team, name: "Team Z"))
+
+      expect(exported_names(sort: "team")).to eq Player.joins(:team).order("teams.name").pluck(:name)
+    end
+
+    it "follows the list's default sort across batches" do
+      expect(exported_names).to eq Player.order(id: :desc).pluck(:name)
     end
   end
 end

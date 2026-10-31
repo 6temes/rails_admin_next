@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "csv"
 
 RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
   subject { page }
@@ -29,6 +30,8 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
           can :destroy, Player, retired: false if user.roles.include? :destroy_player
           can :history, Player, retired: false if user.roles.include? :history_player
           can :show_in_app, Player, retired: false if user.roles.include? :show_in_app_player
+          can :read, Fanship, since: nil if user.roles.include? :read_fanship
+          can %i[read export], Player, retired: false if user.roles.include? :export_player
         end
       end
     end)
@@ -105,6 +108,50 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
 
     it "GET /admin/team should raise CanCan::AccessDenied" do
       expect { visit index_path(model_name: "team") }.to raise_error(CanCan::AccessDenied)
+    end
+
+    context "with a scope tab on a composite primary key model", composite_primary_keys: true do
+      let!(:readable) { FactoryBot.create(:fanship, since: nil) }
+      let!(:unreadable) { FactoryBot.create(:fanship, since: Date.new(2020, 1, 1)) }
+
+      before do
+        @user.update(roles: %i[admin read_fanship])
+        RailsAdminNext.config Fanship do
+          list { scopes [nil, :unscoped] }
+        end
+      end
+
+      it "does not let a tab that drops conditions list unauthorized records" do
+        visit index_path(model_name: "fanship", scope: "unscoped")
+        is_expected.to have_content(readable.fan.name)
+        is_expected.not_to have_content(unreadable.fan.name)
+      end
+    end
+
+    context "with scope tabs" do
+      let!(:active_player) { FactoryBot.create(:player, name: "Active Player", retired: false) }
+      let!(:retired_player) { FactoryBot.create(:player, name: "Retired Player", retired: true) }
+
+      before do
+        RailsAdminNext.config Player do
+          list do
+            scopes [nil, :unscoped, :retired]
+            field :name
+          end
+        end
+      end
+
+      it "does not let a tab that drops conditions list unauthorized records" do
+        visit index_path(model_name: "player", scope: "unscoped")
+        is_expected.to have_content("Active Player")
+        is_expected.not_to have_content("Retired Player")
+      end
+
+      it "keeps a tab's condition on a column the ability also constrains" do
+        visit index_path(model_name: "player", scope: "retired")
+        is_expected.not_to have_content("Active Player")
+        is_expected.not_to have_content("Retired Player")
+      end
     end
 
     it "GET /admin/player/new should raise CanCan::AccessDenied" do
@@ -185,6 +232,27 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
     it "GET /admin/player/1/delete should raise access denied" do
       @player = FactoryBot.create :player
       expect { visit delete_path(model_name: "player", id: @player.id) }.to raise_error(CanCan::AccessDenied)
+    end
+  end
+
+  describe "with export player role" do
+    before do
+      @user.update(roles: %i[admin export_player])
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+      stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 1)
+      %w[Charlie Alice].each { FactoryBot.create :player, name: it }
+      FactoryBot.create :player, name: "Bob", retired: true
+    end
+
+    it "POST /admin/player/export exports only permitted players, in the requested sort" do
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+      csv = CSV.parse(page.driver.response.body)
+
+      expect(csv).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
   end
 
@@ -284,6 +352,20 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
       retired_player = FactoryBot.create :player, retired: true
 
       delete bulk_delete_path(model_name: "player", bulk_ids: [active_player, retired_player].collect(&:id))
+      expect(@player_model.get(active_player.id)).to be_nil
+      expect(@player_model.get(retired_player.id)).not_to be_nil
+    end
+
+    it "does not let a tab that drops conditions destroy unauthorized records" do
+      RailsAdminNext.config Player do
+        list do
+          scopes [nil, :unscoped]
+        end
+      end
+      active_player = FactoryBot.create :player, retired: false
+      retired_player = FactoryBot.create :player, retired: true
+
+      delete bulk_delete_path(model_name: "player", scope: "unscoped", bulk_ids: [active_player, retired_player].collect(&:id))
       expect(@player_model.get(active_player.id)).to be_nil
       expect(@player_model.get(retired_player.id)).not_to be_nil
     end
