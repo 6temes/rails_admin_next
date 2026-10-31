@@ -7,8 +7,7 @@ require "spec_helper"
 # non-GET request must be rejected with an `ActionController::InvalidAuthenticityToken` —
 # which renders as HTTP 422 in any app that leaves `action_dispatch.show_exceptions` on (the
 # test env turns it off, so it surfaces here as the raised exception). GET stays exempt so the
-# confirmation pages still render. The token-bearing saves below prove the other half: a real
-# form, main or modal, still sends a token the server accepts.
+# confirmation pages still render.
 RSpec.describe "CSRF protection", type: :request do
   subject { page }
 
