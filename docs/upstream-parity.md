@@ -1,8 +1,8 @@
 # Upstream parity
 
-Assessed through upstream `897ffc13` (2026-09-13). Fork point: `d8e0809e` (2025-09-14).
+Assessed through upstream `2dfd05f1` (2026-10-30). Fork point: `d8e0809e` (2025-09-14).
 
-Divergence from the fork point: 787 files, +20,899 / −73,565 lines.
+Divergence from the fork point: 792 files, +21,203 / −73,569 lines.
 
 ## How this fork tracks upstream
 
@@ -18,6 +18,50 @@ Commits are listed newest first, as `git log` reports them.
 
 | upstream | subject | verdict | ours |
 |---|---|---|---|
+| `2dfd05f1` | Test ferrum 0.19.2 with flatten mode on JRuby | n/a — JRuby leg over Appraisal gemfiles; neither exists here | — |
+| `bf8f645c` | Replace nested_form with RailsAdmin's own nested form implementation | partly relevant — per-controller `<template>` and button controls already here; unsaved-row remove, self-reference recursion, placeholder collision and the dummy belongs_to still apply | [#73](https://github.com/6temes/rails_admin_next/issues/73) |
+| `6e27f4d3` | Let the adapter narrow a scope, instead of merging it here | n/a — one AR adapter; the controller's merge is already its vocabulary, no behaviour change | — |
+| `20f8f29a` | Narrow a listing by the scope it selects before it is paginated | partly adapted — pre-pagination done; export and bulk delete ignore the tab, and remote pickers get it | [#60](https://github.com/6temes/rails_admin_next/issues/60) |
+| `7e5a7d67` | Keep the browser driver off a version the suite hangs on | partly relevant — the pin is JRuby-only (n/a); the missing job timeout matches this fork's apt-step hangs | [#74](https://github.com/6temes/rails_admin_next/issues/74) |
+| `1e0bd4fd` | Say what an upload needs from an embedded document | n/a — embedded documents are Mongoid; no upload docs here | — |
+| `6651f64d` | Say which records associated_collection_scope governs | n/a — the option isn't documented here, so nothing to correct | — |
+| `51d7321a` | Look up a registered visible block by the option's own name | relevant — measured: redeclaring a field drops its visible block; `admin?` raises NameError | [#64](https://github.com/6temes/rails_admin_next/issues/64) |
+| `e67edd00` | Escape a field name before it stands in for a selector | n/a — the filter container is found by `getElementById`; other selectors use `CSS.escape` or quoted values | — |
+| `11cd3e53` | Leave out a column the queried term could never fit | relevant — measured: PG raises NumericValueOutOfRange for a 10-digit term on int4 | [#56](https://github.com/6temes/rails_admin_next/issues/56) |
+| `2d9f951f` | Have no enumeration rather than crash when there's no _enum method | relevant — measured: enum without a source crashes filter_operators; native PG enums hit it unconfigured | [#58](https://github.com/6temes/rails_admin_next/issues/58) |
+| `c4b64ede` | Document sort_by's array and hash forms | n/a — sort_by isn't documented here; the forms are supported | — |
+| `cbed4c42` | Fall back to the guessed encoding when a CSV export leaves it blank | n/a — measured: blank does what the form says here (leaves encoding untouched); the fallback is a no-op on the connection encoding | — |
+| `8748af05` | Bind the controller and view before reading a model's list scopes | relevant — measured: both reads are unbound | [#62](https://github.com/6temes/rails_admin_next/issues/62) |
+| `3e26f685` | Keep a serialized value's wrapper class out of the text an admin edits | relevant — measured: every AR `store` round-trip raises DisallowedClass | [#63](https://github.com/6temes/rails_admin_next/issues/63) |
+| `8b7f686b` | Let a requested sort win over has_paper_trail's own version order | relevant — `order` appended after paper_trail's association order | [#69](https://github.com/6temes/rails_admin_next/issues/69) |
+| `e9e13ebf` | Recognize a native timestamptz column as a timestamp field | relevant — measured: Rails 8.1.4 PG reports `:timestamptz`, which the registry rejects | [#55](https://github.com/6temes/rails_admin_next/issues/55) |
+| `0c6b8e9d` | Version 4.0.0.beta2 | n/a — upstream release chore | — |
+| `d96845da` | [Security] Fail closed when Pundit policy scope is undefined | relevant — the adapter rescued a missing Scope with `model.all`; fixed with plain AR `none` (no repository indirection needed) | [#77](https://github.com/6temes/rails_admin_next/pull/77) |
+| `a6cf6bb0` | [Security] Limit JSON/XML serialization to the configured fields | partly adapted — the GET gate was already here; methods/hidden columns via `schema` and full-row index/show output fixed; the default never calls virtual fields | [#77](https://github.com/6temes/rails_admin_next/pull/77) |
+| `fca081f2` | Version 4.0.0.beta | n/a — upstream release chore | — |
+| `00ddcd06` | Drop the dummy app's tooling for asset modes that no longer exist | n/a — none of those files are tracked here | — |
+| `d593bcaf` | Serve the dummy app's own JavaScript through every asset pipeline | n/a — one pipeline; the host entry is an ESM module importing Turbo | — |
+| `72bdd18d` | Let any callable serve as asset_source | n/a — `asset_source=` is a deprecated no-op here | — |
+| `812109cf` | Put the :external stylesheet where a JS build will not eat it | n/a — the installer writes only an initializer | — |
+| `9ed33f69` | Keep the dummy app's test hooks out of development | n/a — the only test hook here is invisible | — |
+| `7cc5e292` | Keep the dummy app's cookies readable, and cover CSRF both ways | partly relevant — the json pin is moot on Rails 8.1.4; the CSRF acceptance coverage gap applies | [#76](https://github.com/6temes/rails_admin_next/issues/76) |
+| `fd0bf316` | Drop the docs left behind by the asset rework | n/a — docs here mention those pipelines only as removed | — |
+| `3af6946c` | Flush rich-text editors before the modal submits | n/a — Trix writes its input on every change; no submit-time editor remains | — |
+| `a16b425f` | Test carrierwave 3.x and 4.x within the existing CI matrix | n/a — CarrierWave removed | — |
+| `8302cc29` | Lower a search term with String#downcase | adapted — already `downcase`; no `mb_chars` left | — |
+| `63ebb9ac` | Ask whether an enum is null, not whether it equals '' | relevant — measured: PG rejects `= ''` on an integer enum | [#57](https://github.com/6temes/rails_admin_next/issues/57) |
+| `749cbe75` | Let associated_collection_scope decide the order it asks for | relevant — scope applied before the reorder; the swap must follow #60 | [#61](https://github.com/6temes/rails_admin_next/issues/61) |
+| `47da8e99` | Refresh SimpleMDE editors when their tab is shown | n/a — no layout-measuring editor ships here | — |
+| `4443ab35` | Ship a prebuilt asset bundle; collapse config.asset_source | n/a — already a single zero-build importmap + Propshaft path | — |
+| `478484fb` | CI: install ImageMagick against a refreshed package list | n/a — the step here already runs `apt-get update` and `-y`; the failure here is a stall (#74) | — |
+| `a6f4c5ad` | Fix the viewport meta tag's name attribute | relevant — the identical malformed tag is in `_head.html.erb` | [#72](https://github.com/6temes/rails_admin_next/issues/72) |
+| `88e6df4d` | Strip a leading :: when deriving a model's config registry key | relevant — measured: config ignored and the model listed twice | [#70](https://github.com/6temes/rails_admin_next/issues/70) |
+| `a5607f24` | Use label_plural in bulk delete flash messages | relevant — measured: translated plural ignored | [#71](https://github.com/6temes/rails_admin_next/issues/71) |
+| `7b60193b` | Let the page catch up before reading the database | adapted — fixed independently here | [#23](https://github.com/6temes/rails_admin_next/pull/23) |
+| `ef3e3f57` | Keep one dead browser from failing the examples after it | partly relevant — the driver restore applies; the startup-timeout half is deferred (never seen in ~60 runs) | [#75](https://github.com/6temes/rails_admin_next/issues/75) |
+| `cc293dea` | Wait for the autocomplete menu itself, not for one of its entries | n/a — waits here use counts or text the stale menu can't satisfy; the widget renders once per query (as `77e5d0bc`) | — |
+| `d3cfba1d` | Render the list for a filter URL written by hand | relevant — measured: seven malformed shapes 500, one specific to this fork | [#65](https://github.com/6temes/rails_admin_next/issues/65) |
+| `ede4e77b` | Split the adapter layer into a Reflection and a Repository | declined — multi-ORM refactor, one adapter here; four embedded fixes filed separately | [#59](https://github.com/6temes/rails_admin_next/issues/59), [#66](https://github.com/6temes/rails_admin_next/issues/66), [#67](https://github.com/6temes/rails_admin_next/issues/67), [#68](https://github.com/6temes/rails_admin_next/issues/68) |
 | `897ffc13` | Fix _discard leaking into SQL for multi-select enum filters | adapted — server half only; the client half was already stronger here (disabled options), so upstream's JS was deliberately not ported | [#36](https://github.com/6temes/rails_admin_next/pull/36) |
 | `11f214f6` | Remove config options deprecated before RailsAdmin 3.0 | adapted — the deprecator half already shipped; this removed the six options | [#40](https://github.com/6temes/rails_admin_next/pull/40) |
 | `cbea80b1` | Match GET in http_methods case-insensitively | adapted — `Actions::Base#linkable?` | [#38](https://github.com/6temes/rails_admin_next/pull/38) |
