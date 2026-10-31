@@ -558,6 +558,15 @@ so a `reorder` in it now decides the order. A plain `order` adds a secondary sor
 the list sort. Build on the relation the proc receives: returning a fresh relation discards
 the authorization scope, the picker's search query, sort and eager loads as well. Pickers
 never apply the picked model's scope tabs.
+## CSV export follows the list sort
+
+CSV export used to walk records with `find_each`, which discards the list sort, so every file
+came out in primary-key ascending order. It now writes rows in the order the list shows them:
+the sort the export request carries, or the list's default sort. For most models that default is
+the primary key descending, so an export with no sort chosen is now newest first.
+
+Rows are read in batches of 1000 instead of loading every record up front. An export with no
+matching records now contains the header row instead of an empty line.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
