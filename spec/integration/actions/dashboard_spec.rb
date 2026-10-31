@@ -11,6 +11,14 @@ RSpec.describe "Dashboard action", type: :request do
     is_expected.to have_title(/Rails AdminNext/)
   end
 
+  it "fits a phone-width viewport, scrolling the statistics table on its own", js: true do
+    page.current_window.resize_to(390, 844)
+    visit dashboard_path
+    expect(page.evaluate_script("document.documentElement.scrollWidth")).to be <= 390
+  ensure
+    page.current_window.resize_to(1024, 768)
+  end
+
   it "shows statistics by default" do
     allow(RailsAdminNext.config(Player).abstract_model).to receive(:count).and_return(0)
     expect(RailsAdminNext.config(Player).abstract_model).to receive(:count)
