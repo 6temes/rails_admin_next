@@ -123,6 +123,15 @@ RSpec.describe "Nested many widget", type: :request, js: true do
       expect(page.body.scan("add_nested_fields").size).to eq(3)
     end
 
+    it "renders saved records that form a cycle", js: false do
+      first = NestedCategory.create!
+      second = NestedCategory.create!(parent_category: first)
+      first.update!(parent_category: second)
+      visit edit_path(model_name: "nested_category", id: first.id)
+      depths = page.body.scan(/name="nested_category([^"]*)"/).map { it.first.scan("[child_categories_attributes]").size }
+      expect(depths.max).to eq(3)
+    end
+
     it "saves every row added inside a row that was itself just added" do
       visit new_path(model_name: "nested_category")
       find(".add_nested_fields", match: :first).click

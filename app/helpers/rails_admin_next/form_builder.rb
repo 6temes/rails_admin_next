@@ -103,8 +103,9 @@ module RailsAdminNext
       end
     end
 
-    # Whether this association's blank <template>, and so its add control, is rendered here.
-    def nested_template?(field)
+    # Whether this association's subforms, its blank <template> and its add control render
+    # here. Saved records can form a cycle too, so the bound covers them as well.
+    def nested_within_bound?(field)
       @object_name.to_s.scan("[#{field.name}_attributes]").size < MAX_NESTED_FORM_RECURSION
     end
 

@@ -402,9 +402,10 @@ Note the block: a bare `inverse_of nil` reads the option rather than setting it.
 
 A nested form for an association that leads back to its own model, such as a self-referential
 `has_many :children` with `accepts_nested_attributes_for`, used to render without end and fail
-with `SystemStackError`. It now nests the same association at most three times along one chain;
-at that depth the blank row's template and its add control are left out. Chains of distinct
-associations are not capped.
+with `SystemStackError`, as did saved records that point back at each other. It now nests the
+same association at most three times along one chain; past that, the association's rows, blank
+template and add control are left out of the form, so a deeper tree is edited from a lower
+record. Chains of distinct associations are not capped.
 
 The blank row's child-index placeholder is tagged by depth, `new_<depth>_<association>` (for
 example `new_1_comments`), rather than `new_<association>`. Host JavaScript that looked for the
