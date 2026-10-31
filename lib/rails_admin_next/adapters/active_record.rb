@@ -251,11 +251,20 @@ module RailsAdminNext
 
       # filters example => {"string_field"=>{"0055"=>{"o"=>"like", "v"=>"test_value"}}, ...}
       # "0055" is the filter index, no use here. o is the operator, v the value
+      # Hand-written or stale params can have any shape, so anything that isn't
+      # field => index => filter with a scalar (or flat array) value, or names no
+      # filterable field, is skipped.
       def filter_scope(scope, filters, fields = config.list.fields.select(&:filterable?))
+        return scope unless filters.respond_to?(:each_pair)
+
         filters.each_pair do |field_name, filters_dump|
+          field = fields.detect { |f| f.name.to_s == field_name }
+          next unless field && filters_dump.respond_to?(:each_value)
+
           filters_dump.each_value do |filter_dump|
+            next unless filter_dump.respond_to?(:each_pair) && filter_value?(filter_dump[:v])
+
             wb = WhereBuilder.new(scope)
-            field = fields.detect { |f| f.name.to_s == field_name }
             value = parse_field_value(field, filter_dump[:v])
 
             wb.add(field, value, filter_dump[:o] || RailsAdminNext::Config.default_search_operator)
@@ -264,6 +273,10 @@ module RailsAdminNext
           end
         end
         scope
+      end
+
+      def filter_value?(value)
+        Array.wrap(value).none? { it.is_a?(Array) || it.respond_to?(:each_pair) }
       end
 
       def build_statement(column, type, value, operator)
