@@ -33,8 +33,14 @@ end
   suffix: `dashboard?`, `index?`, `show?`, `new?`, `edit?`, `export?`, `destroy?`,
   `history?` and `show_in_app?`. Saving a new record also calls `create?`, and saving an
   edit calls `update?`. Member actions pass the record; list-level checks pass the class.
-- **A `Scope` for every model the admin lists.** A model with no `Scope` lists nothing (see
+  `edit?` and `destroy?` also get the class: the form's "Save and edit" button checks
+  `edit?`, and the index's bulk-delete menu checks `destroy?`. A predicate that reads record
+  attributes must handle a class, for example `!record.is_a?(Class) && record.active?`.
+- **A `Scope` for every model the admin lists.** A model whose policy resolves no `Scope`
+  lists nothing (see
   [Pundit: a model with no policy Scope lists nothing](#pundit-a-model-with-no-policy-scope-lists-nothing)).
+  A policy that subclasses `ApplicationPolicy` without its own `Scope` inherits
+  `ApplicationPolicy::Scope`, so that class's `resolve` decides what the model lists.
 - **Optional `attributes_for(action)`** on a policy returns the attributes a new record
   starts with, for example `{suspended: true}` for `:new`.
 
@@ -527,6 +533,10 @@ erroring.
 A model whose policy defines no `Scope` used to list every record. It now lists none: the
 list, export, bulk delete and dashboard count all return an empty set. Bulk delete deletes
 whatever the scope returns, with no per-record check, so "no Scope" can't mean "everything".
+
+This holds only when no `Scope` constant resolves. A policy that subclasses `ApplicationPolicy`
+without its own `Scope` inherits `ApplicationPolicy::Scope`: Pundit's generated `resolve` there
+raises `NoMethodError`, and one that returns `scope.all` lists every record.
 
 Define a `Scope` for each model the admin exposes:
 

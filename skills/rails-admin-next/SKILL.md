@@ -77,7 +77,7 @@ Icons take logical names, never Font Awesome classes: `link_icon :show_in_app` o
 
 - Pundit is the only built-in adapter. `RailsAdminNext.add_extension(key, mod, authorization: true)` registers a custom one before the config block names its key; copy `<gem>/lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` as the template. An unregistered key raises `ArgumentError` at boot.
 - `config.authorize_with :pundit` calls the record's policy with `<action>?` methods (`index?`, `edit?`, `dashboard?`) and scopes lists with `policy_scope`.
-- `config.authorize_with do ... end` runs a custom block as a before filter.
+- `config.authorize_with do ... end` runs a custom block as a before filter. It gates admin entry only: no per-record checks or list scoping.
 - `config.authenticate_with do ... end` and `config.current_user_method do ... end` wire in the app's authentication, such as Devise or Warden.
 - `config.audit_with :paper_trail` turns on the history action. Read the "History / audit table" section of `<gem>/docs/UPGRADING.md` first.
 
