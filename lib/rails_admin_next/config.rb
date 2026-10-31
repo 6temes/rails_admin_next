@@ -73,6 +73,9 @@ module RailsAdminNext
       # show Gravatar in Navigation bar
       attr_accessor :show_gravatar
 
+      # show the "Made in Tokyo" footer under every admin page
+      attr_accessor :show_footer
+
       # accepts a hash of static links to be shown below the main navigation
       attr_accessor :navigation_static_links
       attr_accessor :navigation_static_label
@@ -355,6 +358,7 @@ module RailsAdminNext
         @registry = {}
         @navbar_css_classes = %w[navbar-dark bg-primary border-bottom]
         @show_gravatar = true
+        @show_footer = true
         @navigation_static_links = {}
         @navigation_static_label = nil
         @composite_keys_serializer = RailsAdminNext::Support::CompositeKeysSerializer
