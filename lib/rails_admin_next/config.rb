@@ -190,7 +190,13 @@ module RailsAdminNext
       def authorize_with(*args, &block)
         extension = args.shift
         if extension
-          klass = RailsAdminNext::AUTHORIZATION_ADAPTERS[extension]
+          klass = RailsAdminNext::AUTHORIZATION_ADAPTERS.fetch(extension) do
+            raise ArgumentError, "Unknown authorization adapter #{extension.inspect}. " \
+              "Registered adapters: #{RailsAdminNext::AUTHORIZATION_ADAPTERS.keys.map(&:inspect).join(", ")}. " \
+              "Register a custom adapter with RailsAdminNext.add_extension(key, mod, authorization: true) " \
+              "before this config block, or pass a block to authorize_with to gate admin entry only " \
+              "(no per-record checks or list scoping). See docs/UPGRADING.md."
+          end
           klass.setup if klass.respond_to? :setup
           @authorize = proc do
             @authorization_adapter = klass.new(*([self] + args).compact, &block)
