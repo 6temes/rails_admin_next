@@ -29,6 +29,7 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
           can :destroy, Player, retired: false if user.roles.include? :destroy_player
           can :history, Player, retired: false if user.roles.include? :history_player
           can :show_in_app, Player, retired: false if user.roles.include? :show_in_app_player
+          can :read, Fanship, since: nil if user.roles.include? :read_fanship
         end
       end
     end)
@@ -105,6 +106,24 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
 
     it "GET /admin/team should raise CanCan::AccessDenied" do
       expect { visit index_path(model_name: "team") }.to raise_error(CanCan::AccessDenied)
+    end
+
+    context "with a scope tab on a composite primary key model", composite_primary_keys: true do
+      let!(:readable) { FactoryBot.create(:fanship, since: nil) }
+      let!(:unreadable) { FactoryBot.create(:fanship, since: Date.new(2020, 1, 1)) }
+
+      before do
+        @user.update(roles: %i[admin read_fanship])
+        RailsAdminNext.config Fanship do
+          list { scopes [nil, :unscoped] }
+        end
+      end
+
+      it "does not let a tab that drops conditions list unauthorized records" do
+        visit index_path(model_name: "fanship", scope: "unscoped")
+        is_expected.to have_content(readable.fan.name)
+        is_expected.not_to have_content(unreadable.fan.name)
+      end
     end
 
     context "with scope tabs" do

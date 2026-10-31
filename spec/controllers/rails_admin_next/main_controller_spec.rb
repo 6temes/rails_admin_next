@@ -163,7 +163,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
     before do
       @team = FactoryBot.create :team
       controller.params = {associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: @team.id, model_name: "player", action: "index"}
-      controller.get_model # set @model_config for Player
+      controller.get_model
     end
 
     def association_entries
