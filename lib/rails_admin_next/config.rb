@@ -272,7 +272,7 @@ module RailsAdminNext
           when Class, ConstLoadSuppressor::ConstProxy
             entity.name.to_sym
           when String, Symbol
-            entity.to_sym
+            entity.to_s.delete_prefix("::").to_sym
           else
             entity.class.name.to_sym
           end
@@ -369,7 +369,7 @@ module RailsAdminNext
       #
       # @see RailsAdminNext::Config.registry
       def reset_model(model)
-        key = model.is_a?(Class) ? model.name.to_sym : model.to_sym
+        key = model.is_a?(Class) ? model.name.to_sym : model.to_s.delete_prefix("::").to_sym
         @registry.delete(key)
       end
 
