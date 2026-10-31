@@ -242,7 +242,7 @@ module RailsAdminNext
         end
 
         def today
-          [Date.today, Date.today]
+          [Date.current, Date.current]
         end
 
         def yesterday
@@ -250,7 +250,7 @@ module RailsAdminNext
         end
 
         def this_week
-          [Date.today.beginning_of_week, Date.today.end_of_week]
+          [Date.current.beginning_of_week, Date.current.end_of_week]
         end
 
         def last_week

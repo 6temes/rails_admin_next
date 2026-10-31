@@ -610,10 +610,33 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: ["", "2012-03-01", ""], o: "between"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} >= ?)", Date.new(2012, 3, 1))))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: ["", "", "2012-02-01"], o: "between"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} <= ?)", Date.new(2012, 2, 1))))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: ["2012-02-01"], o: "default"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", Date.new(2012, 2, 1))))
-        expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", Date.today)))
+        expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", Date.current)))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "yesterday"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", Date.yesterday)))
-        expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "this_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} BETWEEN ? AND ?)", Date.today.beginning_of_week, Date.today.end_of_week)))
+        expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "this_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} BETWEEN ? AND ?)", Date.current.beginning_of_week, Date.current.end_of_week)))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "last_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} BETWEEN ? AND ?)", 1.week.ago.to_date.beginning_of_week, 1.week.ago.to_date.end_of_week)))
+      end
+
+      context "when the app time zone is a day ahead of the system clock" do
+        include ActiveSupport::Testing::TimeHelpers
+
+        # Sunday evening in UTC is already Monday in Tokyo, so "today" and "this week"
+        # differ depending on which clock answers. The process zone is pinned too, or a
+        # machine already on JST would pass with either clock.
+        around do |example|
+          system_zone = ENV["TZ"]
+          ENV["TZ"] = "UTC"
+          travel_to(Time.utc(2026, 11, 1, 20)) { Time.use_zone("Tokyo") { example.run } }
+        ensure
+          ENV["TZ"] = system_zone
+        end
+
+        it "resolves relative date filters in the app time zone", :aggregate_failures do
+          monday = Date.new(2026, 11, 2)
+          expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", monday)))
+          expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "yesterday"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} = ?)", monday - 1)))
+          expect(predicates_for(abstract_model.send(:filter_scope, scope, "date_field" => {"1" => {v: [], o: "this_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:date_field)} BETWEEN ? AND ?)", monday, monday + 6)))
+          expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", monday.beginning_of_day, monday.end_of_day)))
+        end
       end
 
       it "supports datetime type query" do
@@ -621,9 +644,9 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: ["", "2012-03-01T12:00:00", ""], o: "between"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} >= ?)", Time.utc(2012, 3, 1, 12))))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: ["", "", "2012-02-01T12:00:00"], o: "between"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} <= ?)", Time.utc(2012, 2, 1, 12))))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: ["2012-02-01T12:00:00"], o: "default"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} = ?)", Time.utc(2012, 2, 1, 12))))
-        expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", Date.today.beginning_of_day, Date.today.end_of_day)))
+        expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "today"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", Date.current.beginning_of_day, Date.current.end_of_day)))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "yesterday"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", Date.yesterday.beginning_of_day, Date.yesterday.end_of_day)))
-        expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "this_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", Date.today.beginning_of_week.beginning_of_day, Date.today.end_of_week.end_of_day)))
+        expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "this_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", Date.current.beginning_of_week.beginning_of_day, Date.current.end_of_week.end_of_day)))
         expect(predicates_for(abstract_model.send(:filter_scope, scope, "datetime_field" => {"1" => {v: [], o: "last_week"}}))).to eq(predicates_for(scope.where("(#{quoted(:datetime_field)} BETWEEN ? AND ?)", 1.week.ago.beginning_of_week, 1.week.ago.end_of_week)))
       end
 
