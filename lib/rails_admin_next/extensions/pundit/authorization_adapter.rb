@@ -43,14 +43,10 @@ module RailsAdminNext
         # to those which the user can perform the given action on. A model with no policy
         # Scope gets no records: bulk_delete deletes whatever this returns without a
         # per-record check, so a forgotten Scope must not mean "everything".
-        # The scope class is found from the model, not the relation: action_policy defines
-        # ActiveRecord::Relation#policy_class as nil, which hides every Scope from Pundit's
-        # finder when both gems are bundled.
         def query(_action, abstract_model)
-          scope_class = ::Pundit::PolicyFinder.new(abstract_model.model).scope!
-          @controller.send(:policy_scope, abstract_model.model.all, policy_scope_class: scope_class)
+          @controller.send(:policy_scope, abstract_model.model.all)
         rescue ::Pundit::NotDefinedError
-          abstract_model.model.none
+          model_scope(abstract_model.model)
         end
 
         # This is called in the new/create actions to determine the initial attributes for new
@@ -67,6 +63,16 @@ module RailsAdminNext
           @controller.send(:policy, record)
         rescue ::Pundit::NotDefinedError
           ::ApplicationPolicy.new(@controller.send(:pundit_user), record)
+        end
+
+        # action_policy defines ActiveRecord::Relation#policy_class as nil, which hides every
+        # Scope from Pundit's relation lookup when both gems are bundled; the model still finds it.
+        def model_scope(model)
+          scope_class = ::Pundit::PolicyFinder.new(model).scope
+          return model.none unless scope_class
+
+          @controller.instance_variable_set(:@_pundit_policy_scoped, true)
+          scope_class.new(@controller.send(:pundit_user), model.all).resolve
         end
 
         def action_for_pundit(action)

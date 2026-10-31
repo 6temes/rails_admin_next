@@ -165,6 +165,14 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       expect(CSV.parse(page.driver.response.body)).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
 
+    it "comes from the policy a model names with policy_class", :aggregate_failures do
+      @user.update(roles: %i[admin read_player])
+      allow(Player).to receive(:policy_class).and_return(ActionPolicies::RetiredPlayerPolicy)
+      visit index_path(model_name: "player")
+      is_expected.to have_content("Bob")
+      is_expected.not_to have_content("Alice")
+    end
+
     it "is applied for the configured current user" do
       @user.update(roles: %i[admin read_player see_retired])
       visit index_path(model_name: "player")
