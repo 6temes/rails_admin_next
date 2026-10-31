@@ -141,6 +141,29 @@ RSpec.describe "Export action", type: :request do
       is_expected.to have_content("Select fields to export")
     end
 
+    describe "with a scope tab selected" do
+      before do
+        RailsAdminNext.config Team do
+          list do
+            scopes [nil, :red, :white]
+          end
+        end
+        FactoryBot.create(:team, name: "Red Sox", color: "red")
+        FactoryBot.create(:team, name: "Cincinnati Reds", color: "red")
+        FactoryBot.create(:team, name: "White Sox", color: "white")
+        FactoryBot.create(:team, name: "Black Barons", color: "black")
+      end
+
+      it "exports only the records in that tab" do
+        visit index_path(model_name: "team", scope: "red")
+        click_link "Export found Teams"
+        click_button "Export to csv"
+        csv = CSV.parse(page.driver.response.body)
+        names = csv.drop(1).map { |row| row[csv.first.index("Name")] }
+        expect(names).to contain_exactly("Red Sox", "Cincinnati Reds")
+      end
+    end
+
     describe "with model scope" do
       let!(:comments) { %w[something anything].map { |content| FactoryBot.create :comment_confirmed, content: content } }
       before do

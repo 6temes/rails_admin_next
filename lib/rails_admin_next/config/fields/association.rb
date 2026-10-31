@@ -137,7 +137,7 @@ module RailsAdminNext
 
         # Returns collection of all selectable records
         def collection(scope = nil)
-          (scope || bindings[:controller].list_entries(associated_model_config, :index, associated_collection_scope, false))
+          (scope || bindings[:controller].association_entries(associated_model_config, associated_collection_scope))
             .map { |o| [o.send(associated_object_label_method), format_key(o.send(associated_primary_key)).to_s] }
         end
 

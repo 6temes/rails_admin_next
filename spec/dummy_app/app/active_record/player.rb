@@ -17,6 +17,7 @@ class Player < ActiveRecord::Base
   before_destroy :destroy_hook
 
   scope :rails_admin_search, ->(query) { where(name: query.reverse) }
+  scope :retired, -> { where(retired: true) }
 
   def destroy_hook
   end

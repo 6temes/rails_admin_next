@@ -159,11 +159,15 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
     end
   end
 
-  describe "#list_entries for associated_collection" do
+  describe "#association_entries for associated_collection" do
     before do
       @team = FactoryBot.create :team
       controller.params = {associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: @team.id, model_name: "player", action: "index"}
-      controller.get_model # set @model_config for Team
+      controller.get_model # set @model_config for Player
+    end
+
+    def association_entries
+      controller.association_entries(controller.instance_variable_get(:@model_config), controller.send(:get_association_scope_from_params))
     end
 
     it "doesn't scope associated collection records when associated_collection_scope is nil" do
@@ -175,7 +179,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
         end
       end
 
-      expect(controller.list_entries.to_a.length).to eq(@players.size)
+      expect(association_entries.to_a.length).to eq(@players.size)
     end
 
     it "scopes associated collection records according to associated_collection_scope" do
@@ -189,7 +193,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
         end
       end
 
-      expect(controller.list_entries.to_a.length).to eq(3)
+      expect(association_entries.to_a.length).to eq(3)
     end
 
     it "scopes associated collection records according to bindings" do
@@ -209,7 +213,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
         end
       end
 
-      expect(controller.list_entries.to_a.length).to eq(@team.revenue.to_i)
+      expect(association_entries.to_a.length).to eq(@team.revenue.to_i)
     end
 
     it "limits associated collection records number to 30 if cache_all is false" do
@@ -220,7 +224,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
           associated_collection_cache_all false
         end
       end
-      expect(controller.list_entries.to_a.length).to eq(30)
+      expect(association_entries.to_a.length).to eq(30)
     end
 
     it "doesn't limit associated collection records number to 30 if cache_all is true" do
@@ -231,13 +235,13 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
           associated_collection_cache_all true
         end
       end
-      expect(controller.list_entries.length).to eq(@players.size)
+      expect(association_entries.length).to eq(@players.size)
     end
 
     it "orders associated collection records by id, descending" do
       @players = FactoryBot.create_list(:player, 3)
 
-      expect(controller.list_entries.to_a).to eq(@players.sort_by(&:id).reverse)
+      expect(association_entries.to_a).to eq(@players.sort_by(&:id).reverse)
     end
   end
 

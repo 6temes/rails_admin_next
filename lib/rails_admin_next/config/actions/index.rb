@@ -30,27 +30,12 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
-            # Resolve the active list scope (the scope tabs) and fold it into the
-            # relation *before* pagination. The paginated collection is a resolved
-            # page, not a chainable relation, so a named scope can no longer be
-            # appended afterwards.
-            unless @objects
-              scopes = @model_config.list.scopes
-              list_scope =
-                if scopes.empty? || params[:scope].blank?
-                  scopes.first
-                elsif scopes.collect(&:to_s).include?(params[:scope])
-                  params[:scope].to_sym
-                end
-
-              additional_scope = get_association_scope_from_params
-              if list_scope
-                base_scope = additional_scope
-                additional_scope = proc { (base_scope ? instance_eval(&base_scope) : self).send(list_scope) }
+            @objects ||=
+              if params[:associated_collection].present?
+                association_entries(@model_config, get_association_scope_from_params)
+              else
+                list_entries
               end
-
-              @objects = list_entries(@model_config, :index, additional_scope)
-            end
 
             respond_to do |format|
               format.html do

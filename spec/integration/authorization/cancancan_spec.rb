@@ -107,6 +107,32 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
       expect { visit index_path(model_name: "team") }.to raise_error(CanCan::AccessDenied)
     end
 
+    context "with scope tabs" do
+      let!(:active_player) { FactoryBot.create(:player, name: "Active Player", retired: false) }
+      let!(:retired_player) { FactoryBot.create(:player, name: "Retired Player", retired: true) }
+
+      before do
+        RailsAdminNext.config Player do
+          list do
+            scopes [nil, :unscoped, :retired]
+            field :name
+          end
+        end
+      end
+
+      it "does not let a tab that drops conditions list unauthorized records" do
+        visit index_path(model_name: "player", scope: "unscoped")
+        is_expected.to have_content("Active Player")
+        is_expected.not_to have_content("Retired Player")
+      end
+
+      it "keeps a tab's condition on a column the ability also constrains" do
+        visit index_path(model_name: "player", scope: "retired")
+        is_expected.not_to have_content("Active Player")
+        is_expected.not_to have_content("Retired Player")
+      end
+    end
+
     it "GET /admin/player/new should raise CanCan::AccessDenied" do
       expect { visit new_path(model_name: "player") }.to raise_error(CanCan::AccessDenied)
     end
@@ -284,6 +310,20 @@ RSpec.describe "RailsAdminNext CanCanCan Authorization", type: :request do
       retired_player = FactoryBot.create :player, retired: true
 
       delete bulk_delete_path(model_name: "player", bulk_ids: [active_player, retired_player].collect(&:id))
+      expect(@player_model.get(active_player.id)).to be_nil
+      expect(@player_model.get(retired_player.id)).not_to be_nil
+    end
+
+    it "does not let a tab that drops conditions destroy unauthorized records" do
+      RailsAdminNext.config Player do
+        list do
+          scopes [nil, :unscoped]
+        end
+      end
+      active_player = FactoryBot.create :player, retired: false
+      retired_player = FactoryBot.create :player, retired: true
+
+      delete bulk_delete_path(model_name: "player", scope: "unscoped", bulk_ids: [active_player, retired_player].collect(&:id))
       expect(@player_model.get(active_player.id)).to be_nil
       expect(@player_model.get(retired_player.id)).not_to be_nil
     end
