@@ -30,12 +30,11 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
-            @objects ||=
-              if params[:associated_collection].present?
-                association_entries(@model_config, get_association_scope_from_params)
-              else
-                list_entries
-              end
+            unless @objects
+              # @association is set only when the picker guard accepts associated_collection; otherwise list normally.
+              association_scope = get_association_scope_from_params
+              @objects = @association ? association_entries(@model_config, association_scope) : list_entries
+            end
 
             respond_to do |format|
               format.html do
