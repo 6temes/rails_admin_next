@@ -385,6 +385,36 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
         expect { get :show, model_name: "player", id: player.id }.not_to raise_error
       end
     end
+
+    context "when authorizing requests with action_policy" do
+      # Bound explicitly: the Pundit adapter's setup mixes Pundit::Authorization into every engine
+      # controller, and its verify_authorized shadows ActionPolicy's. After actions run in
+      # reverse, so verify_authorized runs first.
+      controller(RailsAdminNext::MainController) do
+        after_action { ::ActionPolicy::Controller.instance_method(:verify_authorized_scoped).bind_call(self) }
+        after_action { ::ActionPolicy::Controller.instance_method(:verify_authorized).bind_call(self) }
+      end
+
+      before do
+        stub_const("ApplicationPolicy", ActionPolicies::ApplicationPolicy)
+        stub_const("PlayerPolicy", ActionPolicies::PlayerPolicy)
+        login_as FactoryBot.create :user, roles: [:admin]
+        FactoryBot.create :player
+      end
+
+      it "satisfies the host's verify_authorized and verify_authorized_scoped" do
+        RailsAdminNext.config do |c|
+          c.authorize_with(:action_policy)
+          c.authenticate_with { warden.authenticate! scope: :user }
+          c.current_user_method(&:current_user)
+        end
+        expect { get :index, model_name: "player" }.not_to raise_error
+      end
+
+      it "leaves the host's verify_authorized failing when nothing authorizes" do
+        expect { get :index, model_name: "player" }.to raise_error(ActionPolicy::UnauthorizedAction)
+      end
+    end
   end
 
   describe "sanitize_params_for!" do
