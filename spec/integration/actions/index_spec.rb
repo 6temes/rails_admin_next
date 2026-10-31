@@ -346,6 +346,25 @@ RSpec.describe "Index action", type: :request do
       visit index_path(model_name: "player")
       is_expected.to have_css(".form-text", text: /Use this box/)
     end
+
+    describe "with malformed filter params" do
+      [
+        "f=invalid",
+        "f[name]=x",
+        "f[born_on][0]=invalid",
+        "f[born_on][0][v]=2012-13-45",
+        "f[born_on][0][o]=between&f[born_on][0][v]=x",
+        "f[born_on][0][o]=between&f[born_on][0][v]=2012-01-01",
+        "f[nope][0][v]=x"
+      ].each do |query|
+        it "lists every player for #{query}" do
+          get "#{index_path(model_name: "player")}?#{query}"
+
+          expect(response).to have_http_status(:ok)
+          expect(response.body).to include(*@players.map(&:name))
+        end
+      end
+    end
   end
 
   describe "fields" do

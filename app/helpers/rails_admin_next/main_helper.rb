@@ -29,7 +29,7 @@ module RailsAdminNext
       return @ordered_filters if @ordered_filters.present?
 
       @index = 0
-      @ordered_filters = (params[:f].try(:permit!).try(:to_h) || @model_config.list.filters).each_with_object({}) do |filter, memo|
+      @ordered_filters = (filters_from_params || @model_config.list.filters).each_with_object({}) do |filter, memo|
         field_name = filter.is_a?(Array) ? filter.first : filter
         (filter.is_a?(Array) ? filter.last : {(@index += 1) => {"v" => ""}}).each do |index, filter_hash|
           if filter_hash["disabled"].blank?
@@ -39,6 +39,17 @@ module RailsAdminNext
           end
         end
       end.to_a.sort_by(&:first)
+    end
+
+    # Only the field => index => filter shape the filter box submits, for fields that
+    # are filterable; hand-written or stale params are dropped rather than raising.
+    def filters_from_params
+      return unless params[:f].respond_to?(:permit!)
+
+      names = filterable_fields.map { it.name.to_s }
+      params[:f].permit!.to_h.select do |name, filters_dump|
+        names.include?(name) && filters_dump.is_a?(Hash) && filters_dump.values.all?(Hash)
+      end
     end
 
     def ordered_filter_options
