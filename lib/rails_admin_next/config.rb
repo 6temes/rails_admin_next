@@ -182,6 +182,11 @@ module RailsAdminNext
       #     config.authorize_with :pundit
       #   end
       #
+      # @example ActionPolicy
+      #   RailsAdminNext.config do |config|
+      #     config.authorize_with :action_policy
+      #   end
+      #
       # A custom adapter is registered with
       # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here.
       # See docs/UPGRADING.md for the adapter contract.

@@ -113,11 +113,12 @@ always match the installed version.
 - File uploads (ActiveStorage)
 - Rich text fields (ActionText / Trix)
 - Authentication (via [Devise][devise] or any other scheme)
-- Authorization (via [Pundit][pundit] or a custom adapter)
+- Authorization (via [Pundit][pundit], [ActionPolicy][action_policy] or a custom adapter)
 - User action history (via [PaperTrail][papertrail])
 
 [devise]: https://github.com/heartcombo/devise
 [pundit]: https://github.com/varvet/pundit
+[action_policy]: https://github.com/palkan/action_policy
 [papertrail]: https://github.com/paper-trail-gem/paper_trail
 
 ## Configuration
@@ -171,11 +172,20 @@ The configuration DSL is unchanged from upstream RailsAdmin, so the upstream
 The authorization contract is held stable, so existing Pundit policies keep working
 **without edits**: every action's authorization key (`:dashboard`, `:index`, `:show`,
 `:new`, `:edit`, `:export`, `:destroy`, `:history`, `:show_in_app`) is unchanged, and the
-Pundit adapter calls it with a `?` suffix (`index?`, `edit?`). Pundit is the only built-in
-adapter; any other authorization library plugs in as a custom adapter, which by convention
+Pundit adapter calls it with a `?` suffix (`index?`, `edit?`). Pundit and ActionPolicy are
+the built-in adapters; any other authorization library plugs in as a custom adapter, which by convention
 checks the `:access, :rails_admin` subject. See [docs/UPGRADING.md](docs/UPGRADING.md).
 
 The `admin.*` I18n namespace is likewise unchanged.
+
+### ActionPolicy
+
+`config.authorize_with :action_policy` checks each action against the record's policy with
+the same `<key>?` rules the Pundit adapter calls (`index?`, `show?`, `new?`, `edit?`,
+`destroy?`, `export?`, `history?`, `show_in_app?`, `dashboard?`), and scopes lists, export
+and bulk delete through the policy's default `relation_scope`. A model with no policy, or a
+policy with no default relation scope, lists nothing. Bundle `action_policy` yourself; see
+the "ActionPolicy adapter" section of [docs/UPGRADING.md](docs/UPGRADING.md).
 
 ## Frontend and assets
 
