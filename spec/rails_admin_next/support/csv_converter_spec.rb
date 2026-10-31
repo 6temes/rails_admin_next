@@ -199,6 +199,23 @@ RSpec.describe RailsAdminNext::CSVConverter do
         .to eq ["Alpha player", "Bravo player", "Charlie player", "Delta player", "Echo player"]
     end
 
+    it "keeps a limited relation's bound" do
+      %w[Charlie Alice Echo Bob Delta].each { FactoryBot.create :player, name: it }
+
+      expect(data_rows(Player.order(:name).limit(3), schema).map(&:last)).to eq %w[Alice Bob Charlie]
+    end
+
+    it "exports every record when sorting on a has-many association's column" do
+      players = FactoryBot.create_list :player, 5
+      players.each_with_index do |player, i|
+        FactoryBot.create :comment, commentable: player, created_at: (2 * i).days.ago
+        FactoryBot.create :comment, commentable: player, created_at: (2 * i + 1).days.ago
+      end
+      sort = "#{Comment.quoted_table_name}.#{Comment.connection.quote_column_name("created_at")} asc"
+
+      expect(data_rows(Player.includes(:comments).reorder(sort), schema).map(&:last).uniq).to match_array players.map(&:name)
+    end
+
     it "does not load the relation" do
       FactoryBot.create_list :player, 3
       objects = Player.all

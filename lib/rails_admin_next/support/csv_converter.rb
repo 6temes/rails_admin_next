@@ -77,6 +77,8 @@ module RailsAdminNext
 
     def each_object(&)
       return @objects.each(&) unless @objects.is_a?(ActiveRecord::Relation)
+      # Batching sets its own limit and offset, which would drop the relation's.
+      return @objects.each(&) if @objects.limit_value || @objects.offset_value
 
       if (direction = primary_key_direction)
         @objects.unscope(:order).find_each(order: direction, batch_size: BATCH_SIZE, &)
@@ -100,13 +102,15 @@ module RailsAdminNext
     end
 
     # The primary-key tie-break makes the order total, so rows that tie on the sort
-    # column cannot shift between batches.
+    # column cannot shift between batches. A short batch is not the last one: sorting
+    # on an eager-loaded has-many column returns fewer records than the limit.
     def each_in_offset_batches(&)
       ordered = @objects.order(Array(@model.primary_key).index_with(:asc))
       0.step(by: BATCH_SIZE) do |offset|
         batch = ordered.limit(BATCH_SIZE).offset(offset).to_a
+        break if batch.empty?
+
         batch.each(&)
-        break if batch.size < BATCH_SIZE
       end
     end
 

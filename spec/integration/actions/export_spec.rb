@@ -258,6 +258,18 @@ RSpec.describe "Export action", type: :request do
       expect(exported_names(sort: "name")).to eq ["Alice", "Bob", "Charlie", "Delta", "Echo", player.name]
     end
 
+    it "follows a sort on an association the export leaves out" do
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+      Player.where.not(id: player.id).find_each.with_index { |each_player, i| each_player.update!(team: FactoryBot.create(:team, name: "Team #{"EDCBA"[i]}")) }
+      player.update!(team: FactoryBot.create(:team, name: "Team Z"))
+
+      expect(exported_names(sort: "team")).to eq Player.joins(:team).order("teams.name").pluck(:name)
+    end
+
     it "follows the list's default sort across batches" do
       expect(exported_names).to eq Player.order(id: :desc).pluck(:name)
     end
