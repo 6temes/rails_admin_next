@@ -355,7 +355,8 @@ RSpec.describe "Index action", type: :request do
         "f[born_on][0][v]=2012-13-45",
         "f[born_on][0][o]=between&f[born_on][0][v]=x",
         "f[born_on][0][o]=between&f[born_on][0][v]=2012-01-01",
-        "f[nope][0][v]=x"
+        "f[nope][0][v]=x",
+        "f[born_on][0][o]=between&f[born_on][0][v][1]=2012-01-01"
       ].each do |query|
         it "lists every player for #{query}" do
           get "#{index_path(model_name: "player")}?#{query}"
@@ -363,6 +364,34 @@ RSpec.describe "Index action", type: :request do
           expect(response).to have_http_status(:ok)
           expect(response.body).to include(*@players.map(&:name))
         end
+      end
+
+      it "lists every player for unparseable JSON" do
+        RailsAdminNext.config Player do
+          list do
+            field :name, :json
+          end
+        end
+
+        get "#{index_path(model_name: "player")}?f[name][0][v]=%7B"
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "still applies a between date filter when its unused default value is unparseable" do
+        @players[0].update!(born_on: Date.new(2012, 6, 1))
+        @players[1].update!(born_on: Date.new(2020, 6, 1))
+
+        get "#{index_path(model_name: "player")}?f[born_on][0][o]=between&f[born_on][0][v][]=x&f[born_on][0][v][]=2012-01-01&f[born_on][0][v][]=2012-12-31"
+
+        expect(response.body).to include(@players[0].name)
+        expect(response.body).not_to include(@players[1].name)
+      end
+
+      it "keeps a valid filter beside a malformed one in the filter box" do
+        visit "#{index_path(model_name: "player")}?f[name][0][o]=is&f[name][0][v]=#{@players[0].name}&f[name][1]=invalid"
+
+        expect(JSON.parse(find("#filters_box")["data-options"]).map { it.values_at("name", "value") }).to eq [["name", @players[0].name]]
       end
     end
   end

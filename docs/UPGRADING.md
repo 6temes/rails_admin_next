@@ -431,6 +431,16 @@ ignored.
 
 If a client relied on a column the section doesn't show, add that field to the section.
 
+## Malformed filter params are ignored
+
+The index page used to answer a hand-written or stale `f[...]` query string with a 500: a
+filter that wasn't the `field => index => {o:, v:}` shape the filter box submits, one naming
+a field that isn't filterable (`is not currently filterable`), or a value the field couldn't
+parse, such as an impossible date or malformed JSON. Such a filter is now dropped and the
+rest of the list renders. A value that fails to parse counts as no value, so a bookmarked
+link to a field that has since stopped being filterable lists every record rather than
+erroring.
+
 ## Pundit: a model with no policy Scope lists nothing
 
 A model whose policy defines no `Scope` used to list every record. It now lists none: the

@@ -118,12 +118,15 @@ module RailsAdminNext
       extend Adapters::ActiveRecord
     end
 
-    # A value the field can't parse (an impossible date, malformed YAML) is treated as
-    # no value. Only parse errors are rescued, so a bug in a custom parse_value still
-    # raises. Date::Error is an ArgumentError.
+    # A value the field can't parse (an impossible date, malformed JSON or YAML) is
+    # treated as no value, element by element in an array. Only parse errors are
+    # rescued, so a bug in a custom parse_value still raises. Date::Error is an
+    # ArgumentError.
     def parse_field_value(field, value)
-      value.is_a?(Array) ? value.map { |v| field.parse_value(v) } : field.parse_value(value)
-    rescue ArgumentError, Psych::Exception
+      return value.map { |v| parse_field_value(field, v) } if value.is_a?(Array)
+
+      field.parse_value(value)
+    rescue ArgumentError, JSON::ParserError, Psych::Exception
       nil
     end
 

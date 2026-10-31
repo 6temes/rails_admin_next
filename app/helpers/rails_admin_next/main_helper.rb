@@ -47,9 +47,9 @@ module RailsAdminNext
       return unless params[:f].respond_to?(:permit!)
 
       names = filterable_fields.map { it.name.to_s }
-      params[:f].permit!.to_h.select do |name, filters_dump|
-        names.include?(name) && filters_dump.is_a?(Hash) && filters_dump.values.all?(Hash)
-      end
+      params[:f].permit!.to_h.filter_map do |name, filters_dump|
+        [name, filters_dump.select { |_index, filter| filter.is_a?(Hash) }] if names.include?(name) && filters_dump.is_a?(Hash)
+      end.to_h
     end
 
     def ordered_filter_options
