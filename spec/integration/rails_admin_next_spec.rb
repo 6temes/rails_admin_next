@@ -47,6 +47,12 @@ RSpec.describe RailsAdminNext, type: :request do
       is_expected.to have_no_selector('head script[src*="/vite/"]', visible: false)
     end
 
+    # Browsers match the name exactly; navbar_collapse_spec resizes a desktop window, which
+    # ignores this meta, so only this assertion catches a malformed one.
+    it "declares a viewport meta mobile browsers recognise" do
+      is_expected.to have_selector('head meta[name="viewport"][content="width=device-width, initial-scale=1"]', visible: false)
+    end
+
     # The color-scheme meta is what every light-dark() token pair in the engine CSS resolves
     # against; it must precede the stylesheet link so the scheme is known before first paint.
     describe "color scheme meta" do
