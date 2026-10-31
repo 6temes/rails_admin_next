@@ -26,6 +26,10 @@ ActiveRecord, and an importmap + Propshaft asset pipeline. There is **no multi-O
 multi-bundler, or multi-Rails build matrix**, and **no Appraisal**: the suite runs against
 one Gemfile with no `yarn build` step.
 
+The gem expects evergreen hosts (see [Requirements](README.md#requirements)), so a Ruby
+bump moves the CI pin and the floor together: `required_ruby_version`, `.standard.yml`,
+the demo `Dockerfile`, and the versions quoted in the docs.
+
 The gem has no application of its own; it is developed and tested against the embedded
 host app at `spec/dummy_app/`.
 

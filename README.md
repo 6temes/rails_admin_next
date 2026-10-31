@@ -61,6 +61,10 @@ That's the whole setup — no `yarn add`, no asset build, no generated pins. The
   dependencies; RailsAdminNext serves its frontend over them, with no bundler or build step)
 - Latest stable Chrome or Safari for the admin's users (see [Browser support](#browser-support))
 
+RailsAdminNext expects **evergreen** hosts. The Ruby floor follows the latest stable Ruby
+patch release, and a release can raise it without a major version bump. Keep your app on
+current Ruby and Rails to keep receiving updates.
+
 [propshaft]: https://github.com/rails/propshaft
 [importmap]: https://github.com/rails/importmap-rails
 
