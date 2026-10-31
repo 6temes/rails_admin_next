@@ -31,13 +31,15 @@ module RailsAdminNext
       get_collection(model_config, scope, pagination)
     end
 
-    # The records an association picker offers: the tabs of the picked model's list never apply.
+    # The records an association picker offers. The tabs of the picked model's list never
+    # apply, and the association's scope runs last so its `reorder` beats the list sort.
+    # That is safe only because the collection here is never paginated.
     def association_entries(model_config, collection_scope)
       scope = model_config.scope
       auth_scope = @authorization_adapter&.query(:index, model_config.abstract_model)
       scope = scope.merge(auth_scope) if auth_scope
-      scope = scope.instance_eval(&collection_scope) if collection_scope
-      get_collection(model_config, scope, false)
+      scope = get_collection(model_config, scope, false)
+      collection_scope ? scope.instance_eval(&collection_scope) : scope
     end
 
     private
