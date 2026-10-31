@@ -357,6 +357,22 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
       end
     end
 
+    context "when the value is too wide for an integer column" do
+      let(:abstract_model) { RailsAdminNext::AbstractModel.new("FieldTest") }
+
+      before do
+        RailsAdminNext.config FieldTest do
+          field :integer_field
+        end
+      end
+
+      it "matches nothing" do
+        FieldTest.create!(integer_field: 1)
+
+        expect(abstract_model.all(filters: {"integer_field" => {"0000" => {o: "default", v: "6121234567"}}})).to be_empty
+      end
+    end
+
     context "with blank/present on an enum" do
       let(:abstract_model) { RailsAdminNext::AbstractModel.new("FieldTest") }
 

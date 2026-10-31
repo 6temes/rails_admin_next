@@ -184,7 +184,7 @@ module RailsAdminNext
           field.searchable_columns.flatten.each do |column_infos|
             attribute_type = attribute_type(field, column_infos[:column])
             statement, value1, value2 = StatementBuilder.new(quote(column_infos[:column]), column_infos[:type], value, operator, @scope.connection.adapter_name, column_type: attribute_type&.type).to_statement
-            next if out_of_range?(attribute_type, [value1, value2])
+            statement, value1, value2 = "(1 = 0)" if out_of_range?(attribute_type, [value1, value2])
 
             @statements << statement if statement.present?
             @values << value1 unless value1.nil?
@@ -217,7 +217,8 @@ module RailsAdminNext
         end
 
         # A number too wide for the column (an int4 searched with a 10-digit term) makes
-        # PostgreSQL reject the whole query, so that column is left out instead.
+        # PostgreSQL reject the whole query. No row can hold it, so the column matches
+        # nothing instead: a search still matches the other columns, a filter matches none.
         def out_of_range?(attribute_type, values)
           return false unless attribute_type
 
