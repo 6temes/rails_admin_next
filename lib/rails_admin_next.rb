@@ -49,25 +49,13 @@ module RailsAdminNext
     @deprecator ||= ActiveSupport::Deprecation.new(RailsAdminNext::Version.to_s, "RailsAdminNext")
   end
 
-  # Backwards-compatible with safe_yaml/load when SafeYAML isn't available.
-  # Evaluates available YAML loaders at boot and creates appropriate method,
-  # so no conditionals are required at runtime.
-  begin
-    require "safe_yaml/load"
-    def self.yaml_load(yaml)
-      SafeYAML.load(yaml)
-    end
-  rescue LoadError
-    if YAML.respond_to?(:safe_load)
-      def self.yaml_load(yaml)
-        YAML.safe_load(yaml)
-      end
-    else
-      raise LoadError.new "Safe-loading of YAML is not available. Please install 'safe_yaml' or install Psych 2.0+"
-    end
+  def self.yaml_load(yaml)
+    deprecator.warn("RailsAdminNext.yaml_load is deprecated and will be removed. Call YAML.safe_load directly.")
+    YAML.safe_load(yaml)
   end
 
   def self.yaml_dump(object)
+    deprecator.warn("RailsAdminNext.yaml_dump is deprecated and will be removed. Call YAML.dump directly.")
     YAML.dump(object)
   end
 end

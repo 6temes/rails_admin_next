@@ -481,6 +481,16 @@ field :salary # still hidden from non-admins
 If a field you hide conditionally started showing for everyone after a later `field` call, it is
 hidden again. A field hidden with a plain `visible false` is still shown again by a later
 declaration, as before.
+## Serialized fields load only plain YAML
+
+A `serialized` field (the default for a `store` or `serialize` attribute) now shows its value
+as plain YAML, without `!ruby/...` class tags, and loads the submitted YAML with only `Symbol`,
+`Date` and `Time` permitted. A store's `HashWithIndifferentAccess` comes back as a plain `Hash`,
+which the store wraps again on assignment. YAML naming any other class is rejected.
+
+The `safe_yaml` gem is no longer consulted, even when the host bundles it.
+`RailsAdminNext.yaml_load` and `RailsAdminNext.yaml_dump` are deprecated: call
+`YAML.safe_load` and `YAML.dump` directly.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
