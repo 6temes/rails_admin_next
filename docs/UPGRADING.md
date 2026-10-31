@@ -491,6 +491,13 @@ which the store wraps again on assignment. YAML naming any other class is reject
 The `safe_yaml` gem is no longer consulted, even when the host bundles it.
 `RailsAdminNext.yaml_load` and `RailsAdminNext.yaml_dump` are deprecated: call
 `YAML.safe_load` and `YAML.dump` directly.
+## `config.model "::Order"` configures `Order`
+
+A model named as a string or symbol with a leading `::` used to register a second, separate
+entry: its block never reached `Order`, and `Order` appeared twice in the navigation. The `::`
+is now dropped, so the block applies to `Order`. If such a block was silently doing nothing,
+check that what it configures is what you want before upgrading. `included_models` and
+`excluded_models` drop a leading `::` the same way.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
