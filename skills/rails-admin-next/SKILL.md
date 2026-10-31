@@ -1,6 +1,6 @@
 ---
 name: rails-admin-next
-description: Configure or extend the rails_admin_next admin in a host Rails app (models, fields, custom actions and field types, CanCanCan/Pundit authorization, PaperTrail history, theming, CSP). Use instead of upstream RailsAdmin knowledge, which is wrong for this fork.
+description: Configure or extend the rails_admin_next admin in a host Rails app (models, fields, custom actions and field types, Pundit or custom-adapter authorization, PaperTrail history, theming, CSP). Use instead of upstream RailsAdmin knowledge, which is wrong for this fork.
 ---
 
 # rails_admin_next
@@ -35,7 +35,7 @@ Renamed (write the new form):
 
 Not renamed (leave as is):
 
-- The authorization subject is still `:rails_admin`. CanCanCan abilities grant `can :access, :rails_admin`. Never rewrite it to `:rails_admin_next`, which fails authorization.
+- The authorization subject is still `:rails_admin`. A custom adapter that keeps CanCanCan grants `can :access, :rails_admin`. Never rewrite it to `:rails_admin_next`, which fails authorization.
 - Action authorization keys (`:dashboard`, `:index`, `:show`, `:new`, `:edit`, `:export`, `:destroy`, `:history`, `:show_in_app`).
 - The `admin.*` I18n namespace.
 
@@ -75,9 +75,9 @@ Icons take logical names, never Font Awesome classes: `link_icon :show_in_app` o
 
 ## Authorization and history
 
-- `config.authorize_with :cancancan` uses the app's `Ability`. Keep the `:rails_admin` subject (see Naming).
+- Pundit is the only built-in adapter. `RailsAdminNext.add_extension(key, mod, authorization: true)` registers a custom one before the config block names its key; copy `<gem>/lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` as the template. An unregistered key raises `ArgumentError` at boot.
 - `config.authorize_with :pundit` calls the record's policy with `<action>?` methods (`index?`, `edit?`, `dashboard?`) and scopes lists with `policy_scope`.
-- `config.authorize_with do ... end` runs a custom block as a before filter.
+- `config.authorize_with do ... end` runs a custom block as a before filter. It gates admin entry only: no per-record checks or list scoping.
 - `config.authenticate_with do ... end` and `config.current_user_method do ... end` wire in the app's authentication, such as Devise or Warden.
 - `config.audit_with :paper_trail` turns on the history action. Read the "History / audit table" section of `<gem>/docs/UPGRADING.md` first.
 

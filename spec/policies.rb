@@ -3,6 +3,15 @@
 class ApplicationPolicy
   attr_reader :user, :record
 
+  class Scope
+    attr_reader :user, :scope
+
+    def initialize(user, scope)
+      @user = user
+      @scope = scope
+    end
+  end
+
   def initialize(user, record)
     @user = user
     @record = record
@@ -52,16 +61,9 @@ class ApplicationPolicy
 end
 
 class PlayerPolicy < ApplicationPolicy
-  class Scope
-    attr_reader :user, :scope
-
-    def initialize(user, scope)
-      @user = user
-      @scope = scope
-    end
-
+  class Scope < ApplicationPolicy::Scope
     def resolve
-      scope.all
+      user.roles.include?(:manage_player) ? scope.all : scope.where(retired: false)
     end
   end
 
@@ -72,13 +74,47 @@ class PlayerPolicy < ApplicationPolicy
   alias_method :create?, :new?
 
   def edit?
-    user.roles.include?(:manage_player) ||
-      (user.roles.include?(:update_player) && (!record.is_a?(Player) || !record.retired))
+    active_player_role?(:update_player)
   end
   alias_method :update?, :edit?
 
   def destroy?
-    (user.roles.include? :manage_player)
+    active_player_role?(:destroy_player)
+  end
+
+  def history?
+    active_player_role?(:history_player)
+  end
+
+  def show_in_app?
+    active_player_role?(:show_in_app_player)
+  end
+
+  def index?
+    user.roles.include? :admin
+  end
+
+  def attributes_for(action)
+    if action == :new && user.roles.include?(:create_player) && !user.roles.include?(:manage_player)
+      {suspended: true}
+    else
+      {}
+    end
+  end
+
+  private
+
+  def active_player_role?(role)
+    user.roles.include?(:manage_player) ||
+      (user.roles.include?(role) && (!record.is_a?(Player) || !record.retired))
+  end
+end
+
+class FanshipPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      user.roles.include?(:read_fanship) ? scope.where(since: nil) : scope.none
+    end
   end
 
   def index?

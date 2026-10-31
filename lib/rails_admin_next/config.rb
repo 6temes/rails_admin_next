@@ -171,21 +171,32 @@ module RailsAdminNext
       #     end
       #   end
       #
-      # To use an authorization adapter, pass the name of the adapter. For example,
-      # to use with CanCanCan[https://github.com/CanCanCommunity/cancancan/], pass it like this.
+      # The block form only gates entry: it runs before every action, but nothing checks
+      # individual records or scopes the list.
       #
-      # @example CanCanCan
+      # To use an authorization adapter, pass the name of the adapter. For example,
+      # to use with Pundit[https://github.com/varvet/pundit], pass it like this.
+      #
+      # @example Pundit
       #   RailsAdminNext.config do |config|
-      #     config.authorize_with :cancancan
+      #     config.authorize_with :pundit
       #   end
       #
-      # See the wiki[https://github.com/railsadminteam/rails_admin/wiki] for more on authorization.
+      # A custom adapter is registered with
+      # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here.
+      # See docs/UPGRADING.md for the adapter contract.
       #
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
       def authorize_with(*args, &block)
         extension = args.shift
         if extension
-          klass = RailsAdminNext::AUTHORIZATION_ADAPTERS[extension]
+          klass = RailsAdminNext::AUTHORIZATION_ADAPTERS.fetch(extension) do
+            raise ArgumentError, "Unknown authorization adapter #{extension.inspect}. " \
+              "Registered adapters: #{RailsAdminNext::AUTHORIZATION_ADAPTERS.keys.map(&:inspect).join(", ")}. " \
+              "Register a custom adapter with RailsAdminNext.add_extension(key, mod, authorization: true) " \
+              "before this config block, or pass a block to authorize_with to gate admin entry only " \
+              "(no per-record checks or list scoping). See docs/UPGRADING.md."
+          end
           klass.setup if klass.respond_to? :setup
           @authorize = proc do
             @authorization_adapter = klass.new(*([self] + args).compact, &block)
