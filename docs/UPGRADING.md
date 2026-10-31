@@ -466,6 +466,22 @@ field :colors, :enum do
 end
 ```
 
+## A redeclared field keeps its `visible` block
+
+Declaring a field again in the same section used to discard a `visible { ... }` block set by an
+earlier declaration and show the field to everyone. The block now survives:
+
+```ruby
+field :salary do
+  visible { bindings[:view].current_user.admin? }
+end
+field :salary # still hidden from non-admins
+```
+
+If a field you hide conditionally started showing for everyone after a later `field` call, it is
+hidden again. A field hidden with a plain `visible false` is still shown again by a later
+declaration, as before.
+
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for

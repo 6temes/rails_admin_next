@@ -29,6 +29,28 @@ RSpec.describe RailsAdminNext::Config::HasFields do
     expect { RailsAdminNext.config(Team).fields.detect { |f| f.name == :division }.visible? }.to raise_error(/undefined method [`']\[\]' for nil/)
   end
 
+  it "keeps a visible block when the field is declared again" do
+    RailsAdminNext.config do |config|
+      config.model Team do
+        field :name do
+          visible { false }
+        end
+        field :name
+      end
+    end
+    expect(RailsAdminNext.config(Team).fields.detect { |f| f.name == :name }).not_to be_visible
+  end
+
+  it "declares a field whose name ends in a question mark more than once" do
+    RailsAdminNext.config do |config|
+      config.model Team do
+        field :admin?
+        field :admin?
+      end
+    end
+    expect(RailsAdminNext.config(Team).fields.detect { |f| f.name == :admin? }).to be_visible
+  end
+
   it "assigns properties to new one on overriding existing field" do
     RailsAdminNext.config do |config|
       config.model Team do
