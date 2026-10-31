@@ -27,4 +27,23 @@ RSpec.describe "Serialized field", type: :request do
       expect(@user.roles).to eq(%w[admin user])
     end
   end
+
+  context "with a store attribute" do
+    let(:field_test) { FieldTest.create!(store_field: {"color" => "red"}) }
+
+    it "saves the form unchanged" do
+      visit edit_path(model_name: "field_test", id: field_test.id)
+      click_button "Save"
+
+      expect(field_test.reload.store_field).to eq("color" => "red")
+    end
+
+    it "saves an edited value" do
+      visit edit_path(model_name: "field_test", id: field_test.id)
+      fill_in "field_test[store_field]", with: "color: blue\nsize: :large\n"
+      click_button "Save"
+
+      expect(field_test.reload.store_field).to eq("color" => "blue", "size" => :large)
+    end
+  end
 end

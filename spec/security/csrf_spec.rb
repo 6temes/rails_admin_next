@@ -9,6 +9,8 @@ require "spec_helper"
 # test env turns it off, so it surfaces here as the raised exception). GET stays exempt so the
 # confirmation pages still render.
 RSpec.describe "CSRF protection", type: :request do
+  subject { page }
+
   let!(:player) { FactoryBot.create :player, team: FactoryBot.create(:team) }
 
   around do |example|
@@ -42,5 +44,26 @@ RSpec.describe "CSRF protection", type: :request do
     ActionController::Base.allow_forgery_protection = false
     delete delete_path(model_name: "player", id: player.id)
     expect(Player.exists?(player.id)).to be(false)
+  end
+
+  it "accepts the token the main form sends" do
+    visit new_path(model_name: "league")
+    fill_in "Name", with: "National League"
+    click_button "Save"
+    is_expected.to have_text "League successfully created"
+    expect(League.pluck(:name)).to eq ["National League"]
+  end
+
+  it "accepts the token the modal form sends", js: true do
+    RailsAdminNext.config Division do
+      field :league
+    end
+    visit new_path(model_name: "division")
+    click_link "Add a new League"
+    is_expected.to have_content "New League"
+    fill_in "Name", with: "National League"
+    find("#modal .save-action").click
+    is_expected.to have_field(class: "ra-filtering-select-input", with: "National League")
+    expect(League.pluck(:name)).to eq ["National League"]
   end
 end
