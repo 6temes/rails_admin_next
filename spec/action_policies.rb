@@ -54,6 +54,10 @@ module ActionPolicies
     end
   end
 
+  class RetiredPlayerPolicy < PlayerPolicy
+    relation_scope { |relation| relation.where(retired: true) }
+  end
+
   # A policy with no relation scope at all.
   class TeamPolicy < ApplicationPolicy
     def index? = admin?
