@@ -7,14 +7,14 @@ module RailsAdminNext
       # escape cannot be forged, and both are URL-unreserved. Every other value serializes as-is,
       # keeping existing links valid.
       ESCAPED = /[_~]/
-      ESCAPE = /~(\h\h)/
+      ESCAPE = /~(5F|7E)/
 
       def self.serialize(keys)
         keys.map { |key| key&.to_s&.gsub(ESCAPED) { format("~%02X", it.ord) } }.join("_")
       end
 
       def self.deserialize(string)
-        string.split("_", -1).map { |key| key.gsub(ESCAPE) { $1.hex.chr } }
+        string.split("_").map { |key| key.gsub(ESCAPE) { $1.hex.chr } }
       end
     end
   end

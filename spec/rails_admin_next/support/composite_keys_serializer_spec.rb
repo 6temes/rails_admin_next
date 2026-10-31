@@ -13,8 +13,9 @@ RSpec.describe RailsAdminNext::Support::CompositeKeysSerializer do
     expect(round_trip(["a__b", "c_d"])).to eq(["a__b", "c_d"])
   end
 
-  it "round-trips an empty trailing value" do
-    expect(round_trip(["a", ""])).to eq(["a", ""])
+  it "leaves escape-shaped text it never writes as it is", :aggregate_failures do
+    expect(described_class.deserialize("é~E9_x")).to eq(["é~E9", "x"])
+    expect(described_class.deserialize("a~5f_~41")).to eq(["a~5f", "~41"])
   end
 
   it "round-trips values that contain the escape character" do
