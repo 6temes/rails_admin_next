@@ -4,6 +4,10 @@ module RailsAdminNext
   class FormBuilder < ::ActionView::Helpers::FormBuilder
     include ::RailsAdminNext::ApplicationHelper
 
+    # Bounds the nested form of an association that can reach itself. Counting repeats of
+    # one association, rather than depth, leaves chains of distinct models uncapped.
+    MAX_NESTED_FORM_RECURSION = 3
+
     def generate(options = {})
       without_field_error_proc_added_div do
         options.reverse_merge!(
@@ -78,8 +82,10 @@ module RailsAdminNext
 
     # Wraps one nested-attributes subform (rendered by native `fields_for`) for
     # the nested-form Stimulus controller: a `.fields` container, an optional
-    # `_destroy` hidden field + remove button (gated on `allow_destroy`, always
-    # present in the blank <template>), then the recursively generated fields.
+    # `_destroy` hidden field (gated on `allow_destroy`, always present in the blank
+    # <template>), a remove button, then the recursively generated fields. A saved
+    # record is removable only under `allow_destroy`; an unsaved one always is, so a
+    # row added before a failed save can still be taken back.
     def nested_field_set(nested_form, field, allow_destroy:)
       @template.content_tag(:div, class: "fields tab-pane active", data: {"nested-form-target": "subform"}) do
         contents = []
@@ -88,13 +94,25 @@ module RailsAdminNext
         # persisted subform from a brand-new one. Suppress the auto-id in the
         # partials with `include_id: false` so it is not rendered twice.
         contents << nested_form.hidden_field(:id) if nested_form.object.persisted?
-        if allow_destroy
-          contents << nested_form.hidden_field(:_destroy, data: {"nested-form-target": "destroy"})
+        contents << nested_form.hidden_field(:_destroy, data: {"nested-form-target": "destroy"}) if allow_destroy
+        if allow_destroy || nested_form.object.new_record?
           contents << @template.content_tag(:button, RailsAdminNext::Icons.svg(:trash).html_safe, type: "button", class: "btn btn-danger remove_nested_fields", data: {action: "nested-form#remove"})
         end
         contents << nested_form.generate(action: :nested, model_config: field.associated_model_config, nested_in: field)
         contents.join.html_safe
       end
+    end
+
+    # Whether this association's blank <template>, and so its add control, is rendered here.
+    def nested_template?(field)
+      @object_name.to_s.scan("[#{field.name}_attributes]").size < MAX_NESTED_FORM_RECURSION
+    end
+
+    # The child index the <template> carries until a row is added. Tagged by depth, not by
+    # association name alone: the add control replaces every occurrence in the template,
+    # nested templates included, and a name-tagged token can be a prefix of a nested one's.
+    def nested_placeholder(field)
+      "new_#{@object_name.to_s.scan("_attributes]").size + 1}_#{field.name}"
     end
 
     def object_infos

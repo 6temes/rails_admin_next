@@ -97,6 +97,52 @@ RSpec.describe "Nested many widget", type: :request, js: true do
     expect(page.evaluate_script("document.activeElement.getAttribute('aria-invalid')")).to eq("true")
   end
 
+  it "keeps a remove control on rows the user added when a failed save re-renders them without allow_destroy" do
+    allow(FieldTest.nested_attributes_options).to receive(:[]).and_call_original
+    allow(FieldTest.nested_attributes_options).to receive(:[]).with(:nested_field_tests).and_return(allow_destroy: false)
+    RailsAdminNext.config(FieldTest) do
+      field :string_field
+      field :nested_field_tests
+    end
+    visit new_path(model_name: "field_test")
+    within("#field_test_nested_field_tests_attributes_field") { find(".add_nested_fields").click }
+    fill_in "field_test[string_field]", with: "Invalid"
+    execute_script %(document.querySelector('button[name="_save"]').click())
+    expect(page).to have_selector(".control-group.error #field_test_string_field")
+
+    container = find("#field_test_nested_field_tests_attributes_field [data-nested-form-target='container']", match: :first)
+    container.find(":scope > [data-nested-form-target='subform'] > .remove_nested_fields", visible: :all).click
+    expect(container).to have_no_selector("[data-nested-form-target='subform']")
+  end
+
+  context "with a self-referential nested association" do
+    it "bounds the nested form and offers no add control past the bound", js: false do
+      visit new_path(model_name: "nested_category")
+      depths = page.body.scan(/name="nested_category([^"]*)"/).map { it.first.scan("[child_categories_attributes]").size }
+      expect(depths.max).to eq(3)
+      expect(page.body.scan("add_nested_fields").size).to eq(3)
+    end
+
+    it "saves every row added inside a row that was itself just added" do
+      visit new_path(model_name: "nested_category")
+      find(".add_nested_fields", match: :first).click
+      child_form = find("[data-nested-form-target='subform']", match: :first).find("[data-controller='nested-form']", match: :first)
+      2.times { child_form.find(":scope > .add_nested_fields").click }
+      expect(child_form).to have_selector("[data-nested-form-target='subform']", count: 2)
+
+      execute_script %(document.querySelector('button[name="_save"]').click())
+      is_expected.to have_content("successfully created")
+      expect(NestedCategory.count).to eq(4)
+    end
+  end
+
+  it "reports a nested field test saved without its field test as invalid", js: false do
+    visit new_path(model_name: "nested_field_test")
+    fill_in "nested_field_test[title]", with: "orphan"
+    click_button "Save"
+    is_expected.to have_content("Field test must exist")
+  end
+
   it "sets bindings[:object] to nested object", js: false do
     RailsAdminNext.config(NestedFieldTest) do
       nested do
@@ -147,16 +193,16 @@ RSpec.describe "Nested many widget", type: :request, js: true do
       visit new_path(model_name: "field_test")
       # The blank-row names only exist inside the <template>, so matching the
       # whole response body is unambiguous here.
-      expect(page.body).not_to match(/id="field_test_nested_field_tests_attributes_new_nested_field_tests_field_test_id"/)
+      expect(page.body).not_to match(/id="field_test_nested_field_tests_attributes_new_1_nested_field_tests_field_test_id"/)
       expect(page.body).to match(
-        /<select[^>]* id="field_test_nested_field_tests_attributes_new_nested_field_tests_another_field_test_id"[^>]*>/
+        /<select[^>]* id="field_test_nested_field_tests_attributes_new_1_nested_field_tests_another_field_test_id"[^>]*>/
       )
     end
 
     it "hides fields that are deeply nested with inverse_of", js: false do
       visit new_path(model_name: "field_test")
-      expect(page.body).to_not include("field_test_nested_field_tests_attributes_new_nested_field_tests_deeply_nested_field_tests_attributes_new_deeply_nested_field_tests_nested_field_test_id_field")
-      expect(page.body).to include("field_test_nested_field_tests_attributes_new_nested_field_tests_deeply_nested_field_tests_attributes_new_deeply_nested_field_tests_title")
+      expect(page.body).to_not include("field_test_nested_field_tests_attributes_new_1_nested_field_tests_deeply_nested_field_tests_attributes_new_2_deeply_nested_field_tests_nested_field_test_id_field")
+      expect(page.body).to include("field_test_nested_field_tests_attributes_new_1_nested_field_tests_deeply_nested_field_tests_attributes_new_2_deeply_nested_field_tests_title")
     end
   end
 

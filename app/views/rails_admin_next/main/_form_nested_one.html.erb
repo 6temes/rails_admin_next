@@ -10,10 +10,12 @@
       <%= form.nested_field_set nested_form, field, allow_destroy: allow_destroy %>
     <% end %>
   </div>
-  <% if field.inline_add %>
+  <% if field.inline_add && form.nested_template?(field) %>
     <button type="button" class="btn btn-info add_nested_fields" data-action="nested-form#add"><%= add_label %></button>
   <% end %>
   <%= form.errors_for(field) %>
   <%= form.help_for(field) %>
+  <% if form.nested_template?(field) %>
   <template data-nested-form-target="template"><%= form.fields_for field.name, associated_model.model.new, include_id: false do |nested_form| %><%= form.nested_field_set nested_form, field, allow_destroy: true %><% end %></template>
+  <% end %>
 </div>
