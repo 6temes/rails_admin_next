@@ -85,6 +85,22 @@ RSpec.describe RailsAdminNext, type: :request do
     end
   end
 
+  describe "footer" do
+    it "is shown on admin pages by default", :aggregate_failures do
+      visit dashboard_path
+      is_expected.to have_css("footer.admin-footer", exact_text: "Made in Tokyo with ❤️ and 🤖")
+      is_expected.to have_no_css("dialog#modal footer", visible: :all)
+    end
+
+    it "can be hidden" do
+      RailsAdminNext.config do |config|
+        config.show_footer = false
+      end
+      visit dashboard_path
+      is_expected.to have_no_css("footer.admin-footer")
+    end
+  end
+
   describe "sidebar navigation", js: true do
     it "is collapsible" do
       visit dashboard_path

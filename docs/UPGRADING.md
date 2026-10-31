@@ -572,6 +572,12 @@ the primary key descending, so an export with no sort chosen is now newest first
 Rows are read in batches of 1000 instead of loading every record up front. An export with no
 matching records now contains the header row instead of an empty line.
 
+## Admin pages show a footer
+
+Every admin page now ends with a small, muted "Made in Tokyo with ❤️ and 🤖" line under the page
+content. It is not shown inside modals. To hide it, set `config.show_footer = false` in your
+initializer.
+
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for

@@ -20,6 +20,9 @@
           <div class="container-fluid">
             <%= render template: 'layouts/rails_admin_next/content' %>
           </div>
+          <% if RailsAdminNext::Config.show_footer %>
+            <footer class="admin-footer">Made in Tokyo with ❤️ and 🤖</footer>
+          <% end %>
         </div>
       </div>
     </div>
