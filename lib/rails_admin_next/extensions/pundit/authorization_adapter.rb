@@ -40,11 +40,13 @@ module RailsAdminNext
 
         # This is called when needing to scope a database query. It is called within the list
         # and bulk_delete/destroy actions and should return a scope which limits the records
-        # to those which the user can perform the given action on.
+        # to those which the user can perform the given action on. A model with no policy
+        # Scope gets no records: bulk_delete deletes whatever this returns without a
+        # per-record check, so a forgotten Scope must not mean "everything".
         def query(_action, abstract_model)
           @controller.send(:policy_scope, abstract_model.model.all)
         rescue ::Pundit::NotDefinedError
-          abstract_model.model.all
+          abstract_model.model.none
         end
 
         # This is called in the new/create actions to determine the initial attributes for new
