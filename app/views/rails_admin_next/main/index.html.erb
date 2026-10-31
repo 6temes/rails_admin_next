@@ -82,9 +82,9 @@
       </div>
     </div>
   <% end %>
-  <% unless @model_config.list.scopes.empty? %>
+  <% unless list_scopes.empty? %>
     <ul class="nav nav-tabs" id="scope_selector">
-      <% @model_config.list.scopes.each_with_index do |scope, index| %>
+      <% list_scopes.each_with_index do |scope, index| %>
         <% scope = '_all' if scope.nil? %>
         <li class="nav-item">
           <a href="<%= index_path(params.merge(scope: scope, page: nil)) %>" class="nav-link <%= 'active' if scope.to_s == params[:scope] || (params[:scope].blank? && index == 0) %>">
@@ -96,6 +96,7 @@
   <% end %>
   <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"] do %>
     <%= hidden_field_tag :bulk_action %>
+    <%= hidden_field_tag :scope, params[:scope] if params[:scope].present? %>
     <% if description.present? %>
       <p>
         <strong>

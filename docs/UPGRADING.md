@@ -521,6 +521,43 @@ entry: its block never reached `Order`, and `Order` appeared twice in the naviga
 is now dropped, so the block applies to `Order`. If such a block was silently doing nothing,
 check that what it configures is what you want before upgrading. `included_models` and
 `excluded_models` drop a leading `::` the same way.
+## Scope tabs apply to export and bulk delete
+
+The tab selected on a list (`list { scopes [...] }`) now also narrows export and bulk
+delete: "Export found" streams only the tab's records, and bulk delete lists and destroys
+only the tab's records, whatever ids are submitted. The bulk form and the confirmation
+form carry `scope` so the tab survives the round trip.
+
+A tabbed collection stays inside the authorization scope, so a tab that drops conditions,
+such as `unscoped`, cannot list, export or delete records the user may not see. It still
+drops the model's own configured `scope`. The authorization scope is built on the model's
+`default_scope`, so an `unscoped` tab no longer reaches records `default_scope` hides: a
+soft-delete "trash" tab built on `unscoped` comes up empty. Give such a tab a scope the
+authorization relation also reaches.
+
+The `scopes` block is now evaluated with `bindings[:controller]`, `bindings[:view]` and
+`bindings[:object]`, so tabs can depend on the current user:
+
+```ruby
+config.model "Order" do
+  list do
+    scopes { bindings[:controller].current_user.admin? ? [nil, :refunded] : [nil] }
+  end
+end
+```
+
+`list_entries` keeps its four positional arguments, but applies a tab only for the page's
+own model, its `additional_scope` defaults to `nil`, and it no longer reads the
+`associated_collection` picker params. Custom actions that listed picker records through
+it should call `association_entries(model_config, collection_scope)` instead.
+
+## `associated_collection_scope` runs after the list sort
+
+Association pickers apply `associated_collection_scope` after the picked model's list sort,
+so a `reorder` in it now decides the order. A plain `order` adds a secondary sort key after
+the list sort. Build on the relation the proc receives: returning a fresh relation discards
+the authorization scope, the picker's search query, sort and eager loads as well. Pickers
+never apply the picked model's scope tabs.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 

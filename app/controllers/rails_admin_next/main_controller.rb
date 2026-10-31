@@ -8,17 +8,33 @@ module RailsAdminNext
 
     before_action :check_for_cancel
 
+    helper_method :list_scopes
+
     def bulk_action
       get_model
       process(params[:bulk_action]) if params[:bulk_action].in?(RailsAdminNext::Config::Actions.all(:bulkable, controller: self, abstract_model: @abstract_model).collect(&:route_fragment))
     end
 
-    def list_entries(model_config = @model_config, auth_scope_key = :index, additional_scope = get_association_scope_from_params, pagination = !(params[:associated_collection] || params[:all] || params[:bulk_ids]))
+    def list_entries(model_config = @model_config, auth_scope_key = :index, additional_scope = nil, pagination = !(params[:all] || params[:bulk_ids]))
       scope = model_config.scope
       auth_scope = @authorization_adapter&.query(auth_scope_key, model_config.abstract_model)
       scope = scope.merge(auth_scope) if auth_scope
+      tab = list_scope if model_config == @model_config
+      if tab
+        scope = scope.public_send(tab)
+        scope = within_authorized(scope, auth_scope) if auth_scope
+      end
       scope = scope.instance_eval(&additional_scope) if additional_scope
       get_collection(model_config, scope, pagination)
+    end
+
+    # The association scope chains after get_collection, which only works on an unpaginated relation.
+    def association_entries(model_config, collection_scope)
+      scope = model_config.scope
+      auth_scope = @authorization_adapter&.query(:index, model_config.abstract_model)
+      scope = scope.merge(auth_scope) if auth_scope
+      scope = get_collection(model_config, scope, false)
+      collection_scope ? scope.instance_eval(&collection_scope) : scope
     end
 
     private
@@ -187,6 +203,26 @@ module RailsAdminNext
       options = options.merge(filters: params[:f]) if params[:f].present?
       options = options.merge(bulk_ids: params[:bulk_ids]) if params[:bulk_ids]
       model_config.abstract_model.all(options, scope)
+    end
+
+    def list_scopes
+      @_list_scopes ||= @model_config.list.with(controller: self, view: view_context, object: @abstract_model.model.new).scopes
+    end
+
+    # A row-value IN: `where(primary_key => relation)` renders an empty condition for composite keys.
+    def within_authorized(scope, auth_scope)
+      key = Array(scope.primary_key).map { scope.arel_table[it] }
+      scope.where(Arel::Nodes::In.new(Arel::Nodes::Grouping.new(key), auth_scope.reselect(*key).arel.ast))
+    end
+
+    def list_scope
+      return if params[:compact]
+
+      if list_scopes.empty? || params[:scope].blank?
+        list_scopes.first
+      elsif list_scopes.collect(&:to_s).include?(params[:scope])
+        params[:scope].to_sym
+      end
     end
 
     def get_association_scope_from_params

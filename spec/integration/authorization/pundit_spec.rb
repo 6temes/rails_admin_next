@@ -159,6 +159,15 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       visit index_path(model_name: "team")
       is_expected.not_to have_content(team.name)
     end
+
+    it "lists no records of a model with no policy Scope under a tab that drops conditions" do
+      team = FactoryBot.create :team
+      RailsAdminNext.config Team do
+        list { scopes [nil, :unscoped] }
+      end
+      visit index_path(model_name: "team", scope: "unscoped")
+      is_expected.not_to have_content(team.name)
+    end
   end
 
   context "when custom authorization key is suffixed with ?" do

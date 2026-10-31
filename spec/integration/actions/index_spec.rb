@@ -1171,6 +1171,69 @@ RSpec.describe "Index action", type: :request do
       is_expected.to have_content(@teams[3].name)
     end
 
+    context "when the scopes block reads its bindings" do
+      before do
+        RailsAdminNext.config Team do
+          list do
+            scopes { (bindings[:controller] && bindings[:view]) ? [nil, :red, :white] : [] }
+          end
+        end
+      end
+
+      it "renders the tabs" do
+        visit index_path(model_name: "team")
+        expect(page).to have_css("#scope_selector li", count: 3)
+      end
+
+      it "applies the selected tab" do
+        visit index_path(model_name: "team", scope: "red")
+        is_expected.to have_content(@teams[0].name)
+        is_expected.to have_no_content(@teams[2].name)
+      end
+    end
+
+    it "carries the selected tab in the bulk form" do
+      visit index_path(model_name: "team", scope: "red")
+      expect(page).to have_css("#bulk_form input[type=hidden][name=scope][value=red]", visible: false)
+    end
+
+    it "leaves the tab out of the bulk form when none is selected" do
+      visit index_path(model_name: "team")
+      expect(page).to have_no_css("#bulk_form input[name=scope]", visible: false)
+    end
+
+    context "in association pickers" do
+      before do
+        RailsAdminNext.config Team do
+          list do
+            scopes [:red]
+          end
+        end
+      end
+
+      let(:player) { FactoryBot.create(:player, team: @teams[0]) }
+
+      def picked_team_ids(**params)
+        get index_path(model_name: "team", compact: true, format: :json, **params)
+        JSON.parse(response.body).map { |row| row["id"] }
+      end
+
+      it "ignores the picked model's tabs in the remote picker" do
+        ids = picked_team_ids(associated_collection: "team", current_action: "update", source_abstract_model: "player", source_object_id: player.id)
+        expect(ids).to include(@teams[2].id.to_s, @teams[3].id.to_s)
+      end
+
+      it "ignores the picked model's tabs in a picker that names no association" do
+        ids = picked_team_ids(source_abstract_model: "player", source_object_id: player.id, current_action: "update")
+        expect(ids).to include(@teams[2].id.to_s, @teams[3].id.to_s)
+      end
+
+      it "lists the requested model even when the named association points elsewhere" do
+        ids = picked_team_ids(associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: @teams[0].id)
+        expect(ids).to match_array(@teams.map { |team| team.id.to_s })
+      end
+    end
+
     describe "i18n" do
       before :each do
         en = {admin: {scopes: {
