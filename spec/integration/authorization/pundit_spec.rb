@@ -135,6 +135,14 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       is_expected.to have_content("Alice")
       is_expected.not_to have_content("Bob")
     end
+
+    it "lists nothing when the override names a scope that does not exist" do
+      @user.update(roles: %i[admin manage_player])
+      FactoryBot.create :player, name: "Alice"
+      allow_any_instance_of(RailsAdminNext::MainController).to receive(:policy_scope).and_wrap_original { |original, scope| original.call([:admin, scope]) }
+      visit index_path(model_name: "player")
+      is_expected.not_to have_content("Alice")
+    end
   end
 
   context "when ApplicationController already has pundit_user" do
