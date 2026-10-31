@@ -329,6 +329,36 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
       expect(response.body).to match(/"id":"#{@team.id}"/)
     end
 
+    context "with an associated_collection that does not target the requested model" do
+      it "lists the requested model without the association's scope or labels", :aggregate_failures do
+        user = FactoryBot.create :user
+        get :index, model_name: "user", source_object_id: FactoryBot.create(:team).id, source_abstract_model: "team", associated_collection: "players", current_action: :update, compact: true, format: :json
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)).to eq [{"id" => user.id.to_s, "label" => user.send(RailsAdminNext.config(User).object_label_method)}]
+      end
+    end
+
+    context "with an associated_collection that is not an association of the source model" do
+      it "lists the requested model when the field is unknown" do
+        player = FactoryBot.create :player
+        get :index, model_name: "player", source_object_id: FactoryBot.create(:team).id, source_abstract_model: "team", associated_collection: "nonexistent", current_action: :update, compact: true, format: :json
+        expect(JSON.parse(response.body).pluck("id")).to eq [player.id.to_s]
+      end
+
+      it "lists the requested model when the field is not an association" do
+        player = FactoryBot.create :player
+        get :index, model_name: "player", source_object_id: FactoryBot.create(:team).id, source_abstract_model: "team", associated_collection: "name", current_action: :update, compact: true, format: :json
+        expect(JSON.parse(response.body).pluck("id")).to eq [player.id.to_s]
+      end
+
+      it "lists the requested model when the field is polymorphic" do
+        team = FactoryBot.create :team
+        comment = Comment.create!(commentable: FactoryBot.create_list(:player, 2).last)
+        get :index, model_name: "team", source_object_id: comment.id, source_abstract_model: "comment", associated_collection: "commentable", current_action: :update, compact: true, format: :json
+        expect(JSON.parse(response.body)).to eq [{"id" => team.id.to_s, "label" => team.name}]
+      end
+    end
+
     context "as JSON" do
       it "returns strings" do
         FactoryBot.create :player, team: (FactoryBot.create :team)

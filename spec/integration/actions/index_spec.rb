@@ -902,6 +902,24 @@ RSpec.describe "Index action", type: :request do
     end
   end
 
+  context "with an associated_collection the picker guard rejects" do
+    before do
+      RailsAdminNext.config.default_items_per_page = 1
+      FactoryBot.create_list :player, 2
+    end
+
+    it "paginates the fallback list" do
+      visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
+      expect(page).to have_css("tbody tr", count: 1)
+    end
+
+    it "renders the fallback list with limited_pagination" do
+      allow(RailsAdminNext::AbstractModel.new(Player).config.list).to receive(:limited_pagination).and_return(true)
+      visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
+      within("ul.pagination") { expect(find("li:last")).to have_content("Next »") }
+    end
+  end
+
   describe "sorting" do
     let(:today) { Date.today }
     let(:players) do
