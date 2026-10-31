@@ -450,6 +450,22 @@ end
 ```
 
 CanCanCan hosts are unaffected.
+
+## An `:enum` field with no option source offers no options
+
+An `:enum` field takes its options from `enum_method`, which defaults to `<name>_enum` on the
+model class or the record. When neither defines it, the field used to call `<name>` itself and
+treat the record's current value as the option list, which crashed the filter and the form.
+It now offers no options.
+
+If a field's own method returns its option list, name it explicitly:
+
+```ruby
+field :colors, :enum do
+  enum_method :colors
+end
+```
+
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for
