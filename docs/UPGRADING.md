@@ -398,6 +398,19 @@ end
 
 Note the block: a bare `inverse_of nil` reads the option rather than setting it.
 
+## Nested forms that can reach themselves stop at three levels
+
+A nested form for an association that leads back to its own model, such as a self-referential
+`has_many :children` with `accepts_nested_attributes_for`, used to render without end and fail
+with `SystemStackError`, as did saved records that point back at each other. It now nests the
+same association at most three times along one chain; past that, the association's rows, blank
+template and add control are left out of the form, so a deeper tree is edited from a lower
+record. Chains of distinct associations are not capped.
+
+The blank row's child-index placeholder is tagged by depth, `new_<depth>_<association>` (for
+example `new_1_comments`), rather than `new_<association>`. Host JavaScript that looked for the
+old token in a nested form's `<template>` needs the new one.
+
 ## The show action answers HTML by default
 
 `show` used to declare its JSON format before its HTML one, so a request carrying no
