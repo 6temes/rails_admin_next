@@ -77,6 +77,7 @@ Icons take logical names, never Font Awesome classes: `link_icon :show_in_app` o
 
 - `config.authorize_with :cancancan` uses the app's `Ability`. Keep the `:rails_admin` subject (see Naming).
 - `config.authorize_with :pundit` calls the record's policy with `<action>?` methods (`index?`, `edit?`, `dashboard?`) and scopes lists with `policy_scope`.
+- `config.authorize_with :action_policy` checks the same `<action>?` rules with `allowed_to?` and scopes lists with the policy's default `relation_scope`. `new?` resolves to `create?` and undefined rules to `manage?`. A model with no policy is checked against `ApplicationPolicy`, and one with no default relation scope lists nothing.
 - `config.authorize_with do ... end` runs a custom block as a before filter.
 - `config.authenticate_with do ... end` and `config.current_user_method do ... end` wire in the app's authentication, such as Devise or Warden.
 - `config.audit_with :paper_trail` turns on the history action. Read the "History / audit table" section of `<gem>/docs/UPGRADING.md` first.
