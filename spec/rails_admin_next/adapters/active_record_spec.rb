@@ -247,6 +247,24 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
       end
     end
 
+    context "when the term is too wide for an integer column" do
+      let(:abstract_model) { RailsAdminNext::AbstractModel.new("FieldTest") }
+
+      before do
+        RailsAdminNext.config FieldTest do
+          field :string_field
+          field :integer_field
+        end
+      end
+
+      it "skips that column and still searches the others" do
+        matching = FieldTest.create!(string_field: "call 6121234567")
+        FieldTest.create!(integer_field: 1)
+
+        expect(abstract_model.all(query: "6121234567")).to contain_exactly(matching)
+      end
+    end
+
     context "when searchable_columns is overridden with SQL" do
       before do
         column = sql
@@ -336,6 +354,35 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
 
         # No operator falls back to the default_search_operator(starts_with) and doesn't match NON-PREFIX
         expect(abstract_model.all(filters: {"name" => {"0000" => {v: "somewhere"}}})).to match_array @teams[2]
+      end
+    end
+
+    context "with blank/present on an enum" do
+      let(:abstract_model) { RailsAdminNext::AbstractModel.new("FieldTest") }
+
+      def filter(name, operator)
+        abstract_model.all(filters: {name => {"0000" => {o: operator}}})
+      end
+
+      it "compares an integer-backed enum with NULL only", :aggregate_failures do
+        blank = FieldTest.create!(integer_enum_field: nil)
+        present = FieldTest.create!(integer_enum_field: :medium)
+
+        expect(filter("integer_enum_field", "_blank")).to contain_exactly(blank)
+        expect(filter("integer_enum_field", "_present")).to contain_exactly(present)
+      end
+
+      it "still matches an empty string in a string-backed enum" do
+        RailsAdminNext.config FieldTest do
+          field :string_field, :enum do
+            enum { %w[a b] }
+          end
+        end
+        empty = FieldTest.create!(string_field: "")
+        null = FieldTest.create!(string_field: nil)
+        FieldTest.create!(string_field: "a")
+
+        expect(filter("string_field", "_blank")).to contain_exactly(empty, null)
       end
     end
   end
