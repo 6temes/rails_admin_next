@@ -13,16 +13,18 @@ RSpec.describe "Capybara driver restore" do
     end
 
     begin
+      # The outer run's line or id filter would otherwise drop the inner example.
+      RSpec.world.filtered_examples[group] = group.examples
       group.run(RSpec::Core::NullReporter)
       observed = Capybara.current_driver
       inner = group.examples.first.execution_result
     ensure
       RSpec.world.example_groups.delete(group)
+      RSpec.world.filtered_examples.delete(group)
       Capybara.use_default_driver
     end
 
-    # Filtering by line or id drops the inner example, which would leave the driver untouched
-    # and pass without proving anything.
+    # An inner example that never ran would leave the driver untouched and pass without proving anything.
     expect(inner.status).to eq(:failed)
     expect(inner.exception).to be_a(Ferrum::DeadBrowserError)
     expect(observed).to eq(Capybara.default_driver)
