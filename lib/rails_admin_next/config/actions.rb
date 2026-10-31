@@ -49,12 +49,8 @@ module RailsAdminNext
 
         def add_action(key, parent_class, parent, &)
           a = "RailsAdminNext::Config::Actions::#{parent_class.to_s.camelize}".constantize.new
-          a.instance_eval(%(
-            #{parent} true
-            def key
-              :#{key}
-            end
-          ), __FILE__, __LINE__ - 5)
+          a.send(parent, true)
+          a.define_singleton_method(:key) { key.to_sym }
           add_action_custom_key(a, &)
         end
 
@@ -68,12 +64,9 @@ module RailsAdminNext
             name = klass.to_s.demodulize.underscore.to_sym
           end
 
-          instance_eval %{
-            def #{name}(&block)
-              action = #{klass}.new
-              add_action_custom_key(action, &block)
-            end
-          }, __FILE__, __LINE__ - 5
+          define_singleton_method(name) do |&block|
+            add_action_custom_key(klass.new, &block)
+          end
         end
 
         private
