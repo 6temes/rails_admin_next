@@ -1171,6 +1171,27 @@ RSpec.describe "Index action", type: :request do
       is_expected.to have_content(@teams[3].name)
     end
 
+    context "when the scopes block reads its bindings" do
+      before do
+        RailsAdminNext.config Team do
+          list do
+            scopes { (bindings[:controller] && bindings[:view]) ? [nil, :red, :white] : [] }
+          end
+        end
+      end
+
+      it "renders the tabs" do
+        visit index_path(model_name: "team")
+        expect(page).to have_css("#scope_selector li", count: 3)
+      end
+
+      it "applies the selected tab" do
+        visit index_path(model_name: "team", scope: "red")
+        is_expected.to have_content(@teams[0].name)
+        is_expected.to have_no_content(@teams[2].name)
+      end
+    end
+
     it "carries the selected tab in the bulk form" do
       visit index_path(model_name: "team", scope: "red")
       expect(page).to have_css("#bulk_form input[type=hidden][name=scope][value=red]", visible: false)
