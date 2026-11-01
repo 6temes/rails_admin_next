@@ -33,7 +33,7 @@ multi-bundler, jQuery-era machinery. RailsAdminNext keeps the admin and drops th
 - **🧩 Turbo + Stimulus** — the jQuery / jQuery-UI / Bootstrap-JS / `@rails/ujs` stack is gone, replaced by engine-shipped Stimulus controllers; styling is hand-maintained vanilla CSS.
 - **🔒 Hardened & CDN-free** — a documented CSRF / clickjacking / mass-assignment / CSP posture ([SECURITY.md](SECURITY.md)) and **zero external CDN**, default or opt-in — every asset is self-hosted off a gem.
 - **🎯 One modern target** — Ruby ≥ 4.0.9, Rails ~> 8.1, ActiveRecord only, latest Chrome + Safari. No Mongoid, no multi-bundler / multi-Rails matrix, no legacy-browser CSS.
-- **↩️ Familiar** — `RailsAdminNext.config`, per-model `rails_admin_next do … end` blocks, and CanCanCan / Pundit authorization all work as before; upgrading from RailsAdmin is a mechanical rename.
+- **↩️ Familiar** — `RailsAdminNext.config`, per-model `rails_admin_next do … end` blocks, and Pundit authorization all work as before; upgrading from RailsAdmin is a mechanical rename.
 
 ## Quick Start
 
@@ -113,11 +113,10 @@ always match the installed version.
 - File uploads (ActiveStorage)
 - Rich text fields (ActionText / Trix)
 - Authentication (via [Devise][devise] or any other scheme)
-- Authorization (via [CanCanCan][cancancan] or [Pundit][pundit])
+- Authorization (via [Pundit][pundit] or a custom adapter)
 - User action history (via [PaperTrail][papertrail])
 
 [devise]: https://github.com/heartcombo/devise
-[cancancan]: https://github.com/CanCanCommunity/cancancan
 [pundit]: https://github.com/varvet/pundit
 [papertrail]: https://github.com/paper-trail-gem/paper_trail
 
@@ -143,8 +142,7 @@ RailsAdminNext.config do |config|
 end
 ```
 
-This is also where you wire up [Devise][devise], [CanCanCan][cancancan]/[Pundit][pundit],
-and [PaperTrail][papertrail].
+This is also where you wire up [Devise][devise], [Pundit][pundit], and [PaperTrail][papertrail].
 
 ### Per model
 
@@ -170,16 +168,12 @@ The configuration DSL is unchanged from upstream RailsAdmin, so the upstream
 
 ### Authorization keys are stable
 
-The authorization contract is held stable, so existing CanCanCan
-abilities and Pundit policies keep working **without edits**: the access subject is
-`:rails_admin` and every action's
-authorization key (`:dashboard`, `:index`, `:show`, `:new`, `:edit`, `:export`,
-`:destroy`, `:history`, `:show_in_app`) is unchanged.
-
-```ruby
-# Still grants access to the admin:
-can :access, :rails_admin
-```
+The authorization contract is held stable, so existing Pundit policies keep working
+**without edits**: every action's authorization key (`:dashboard`, `:index`, `:show`,
+`:new`, `:edit`, `:export`, `:destroy`, `:history`, `:show_in_app`) is unchanged, and the
+Pundit adapter calls it with a `?` suffix (`index?`, `edit?`). Pundit is the only built-in
+adapter; any other authorization library plugs in as a custom adapter, which by convention
+checks the `:access, :rails_admin` subject. See [docs/UPGRADING.md](docs/UPGRADING.md).
 
 The `admin.*` I18n namespace is likewise unchanged.
 
@@ -294,16 +288,16 @@ action methods**, where each admin operation is an object.
 - **One controller, many action objects** — to change how e.g. _edit_ behaves, edit `lib/rails_admin_next/config/actions/edit.rb`, not the controller.
 - **ORM facade** — nothing outside `AbstractModel` references ActiveRecord directly; the adapter seam is intact even though Mongoid was removed.
 - **Lazy, layered config** — `config/initializers` blocks run before in-model `rails_admin_next do … end` blocks, so per-model config overrides the initializer defaults.
-- **A deliberately frozen `rails_admin` surface** — the Ruby layer is `RailsAdminNext`, but the `:access, :rails_admin` authorization subject, the `admin.*` I18n namespace, and the `src/rails_admin/` asset tree stay `rails_admin` on purpose, so host abilities, translations, and assets keep working across the rename.
+- **A deliberately frozen `rails_admin` surface** — the Ruby layer is `RailsAdminNext`, but the action authorization keys, the `admin.*` I18n namespace, and the `src/rails_admin/` asset tree stay `rails_admin`-era on purpose, so host policies, translations, and assets keep working across the rename.
 
 ## Upgrading from RailsAdmin
 
 See [docs/UPGRADING.md](docs/UPGRADING.md) for the one-time changes a host app needs:
 the Gemfile gem name, the importmap/Propshaft prerequisites, and a mechanical rename of the
 `RailsAdmin` constant, initializer, mount, model macro, and route helpers to `RailsAdminNext`
-(`rails_admin_next`). The `:access, :rails_admin` authorization subject and the `admin.*`
-I18n namespace are deliberately left unchanged, so CanCanCan/Pundit rules and translations
-keep working without edits.
+(`rails_admin_next`). The action authorization keys and the `admin.*` I18n namespace are
+deliberately left unchanged, so Pundit policies and translations keep working without edits.
+Its 2.0 section covers hosts whose authorization library is no longer a built-in adapter.
 
 ## Security
 
