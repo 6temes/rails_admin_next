@@ -144,6 +144,14 @@ end
 
 This is also where you wire up [Devise][devise], [Pundit][pundit], and [PaperTrail][papertrail].
 
+Every admin page ends with a small "Made in Tokyo with ❤️ and 🤖" footer. To hide it:
+
+```ruby
+RailsAdminNext.config do |config|
+  config.show_footer = false
+end
+```
+
 ### Per model
 
 Configure a model inline with the `rails_admin_next do … end` class macro:
@@ -327,5 +335,5 @@ RailsAdminNext is released under the [MIT License](LICENSE.md).
 ---
 
 <div align="center">
-  <sub>Built in Tokyo with ❤️ and 🤖</sub>
+  <sub>Made in Tokyo with ❤️ and 🤖</sub>
 </div>

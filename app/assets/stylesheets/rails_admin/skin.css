@@ -460,6 +460,14 @@ body.rails_admin .pagination .page-item {
   white-space: nowrap;
 }
 
+/* === Admin skin: footer ================================================= */
+body.rails_admin .admin-footer {
+  padding: 2rem 0 1rem;
+  font-size: 0.875em;
+  color: var(--ra-gray-600);
+  text-align: center;
+}
+
 /* === Admin skin: responsive adjustments ================================= */
 @media screen and (min-width: 576px) {
   body.rails_admin .sidebar.btn-toggle-nav {
