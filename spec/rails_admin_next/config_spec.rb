@@ -107,8 +107,9 @@ RSpec.describe RailsAdminNext::Config do
   end
 
   describe ".authorize_with" do
-    it "offers Pundit as the only built-in adapter", :aggregate_failures do
+    it "offers Pundit and ActionPolicy as the built-in adapters", :aggregate_failures do
       expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).to include(pundit: RailsAdminNext::Extensions::Pundit::AuthorizationAdapter)
+      expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).to include(action_policy: RailsAdminNext::Extensions::ActionPolicy::AuthorizationAdapter)
       expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).not_to have_key(:cancancan)
     end
 

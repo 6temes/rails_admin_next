@@ -46,7 +46,7 @@ module RailsAdminNext
         def query(_action, abstract_model)
           @controller.send(:policy_scope, abstract_model.model.all)
         rescue ::Pundit::NotDefinedError
-          abstract_model.model.none
+          host_policy_scope? ? abstract_model.model.none : model_scope(abstract_model.model)
         end
 
         # This is called in the new/create actions to determine the initial attributes for new
@@ -63,6 +63,22 @@ module RailsAdminNext
           @controller.send(:policy, record)
         rescue ::Pundit::NotDefinedError
           ::ApplicationPolicy.new(@controller.send(:pundit_user), record)
+        end
+
+        # action_policy defines ActiveRecord::Relation#policy_class as nil, which hides every
+        # Scope from Pundit's relation lookup when both gems are bundled; the model still finds it.
+        # A host override of policy_scope (e.g. namespacing) chose its own Scope, so it is never
+        # swapped for the model's.
+        def host_policy_scope?
+          @controller.method(:policy_scope).owner != (defined?(::Pundit::Authorization) ? ::Pundit::Authorization : ::Pundit)
+        end
+
+        def model_scope(model)
+          scope_class = ::Pundit::PolicyFinder.new(model).scope
+          return model.none unless scope_class
+
+          @controller.instance_variable_set(:@_pundit_policy_scoped, true)
+          scope_class.new(@controller.send(:pundit_user), model.all).resolve
         end
 
         def action_for_pundit(action)

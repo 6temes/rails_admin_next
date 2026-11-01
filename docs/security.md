@@ -16,6 +16,10 @@ destructive-action controls itself; a few things are left for the host to opt in
   can't name a hidden column, an association the export doesn't show, or a method to call.
 - **Pundit scopes fail closed.** A model whose policy has no `Scope` lists no records, rather
   than all of them.
+- **ActionPolicy scopes fail closed.** A model with no policy, or whose policy has no default
+  `relation_scope`, lists no records. A rule the policy does not define (`history?`,
+  `show_in_app?`, `export?`, a custom authorization key) resolves to the policy's `manage?`, so a
+  permissive `manage?` grants every admin action the policy leaves undefined.
 - **Destructive actions.** `delete` and `bulk_delete` render a confirmation page and additionally
   carry `data-turbo-confirm` on the destructive submit (Turbo's confirmation, not `@rails/ujs`).
 - **Mass assignment.** Submitted attributes are sliced to the model config's `visible_fields`

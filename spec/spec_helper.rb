@@ -9,6 +9,7 @@ require "rspec/rails"
 require "factory_bot"
 require "factories"
 require "policies"
+require "action_policies"
 require "database_cleaner/active_record"
 require "orm/active_record"
 require "paper_trail/frameworks/rspec" if defined?(PaperTrail)
