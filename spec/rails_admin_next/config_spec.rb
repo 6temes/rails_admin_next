@@ -107,6 +107,25 @@ RSpec.describe RailsAdminNext::Config do
   end
 
   describe ".authorize_with" do
+    it "offers Pundit as the only built-in adapter", :aggregate_failures do
+      expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).to include(pundit: RailsAdminNext::Extensions::Pundit::AuthorizationAdapter)
+      expect(RailsAdminNext::AUTHORIZATION_ADAPTERS).not_to have_key(:cancancan)
+    end
+
+    it "rejects an unregistered adapter key while the config block runs, naming the routes that remain" do
+      expect {
+        RailsAdminNext.config { |config| config.authorize_with(:cancancan) }
+      }.to raise_error(ArgumentError) { |error|
+        expect(error.message).to include(":cancancan", ":pundit", "add_extension", "authorize_with", "docs/UPGRADING.md")
+      }
+    end
+
+    it "stores a block given without a key" do
+      gate = proc { :checked }
+      RailsAdminNext.config { |config| config.authorize_with(&gate) }
+      expect(RailsAdminNext.config.authorize_with).to eq(gate)
+    end
+
     context "given a key for a extension with authorization" do
       before do
         RailsAdminNext.add_extension(:example, ExampleModule, authorization: true)

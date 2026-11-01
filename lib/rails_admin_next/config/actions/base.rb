@@ -104,7 +104,6 @@ module RailsAdminNext
           key.to_sym
         end
 
-        # For CanCanCan and the like
         register_instance_option :authorization_key do
           key.to_sym
         end
