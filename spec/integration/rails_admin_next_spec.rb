@@ -99,6 +99,13 @@ RSpec.describe RailsAdminNext, type: :request do
       visit dashboard_path
       is_expected.to have_no_css("footer.admin-footer")
     end
+
+    it "sits at the bottom of the viewport on a short page", js: true do
+      page.driver.resize(1280, 900)
+      visit index_path(model_name: "player")
+      gap = page.evaluate_script("window.innerHeight - document.querySelector('footer.admin-footer').getBoundingClientRect().bottom")
+      expect(gap).to be_within(1).of(0)
+    end
   end
 
   describe "sidebar navigation", js: true do

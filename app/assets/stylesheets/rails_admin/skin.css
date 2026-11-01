@@ -470,6 +470,16 @@ body.rails_admin .admin-footer {
 
 /* === Admin skin: responsive adjustments ================================= */
 @media screen and (min-width: 576px) {
+  /* Only from this width: below it the sidebar stacks above the content, and a
+     full-height column would leave blank space under a short page. */
+  body.rails_admin .admin-main {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 3.275rem);
+  }
+  body.rails_admin .admin-main > .admin-footer {
+    margin-top: auto;
+  }
   body.rails_admin .sidebar.btn-toggle-nav {
     position: fixed;
     top: 3.275rem;
