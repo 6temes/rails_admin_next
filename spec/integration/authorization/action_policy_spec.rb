@@ -10,6 +10,8 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     stub_const("PlayerPolicy", ActionPolicies::PlayerPolicy)
     stub_const("TeamPolicy", ActionPolicies::TeamPolicy)
     stub_const("DivisionPolicy", ActionPolicies::DivisionPolicy)
+    # A Pundit policy left in place would be looked up by name and fail on ActionPolicy calls.
+    hide_const("FanshipPolicy")
     RailsAdminNext.config do |c|
       c.authorize_with(:action_policy)
       c.authenticate_with { warden.authenticate! scope: :user }
