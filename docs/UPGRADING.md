@@ -622,7 +622,10 @@ config.authorize_with :action_policy, context: {account: -> { current_account }}
 ```
 
 The value is an authorization input, so derive it from the signed-in user, or check the user's
-membership when it comes from request data such as `params` or the subdomain.
+membership when it comes from request data such as `params` or the subdomain. The relation scope
+only narrows lists, export and bulk actions: show, edit, delete and history load the record by
+id and check the rule alone, so a tenant rule such as `update?` must compare `record` with
+`account` itself.
 
 `user` always comes from `current_user_method` and is rejected inside `context:`. A key that is
 not a Symbol, a value that is not a block taking no arguments, or an unknown option raises

@@ -211,6 +211,13 @@ RSpec.describe RailsAdminNext::Config do
       end
     end
 
+    it "rejects options passed without an adapter key, rather than leaving authorization off" do
+      expect {
+        RailsAdminNext.config { |config| config.authorize_with(context: {account: -> {}}) }
+      }.to raise_error(ArgumentError, /adapter key/)
+      expect(RailsAdminNext.config.authorize_with).to be(RailsAdminNext::Config::DEFAULT_AUTHORIZE)
+    end
+
     it "rejects options for Pundit while the config block runs" do
       expect {
         RailsAdminNext.config { |config| config.authorize_with(:pundit, context: {}) }

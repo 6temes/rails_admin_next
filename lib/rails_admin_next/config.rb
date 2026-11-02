@@ -205,6 +205,10 @@ module RailsAdminNext
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
       def authorize_with(*args, **options, &block)
         extension = args.shift
+        if extension.nil? && options.any?
+          raise ArgumentError, "authorize_with options need an adapter key, such as authorize_with(:action_policy, **options)"
+        end
+
         if extension
           klass = RailsAdminNext::AUTHORIZATION_ADAPTERS.fetch(extension) do
             raise ArgumentError, "Unknown authorization adapter #{extension.inspect}. " \
