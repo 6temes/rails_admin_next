@@ -41,6 +41,13 @@ RSpec.describe "BulkDelete action", type: :request do
       expect(flash[:error]).to match(/0 players failed to be deleted/i)
     end
 
+    it "takes no action for a POST without bulk_ids", :aggregate_failures do
+      post(bulk_delete_path(model_name: "player"))
+      expect(response).to redirect_to(index_path(model_name: "player"))
+      expect(flash[:notice]).to eq "No actions were taken"
+      expect(response.body).not_to include(@players.first.name)
+    end
+
     it "returns error message for DELETE request without bulk_ids" do
       expect(Player.count).to eq @players.length
       delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: ""))
@@ -187,6 +194,25 @@ RSpec.describe "BulkDelete action", type: :request do
       expect_any_instance_of(RailsAdminNext::Extensions::PaperTrail::AuditingAdapter).to receive(:delete_object).once
 
       delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "exception_restricted_team", bulk_ids: [deletable.id, restricted.id]))
+    end
+  end
+
+  context "when a destroy raises partway through the batch" do
+    let!(:players) { FactoryBot.create_list(:player, 2) }
+
+    it "has already audited the records destroyed before the raise" do
+      RailsAdminNext.config { |config| config.audit_with :paper_trail }
+      destroy_calls = 0
+      allow_any_instance_of(Player).to receive(:destroy).and_wrap_original do |original|
+        destroy_calls += 1
+        raise ActiveRecord::RecordNotDestroyed, "boom" if destroy_calls == 2
+
+        original.call
+      end
+      expect_any_instance_of(RailsAdminNext::Extensions::PaperTrail::AuditingAdapter).to receive(:delete_object).once
+
+      expect { delete(bulk_delete_path(model_name: "player", bulk_ids: players.map(&:id))) }.to raise_error(ActiveRecord::RecordNotDestroyed)
+      expect(Player.count).to eq 1
     end
   end
 

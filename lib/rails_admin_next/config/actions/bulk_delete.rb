@@ -19,13 +19,17 @@ module RailsAdminNext
             destroyable = ->(object) { @authorization_adapter.nil? || @authorization_adapter.authorized?(@action.authorization_key, @abstract_model, object) }
 
             if request.post? # BULK DELETE
-              @objects = list_entries(@model_config, :destroy).select(&destroyable)
-
-              if @objects.blank?
-                flash[:error] = t("admin.flash.error", name: pluralize(0, @model_config.label, plural: @model_config.label_plural), action: t("admin.actions.delete.done"))
-                redirect_to index_path
+              if params[:bulk_ids].blank?
+                redirect_to back_or_index, notice: t("admin.flash.noaction")
               else
-                render @action.template_name
+                @objects = list_entries(@model_config, :destroy).select(&destroyable)
+
+                if @objects.blank?
+                  flash[:error] = t("admin.flash.error", name: pluralize(0, @model_config.label, plural: @model_config.label_plural), action: t("admin.actions.delete.done"))
+                  redirect_to index_path
+                else
+                  render @action.template_name
+                end
               end
 
             elsif request.delete? # BULK DESTROY
@@ -42,12 +46,12 @@ module RailsAdminNext
                     next false unless destroyable.call(object)
 
                     object.destroy
+                    # Audited here rather than after the batch: a later record's raise
+                    # must not leave this already-committed destroy without its audit row.
+                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user) if object.destroyed?
                     object.destroyed?
                   rescue ActiveRecord::DeleteRestrictionError
                     false
-                  end
-                  destroyed.each do |object|
-                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
                   end
                 end
               end
