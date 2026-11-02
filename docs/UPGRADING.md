@@ -82,7 +82,9 @@ The module defines an `AuthorizationAdapter` class. `authorize_with` builds it w
 - `attributes_for(action, abstract_model)`: returns the attributes a new record starts with.
 - `self.setup` (optional): runs once when `authorize_with` names the key.
 - `self.validate_options!(*args, **options)` (optional): receives the extra arguments while the
-  config block runs; raise `ArgumentError` there so a misconfigured option fails at boot.
+  config block runs; raise `ArgumentError` there so a misconfigured option fails at boot. A
+  subclass of a built-in adapter inherits its `validate_options!`, so one that takes options of
+  its own overrides it.
 
 `lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` in the gem is the template.
 The removed CanCanCan adapter is a starting point you can copy:

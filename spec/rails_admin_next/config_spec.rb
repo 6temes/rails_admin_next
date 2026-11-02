@@ -195,6 +195,7 @@ RSpec.describe RailsAdminNext::Config do
           {account: 42},
           {account: :current_account},
           {account: ->(controller) { controller }},
+          {account: ->(account:) { account }},
           {"account" => -> {}}
         ].each do |context|
           expect {

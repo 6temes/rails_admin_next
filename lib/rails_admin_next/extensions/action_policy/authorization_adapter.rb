@@ -11,13 +11,11 @@ module RailsAdminNext
           authorize :user, through: -> { @controller._current_user }
         end
 
-        # Each context value is a block run on the controller, because instance_exec passes it no
-        # arguments: a Symbol or a Method would raise there or run against another receiver.
         def self.validate_options!(context: {})
           context.each do |key, value|
             raise ArgumentError, "ActionPolicy context key #{key.inspect} must be a Symbol" unless key.is_a?(Symbol)
             raise ArgumentError, "ActionPolicy context #{key.inspect} is the current user; set it with config.current_user_method" if key == :user
-            unless value.is_a?(Proc) && value.parameters.none? { |type, _| type == :req }
+            unless value.is_a?(Proc) && value.parameters.none? { |type, _| type in :req | :keyreq }
               raise ArgumentError, "ActionPolicy context #{key.inspect} must be a block taking no arguments, run on the admin controller"
             end
           end

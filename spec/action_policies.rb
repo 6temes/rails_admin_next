@@ -58,7 +58,6 @@ module ActionPolicies
     relation_scope { |relation| relation.where(retired: true) }
   end
 
-  # Needs an account beyond the user, as a multi-tenant host's policies do.
   class AccountPlayerPolicy < PlayerPolicy
     authorize :account
 
