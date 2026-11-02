@@ -192,7 +192,8 @@ The `admin.*` I18n namespace is likewise unchanged.
 the same `<key>?` rules the Pundit adapter calls (`index?`, `show?`, `new?`, `edit?`,
 `destroy?`, `export?`, `history?`, `show_in_app?`, `dashboard?`), and scopes lists, export
 and bulk delete through the policy's default `relation_scope`. A model with no policy, or a
-policy with no default relation scope, lists nothing. Bundle `action_policy` yourself; see
+policy with no default relation scope, lists nothing. Policies that declare context beyond
+`user` get it from `authorize_with :action_policy, context: {...}`. Bundle `action_policy` yourself; see
 the "ActionPolicy adapter" section of [docs/UPGRADING.md](docs/UPGRADING.md).
 
 ## Frontend and assets
