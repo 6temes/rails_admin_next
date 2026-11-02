@@ -277,6 +277,32 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(@player_model.get(retired_player.id)).not_to be_nil
     end
 
+    context "with a destroy? rule that depends on the record" do
+      let!(:suspended_player) { FactoryBot.create :player, suspended: true }
+
+      before { allow(Player).to receive(:policy_class).and_return(SuspendedPlayerPolicy) }
+
+      it "GET /admin/player/1/delete with a suspended player should raise access denied" do
+        expect { visit delete_path(model_name: "player", id: suspended_player.id) }.to raise_error(Pundit::NotAuthorizedError)
+      end
+
+      it "POST /admin/player/bulk_delete does not list records destroy? refuses", :aggregate_failures do
+        post bulk_action_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [active_player, suspended_player].collect(&:id))
+
+        expect(response.body).to include(active_player.name)
+        expect(response.body).not_to include(suspended_player.name)
+      end
+
+      it "DELETE /admin/player/bulk_delete leaves records destroy? refuses and counts them as failed", :aggregate_failures do
+        delete bulk_delete_path(model_name: "player", bulk_ids: [active_player, suspended_player].collect(&:id))
+
+        expect(@player_model.get(active_player.id)).to be_nil
+        expect(@player_model.get(suspended_player.id)).not_to be_nil
+        expect(flash[:success]).to eq "1 Player successfully deleted"
+        expect(flash[:error]).to eq "1 Player failed to be deleted"
+      end
+    end
+
     it "does not let a tab that drops conditions destroy unauthorized records" do
       RailsAdminNext.config Player do
         list do
