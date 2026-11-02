@@ -28,10 +28,15 @@ module RailsAdminNext
 
     def get_model
       @model_name = to_model_name(params[:model_name])
-      raise RailsAdminNext::ModelNotFound unless (@abstract_model = RailsAdminNext::AbstractModel.new(@model_name))
-      raise RailsAdminNext::ModelNotFound if (@model_config = @abstract_model.config).excluded?
+      raise RailsAdminNext::ModelNotFound unless (@abstract_model = visible_abstract_model(@model_name))
 
+      @model_config = @abstract_model.config
       @properties = @abstract_model.properties
+    end
+
+    def visible_abstract_model(model_name)
+      abstract_model = RailsAdminNext::AbstractModel.new(model_name)
+      abstract_model if abstract_model && !abstract_model.config.excluded?
     end
 
     def get_object
