@@ -747,8 +747,13 @@ nearest parent model's policy, for its rules and its scope alike, before `Applic
 a `Hardball < Ball` with no `HardballPolicy` uses `BallPolicy`. A subclass that defines its own
 policy still uses it, and lists nothing if that policy has no scope.
 
-If `ApplicationPolicy` granted a subclass what its parent's policy denies, it is now denied; give
-the subclass its own policy to keep the old access.
+If `ApplicationPolicy` granted a subclass what its parent's policy denies, it is now denied. If
+`ApplicationPolicy` denied a subclass what its parent's policy grants, it is now granted, and the
+subclass lists what the parent's scope returns. Either way, give the subclass its own policy to
+keep the old access.
+
+The walk follows Ruby class inheritance, not the `type` column: a concrete subclass of a model
+takes that model's policy even when it is not STI.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
