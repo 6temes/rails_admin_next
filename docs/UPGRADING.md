@@ -576,7 +576,8 @@ change how a ported Pundit policy behaves:
 
 - `new?` is an alias of `create?` unless the policy defines `new?` itself.
 - A rule the policy does not define resolves to `manage?`, which is `false` on
-  `ActionPolicy::Base`, instead of raising.
+  `ActionPolicy::Base`, instead of raising. That includes a mistyped `authorization_key`,
+  so a policy whose `manage?` is true lets that action through.
 
 A model with no policy, and the dashboard, are checked against `ApplicationPolicy`. Lists,
 export, bulk delete and dashboard counts use the policy's default `relation_scope`; a model
