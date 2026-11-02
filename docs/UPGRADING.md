@@ -715,8 +715,9 @@ it should call `association_entries(model_config, collection_scope)` instead.
 
 ## Bulk delete checks `destroy?` on each record
 
-Bulk delete now asks the policy's `destroy?` of every selected record, as the single delete
-does, with both Pundit and ActionPolicy. A record it refuses is left out of the confirmation
+Bulk delete now asks the policy's `destroy?` (or the rule named by the action's
+`authorization_key`) of every selected record, as the single delete does, with both Pundit
+and ActionPolicy. A record it refuses is left out of the confirmation
 page, is not destroyed, and counts in the "failed to be deleted" message. Before, bulk
 delete honoured only the scope, so a `destroy?` rule that reads the record, such as
 `!record.locked?`, stopped the single delete but not the bulk one.

@@ -303,6 +303,25 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       end
     end
 
+    it "DELETE /admin/player/bulk_delete asks each record the bulk action's own authorization_key", :aggregate_failures do
+      suspended_player = FactoryBot.create :player, suspended: true
+      allow(Player).to receive(:policy_class).and_return(GuardedDestroyPlayerPolicy)
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index
+          bulk_delete do
+            authorization_key :guarded_destroy
+          end
+        end
+      end
+
+      delete bulk_delete_path(model_name: "player", bulk_ids: [active_player, suspended_player].collect(&:id))
+
+      expect(@player_model.get(active_player.id)).to be_nil
+      expect(@player_model.get(suspended_player.id)).not_to be_nil
+    end
+
     it "does not let a tab that drops conditions destroy unauthorized records" do
       RailsAdminNext.config Player do
         list do

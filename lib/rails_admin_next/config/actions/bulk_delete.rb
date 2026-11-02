@@ -16,9 +16,7 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
-            # The :destroy scope narrows by query only; a destroy? rule that reads the
-            # record's attributes has to be asked per record, as the single delete does.
-            destroyable = ->(object) { @authorization_adapter.nil? || @authorization_adapter.authorized?(:destroy, @abstract_model, object) }
+            destroyable = ->(object) { @authorization_adapter.nil? || @authorization_adapter.authorized?(@action.authorization_key, @abstract_model, object) }
 
             if request.post? # BULK DELETE
               @objects = list_entries(@model_config, :destroy).select(&destroyable)

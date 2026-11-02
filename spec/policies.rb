@@ -116,6 +116,12 @@ class SuspendedPlayerPolicy < PlayerPolicy
   end
 end
 
+class GuardedDestroyPlayerPolicy < PlayerPolicy
+  def guarded_destroy?
+    destroy? && !(record.is_a?(Player) && record.suspended)
+  end
+end
+
 class FanshipPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
     def resolve
