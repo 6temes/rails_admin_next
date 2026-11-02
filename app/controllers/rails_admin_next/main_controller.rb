@@ -231,9 +231,9 @@ module RailsAdminNext
     end
 
     def get_association_scope_from_params
-      return nil unless params[:associated_collection].present?
+      return nil unless params[:associated_collection].present? && params[:source_abstract_model].present?
+      return nil unless (source_abstract_model = visible_abstract_model(to_model_name(params[:source_abstract_model])))
 
-      source_abstract_model = RailsAdminNext::AbstractModel.new(to_model_name(params[:source_abstract_model]))
       source_model_config = source_abstract_model.config
       action = params[:current_action].in?(%w[create update]) ? params[:current_action] : "edit"
       field = source_model_config.send(action).fields.detect { |f| f.name == params[:associated_collection].to_sym }

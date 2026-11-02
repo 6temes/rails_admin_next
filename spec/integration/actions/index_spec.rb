@@ -918,6 +918,22 @@ RSpec.describe "Index action", type: :request do
       visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
       within("ul.pagination") { expect(find("li:last")).to have_content("Next »") }
     end
+
+    it "lists normally without a source_abstract_model" do
+      visit index_path(model_name: "player", associated_collection: "players", current_action: "update", source_object_id: FactoryBot.create(:team).id)
+      expect(page).to have_css("tbody tr", count: 1)
+    end
+
+    it "lists normally with an unknown source_abstract_model" do
+      visit index_path(model_name: "player", associated_collection: "players", current_action: "update", source_abstract_model: "nope", source_object_id: 1)
+      expect(page).to have_css("tbody tr", count: 1)
+    end
+
+    it "lists normally with an excluded source_abstract_model" do
+      RailsAdminNext.config.excluded_models = [Team]
+      visit index_path(model_name: "player", associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
+      expect(page).to have_css("tbody tr", count: 1)
+    end
   end
 
   describe "sorting" do
