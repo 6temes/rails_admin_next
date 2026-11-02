@@ -17,7 +17,7 @@ module RailsAdminNext
         register_instance_option :controller do
           proc do
             if request.post? # BULK DELETE
-              @objects = list_entries(@model_config, :destroy)
+              @objects = params[:bulk_ids].blank? ? [] : list_entries(@model_config, :destroy)
 
               if @objects.blank?
                 flash[:error] = t("admin.flash.error", name: pluralize(0, @model_config.label, plural: @model_config.label_plural), action: t("admin.actions.delete.done"))
@@ -35,15 +35,16 @@ module RailsAdminNext
                 @objects = list_entries(@model_config, :destroy)
                 unless @objects.blank?
                   # Rescue per record: dependent: :restrict_with_exception raises, and an
-                  # escaping raise would abandon every record behind it in the batch.
+                  # escaping raise would abandon every record behind it in the batch. Audit
+                  # inside the loop, so any other raise still leaves earlier deletes audited.
                   destroyed, not_destroyed = Array.wrap(@objects).partition do |object|
                     object.destroy
-                    object.destroyed?
+                    next false unless object.destroyed?
+
+                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
+                    true
                   rescue ActiveRecord::DeleteRestrictionError
                     false
-                  end
-                  destroyed.each do |object|
-                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
                   end
                 end
               end
