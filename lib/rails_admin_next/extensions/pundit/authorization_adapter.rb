@@ -12,6 +12,10 @@ module RailsAdminNext
           RailsAdminNext::Extensions::ControllerExtension.include defined?(::Pundit::Authorization) ? ::Pundit::Authorization : ::Pundit
         end
 
+        # Pundit takes no options, so any passed to authorize_with fail at boot.
+        def self.validate_options!
+        end
+
         # See the +authorize_with+ config method for where the initialization happens.
         def initialize(controller)
           @controller = controller
