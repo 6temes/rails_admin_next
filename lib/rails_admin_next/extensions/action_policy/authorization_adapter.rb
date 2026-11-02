@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rails_admin_next/extensions/model_lineage"
+
 module RailsAdminNext
   module Extensions
     module ActionPolicy
@@ -44,8 +46,11 @@ module RailsAdminNext
         def query(_action, abstract_model)
           @controller.skip_verify_authorized_scoped! if @controller.respond_to?(:skip_verify_authorized_scoped!)
           model = abstract_model.model
-          authorized_scope(model.all, type: :active_record_relation, with: ::ActionPolicy.lookup(model))
-        rescue ::ActionPolicy::NotFound, ::ActionPolicy::UnknownScopeType, ::ActionPolicy::UnknownNamedScope
+          policy_class = model_policy_class(model)
+          return model.none unless policy_class
+
+          authorized_scope(model.all, type: :active_record_relation, with: policy_class)
+        rescue ::ActionPolicy::UnknownScopeType, ::ActionPolicy::UnknownNamedScope
           abstract_model.model.none
         end
 
@@ -61,7 +66,11 @@ module RailsAdminNext
         end
 
         def policy_class_for(record)
-          ::ActionPolicy.lookup(record, default: ::ApplicationPolicy)
+          model_policy_class(record) || ::ApplicationPolicy
+        end
+
+        def model_policy_class(record)
+          [record, *ModelLineage.superclasses(record)].lazy.filter_map { ::ActionPolicy.lookup(it, allow_nil: true) }.first
         end
 
         # A Symbol, because ActionPolicy keys its rule aliases (new? -> create?) by Symbol and a

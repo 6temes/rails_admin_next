@@ -75,4 +75,13 @@ module ActionPolicies
 
     def index? = admin?
   end
+
+  # Stubbed in as BallPolicy; Hardball, Ball's STI subclass, has no policy of its own.
+  class BallPolicy < ApplicationPolicy
+    relation_scope { |relation| relation.where(color: "red") }
+
+    def show? = false
+
+    def update? = false
+  end
 end
