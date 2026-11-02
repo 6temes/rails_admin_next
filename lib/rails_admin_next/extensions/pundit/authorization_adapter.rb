@@ -68,8 +68,16 @@ module RailsAdminNext
         def policy(record)
           @controller.send(:policy, record)
         rescue ::Pundit::NotDefinedError
-          policy_class = ModelLineage.superclasses(record).lazy.filter_map { ::Pundit::PolicyFinder.new(it).policy }.first
+          policy_class = ModelLineage.superclasses(record).lazy.filter_map { host_policy(it)&.class }.first
           (policy_class || ::ApplicationPolicy).new(@controller.send(:pundit_user), record)
+        end
+
+        # Through the controller, so a host override of policy (e.g. namespacing) also picks the
+        # parent model's policy.
+        def host_policy(model)
+          @controller.send(:policy, model)
+        rescue ::Pundit::NotDefinedError
+          nil
         end
 
         # action_policy defines ActiveRecord::Relation#policy_class as nil, which hides every

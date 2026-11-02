@@ -438,6 +438,13 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
     end
 
+    it "takes its parent model's policy through a host override of policy" do
+      hide_const("BallPolicy")
+      stub_const("Admin::BallPolicy", StiBallPolicy)
+      allow_any_instance_of(RailsAdminNext::MainController).to receive(:policy).and_wrap_original { |original, record| original.call([:admin, record]) }
+      expect { visit show_path(model_name: "hardball", id: @red.id) }.to raise_error(Pundit::NotAuthorizedError)
+    end
+
     it "lists nothing when no model in its hierarchy has a policy" do
       hide_const("BallPolicy")
       visit index_path(model_name: "hardball")
