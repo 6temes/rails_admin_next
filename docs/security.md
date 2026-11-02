@@ -20,6 +20,9 @@ destructive-action controls itself; a few things are left for the host to opt in
   `relation_scope`, lists no records. A rule the policy does not define (`history?`,
   `show_in_app?`, `export?`, a custom authorization key) resolves to the policy's `manage?`, so a
   permissive `manage?` grants every admin action the policy leaves undefined.
+- **ActionPolicy context fails loudly.** A context key a policy declares that the host omits, or
+  whose block returns `nil`, raises `ActionPolicy::AuthorizationContextMissing` on every adapter
+  check rather than listing or allowing anything; `user` cannot be replaced through `context:`.
 - **Destructive actions.** `delete` and `bulk_delete` render a confirmation page and additionally
   carry `data-turbo-confirm` on the destructive submit (Turbo's confirmation, not `@rails/ujs`).
 - **Mass assignment.** Submitted attributes are sliced to the model config's `visible_fields`

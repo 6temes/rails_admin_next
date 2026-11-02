@@ -58,6 +58,12 @@ module ActionPolicies
     relation_scope { |relation| relation.where(retired: true) }
   end
 
+  class AccountPlayerPolicy < PlayerPolicy
+    authorize :account
+
+    relation_scope { |relation| relation.where(team: account) }
+  end
+
   # A policy with no relation scope at all.
   class TeamPolicy < ApplicationPolicy
     def index? = admin?

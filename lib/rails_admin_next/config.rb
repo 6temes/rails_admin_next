@@ -190,13 +190,25 @@ module RailsAdminNext
       #     config.authorize_with :action_policy
       #   end
       #
+      # @example ActionPolicy with authorization context beyond the user
+      #   RailsAdminNext.config do |config|
+      #     config.authorize_with :action_policy, context: {account: -> { _current_user.account }}
+      #   end
+      #
+      # An adapter may define a class method validate_options!, which receives the extra arguments
+      # while this config block runs, so a misconfigured option fails at boot.
+      #
       # A custom adapter is registered with
       # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here.
       # See docs/UPGRADING.md for the adapter contract.
       #
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
-      def authorize_with(*args, &block)
+      def authorize_with(*args, **options, &block)
         extension = args.shift
+        if extension.nil? && options.any?
+          raise ArgumentError, "authorize_with options need an adapter key, such as authorize_with(:action_policy, **options)"
+        end
+
         if extension
           klass = RailsAdminNext::AUTHORIZATION_ADAPTERS.fetch(extension) do
             raise ArgumentError, "Unknown authorization adapter #{extension.inspect}. " \
@@ -206,8 +218,9 @@ module RailsAdminNext
               "(no per-record checks or list scoping). See docs/UPGRADING.md."
           end
           klass.setup if klass.respond_to? :setup
+          klass.validate_options!(*args, **options) if klass.respond_to? :validate_options!
           @authorize = proc do
-            @authorization_adapter = klass.new(*([self] + args).compact, &block)
+            @authorization_adapter = klass.new(*([self] + args).compact, **options, &block)
           end
         elsif block
           @authorize = block

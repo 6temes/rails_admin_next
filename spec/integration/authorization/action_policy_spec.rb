@@ -285,4 +285,60 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       is_expected.to have_content("Player")
     end
   end
+
+  describe "with an authorization context beyond the user" do
+    before do
+      stub_const("PlayerPolicy", ActionPolicies::AccountPlayerPolicy)
+      @user.update(roles: %i[admin read_player update_player create_player])
+      @own_team = FactoryBot.create :team, manager: @user.email
+      @other_team = FactoryBot.create :team
+      @own_player = FactoryBot.create :player, team: @own_team
+      @other_player = FactoryBot.create :player, team: @other_team
+    end
+
+    def configure_context(context)
+      RailsAdminNext.config { |c| c.authorize_with(:action_policy, context:) }
+    end
+
+    it "scopes the list by the account the context resolves on the controller", :aggregate_failures do
+      configure_context(account: -> { Team.find_by(manager: _current_user.email) })
+      visit index_path(model_name: "player")
+      is_expected.to have_content(@own_player.name)
+      is_expected.not_to have_content(@other_player.name)
+    end
+
+    it "resolves the context again on each request", :aggregate_failures do
+      configure_context(account: -> { Team.find_by(manager: _current_user.email) })
+      visit index_path(model_name: "player")
+      @own_team.update!(manager: "Someone else")
+      @other_team.update!(manager: @user.email)
+      visit index_path(model_name: "player")
+      is_expected.to have_content(@other_player.name)
+      is_expected.not_to have_content(@own_player.name)
+    end
+
+    it "raises from every adapter entry point when the context resolves to nil", :aggregate_failures do
+      configure_context(account: -> {})
+      controller = Struct.new(:_current_user).new(@user)
+      adapter = RailsAdminNext::Extensions::ActionPolicy::AuthorizationAdapter.new(controller, context: {account: -> {}})
+      player_model = RailsAdminNext::AbstractModel.new(Player)
+      expect { adapter.query(:index, player_model) }.to raise_error(ActionPolicy::AuthorizationContextMissing)
+      expect { adapter.authorize(:edit, player_model, @own_player) }.to raise_error(ActionPolicy::AuthorizationContextMissing)
+      expect { adapter.authorized?(:show, player_model, @own_player) }.to raise_error(ActionPolicy::AuthorizationContextMissing)
+      expect { adapter.attributes_for(:new, player_model) }.to raise_error(ActionPolicy::AuthorizationContextMissing)
+      expect { visit index_path(model_name: "player") }.to raise_error(ActionPolicy::AuthorizationContextMissing)
+    end
+
+    it "still lists nothing for a model whose policy has no relation scope" do
+      configure_context(account: -> { Team.find_by(manager: _current_user.email) })
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index { authorization_key :rails_admin_index }
+        end
+      end
+      visit index_path(model_name: "team")
+      is_expected.not_to have_content(@other_team.name)
+    end
+  end
 end

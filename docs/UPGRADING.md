@@ -74,13 +74,17 @@ end
 ```
 
 The module defines an `AuthorizationAdapter` class. `authorize_with` builds it with
-`new(controller, *args, &block)` and it answers:
+`new(controller, *args, **options, &block)` and it answers:
 
 - `authorize(action, abstract_model, object)`: raises when the action is denied.
 - `authorized?(action, abstract_model, object)`: returns a boolean, for links and buttons.
 - `query(action, abstract_model)`: returns the scope lists, export and bulk actions read from.
 - `attributes_for(action, abstract_model)`: returns the attributes a new record starts with.
 - `self.setup` (optional): runs once when `authorize_with` names the key.
+- `self.validate_options!(*args, **options)` (optional): receives the extra arguments while the
+  config block runs; raise `ArgumentError` there so a misconfigured option fails at boot. A
+  subclass of a built-in adapter inherits its `validate_options!`, so one that takes options of
+  its own overrides it.
 
 `lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` in the gem is the template.
 The removed CanCanCan adapter is a starting point you can copy:
@@ -595,6 +599,39 @@ class PlayerPolicy < ApplicationPolicy
   relation_scope { |relation| relation }
 end
 ```
+
+### Authorization context beyond the user
+
+A policy that declares more context than `user`, such as a tenant's `authorize :account`,
+needs the adapter to supply it. Pass each key as a block:
+
+```ruby
+RailsAdminNext.config do |config|
+  config.authorize_with :action_policy, context: {account: -> { _current_user.account }}
+end
+```
+
+Each block runs on the admin controller once per request, the first time anything is
+authorized, whichever policy is checked; a block should return `nil` rather than raise for a
+user with no such context. A helper from your own controller, such as `current_account`, is
+only available there when `config.parent_controller` names that controller:
+
+```ruby
+config.parent_controller = "::ApplicationController"
+config.authorize_with :action_policy, context: {account: -> { current_account }}
+```
+
+The value is an authorization input, so derive it from the signed-in user, or check the user's
+membership when it comes from request data such as `params` or the subdomain. The relation scope
+only narrows lists, export and bulk actions: show, edit, delete and history load the record by
+id and check the rule alone, so a tenant rule such as `update?` must compare `record` with
+`account` itself.
+
+`user` always comes from `current_user_method` and is rejected inside `context:`. A key that is
+not a Symbol, a value that is not a block taking no arguments, or an unknown option raises
+`ArgumentError` while the config block runs. A key a policy declares that the host omits, or
+whose block returns `nil`, raises `ActionPolicy::AuthorizationContextMissing` on the request
+unless the policy declares it with `allow_nil:` or `optional:`.
 
 ## An `:enum` field with no option source offers no options
 

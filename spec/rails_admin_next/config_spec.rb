@@ -149,6 +149,80 @@ RSpec.describe RailsAdminNext::Config do
         RailsAdminNext.config.authorize_with.call
       end
     end
+
+    context "given an adapter that takes keyword options" do
+      let(:adapter) do
+        Class.new do
+          attr_reader :flag
+
+          def self.validate_options!(flag:)
+            raise ArgumentError, "flag must be true or false" unless [true, false].include?(flag)
+          end
+
+          def initialize(_controller, flag:)
+            @flag = flag
+          end
+        end
+      end
+
+      before do
+        RailsAdminNext.add_extension(:keyword_example, Module.new.tap { it.const_set(:AuthorizationAdapter, adapter) }, authorization: true)
+      end
+
+      after { RailsAdminNext::AUTHORIZATION_ADAPTERS.delete(:keyword_example) }
+
+      it "passes the keywords through to the initializer" do
+        RailsAdminNext.config { |config| config.authorize_with(:keyword_example, flag: true) }
+        expect(RailsAdminNext.config.authorize_with.call.flag).to be(true)
+      end
+
+      it "lets the adapter reject its options while the config block runs" do
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:keyword_example, flag: :bad) }
+        }.to raise_error(ArgumentError, "flag must be true or false")
+      end
+    end
+
+    describe "the ActionPolicy context option" do
+      it "rejects a user key, pointing at current_user_method" do
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:action_policy, context: {user: -> { :someone }}) }
+        }.to raise_error(ArgumentError, /:user.*current_user_method/)
+      end
+
+      it "rejects a context that instance_exec cannot evaluate on the controller", :aggregate_failures do
+        [
+          {account: 42},
+          {account: :current_account},
+          {account: ->(controller) { controller }},
+          {account: ->(account:) { account }},
+          {"account" => -> {}}
+        ].each do |context|
+          expect {
+            RailsAdminNext.config { |config| config.authorize_with(:action_policy, context:) }
+          }.to raise_error(ArgumentError, /account/)
+        end
+      end
+
+      it "rejects an option it does not define" do
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:action_policy, contxt: {}) }
+        }.to raise_error(ArgumentError, /contxt/)
+      end
+    end
+
+    it "rejects options passed without an adapter key, rather than leaving authorization off" do
+      expect {
+        RailsAdminNext.config { |config| config.authorize_with(context: {account: -> {}}) }
+      }.to raise_error(ArgumentError, /adapter key/)
+      expect(RailsAdminNext.config.authorize_with).to be(RailsAdminNext::Config::DEFAULT_AUTHORIZE)
+    end
+
+    it "rejects options for Pundit while the config block runs" do
+      expect {
+        RailsAdminNext.config { |config| config.authorize_with(:pundit, context: {}) }
+      }.to raise_error(ArgumentError)
+    end
   end
 
   describe ".audit_with" do
