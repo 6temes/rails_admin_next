@@ -440,6 +440,63 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "an STI subclass with no policy of its own" do
+    before do
+      stub_const("BallPolicy", StiBallPolicy)
+      @user.update(roles: [:admin])
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index { authorization_key :rails_admin_index }
+          show
+        end
+      end
+      @red = FactoryBot.create :hardball, color: "red"
+      @blue = FactoryBot.create :hardball, color: "blue"
+    end
+
+    it "is denied what its parent model's policy denies" do
+      expect { visit show_path(model_name: "hardball", id: @red.id) }.to raise_error(Pundit::NotAuthorizedError)
+    end
+
+    it "is listed through its parent model's policy Scope", :aggregate_failures do
+      visit index_path(model_name: "hardball")
+      is_expected.to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
+      is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@blue.id}']")
+    end
+
+    it "uses a policy of its own over its parent model's" do
+      stub_const("HardballPolicy", Class.new(ApplicationPolicy))
+      visit show_path(model_name: "hardball", id: @red.id)
+      is_expected.to have_content("Details")
+    end
+
+    it "lists nothing when its own policy has no Scope, rather than taking its parent model's" do
+      stub_const("HardballPolicy", Class.new {
+        def initialize(_user, _record) = nil
+
+        def rails_admin_index? = true
+
+        def show? = true
+      })
+      visit index_path(model_name: "hardball")
+      is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
+    end
+
+    it "takes its parent model's policy through a host override of policy" do
+      hide_const("BallPolicy")
+      stub_const("Admin::BallPolicy", StiBallPolicy)
+      allow_any_instance_of(RailsAdminNext::MainController).to receive(:policy).and_wrap_original { |original, record| original.call([:admin, record]) }
+      expect { visit show_path(model_name: "hardball", id: @red.id) }.to raise_error(Pundit::NotAuthorizedError)
+    end
+
+    it "lists nothing when no model in its hierarchy has a policy" do
+      hide_const("BallPolicy")
+      visit index_path(model_name: "hardball")
+      is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
+    end
+  end
+
   context "when custom authorization key is suffixed with ?" do
     before do
       @user.update(roles: [:admin])

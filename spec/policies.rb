@@ -133,3 +133,22 @@ class FanshipPolicy < ApplicationPolicy
     user.roles.include? :admin
   end
 end
+
+# Specs stub_const this in as BallPolicy, so Ball keeps no policy everywhere else. Hardball, Ball's
+# STI subclass, has no policy of its own.
+class StiBallPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      scope.where(color: "red")
+    end
+  end
+
+  def show?
+    false
+  end
+
+  def edit?
+    false
+  end
+  alias_method :update?, :edit?
+end

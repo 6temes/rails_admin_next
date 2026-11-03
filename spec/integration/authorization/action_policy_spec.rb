@@ -311,6 +311,44 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
   end
 
+  describe "an STI subclass with no policy of its own" do
+    before do
+      stub_const("BallPolicy", ActionPolicies::BallPolicy)
+      @user.update(roles: [:admin])
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index { authorization_key :rails_admin_index }
+          show
+        end
+      end
+      @red = FactoryBot.create :hardball, color: "red"
+      @blue = FactoryBot.create :hardball, color: "blue"
+    end
+
+    it "is denied what its parent model's policy denies" do
+      expect { visit show_path(model_name: "hardball", id: @red.id) }.to raise_error(ActionPolicy::Unauthorized)
+    end
+
+    it "is listed through its parent model's policy Scope", :aggregate_failures do
+      visit index_path(model_name: "hardball")
+      is_expected.to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
+      is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@blue.id}']")
+    end
+
+    it "uses a policy of its own over its parent model's" do
+      stub_const("HardballPolicy", Class.new(ActionPolicies::ApplicationPolicy) { def self.name = "HardballPolicy" })
+      visit show_path(model_name: "hardball", id: @red.id)
+      is_expected.to have_content("Details")
+    end
+
+    it "lists nothing when no policy in its hierarchy has a relation scope" do
+      stub_const("BallPolicy", ActionPolicies::TeamPolicy)
+      visit index_path(model_name: "hardball")
+      is_expected.not_to have_css("input[name='bulk_ids[]'][value='#{@red.id}']")
+    end
+  end
+
   describe "with an authorization context beyond the user" do
     before do
       stub_const("PlayerPolicy", ActionPolicies::AccountPlayerPolicy)

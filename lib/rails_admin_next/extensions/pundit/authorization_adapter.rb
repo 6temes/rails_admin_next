@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rails_admin_next/extensions/model_lineage"
+
 module RailsAdminNext
   module Extensions
     module Pundit
@@ -65,7 +67,16 @@ module RailsAdminNext
         def policy(record)
           @controller.send(:policy, record)
         rescue ::Pundit::NotDefinedError
-          ::ApplicationPolicy.new(@controller.send(:pundit_user), record)
+          policy_class = ModelLineage.superclasses(record).lazy.filter_map { host_policy(it)&.class }.first
+          (policy_class || ::ApplicationPolicy).new(@controller.send(:pundit_user), record)
+        end
+
+        # Through the controller, so a host override of policy (e.g. namespacing) also picks the
+        # parent model's policy.
+        def host_policy(model)
+          @controller.send(:policy, model)
+        rescue ::Pundit::NotDefinedError
+          nil
         end
 
         # action_policy defines ActiveRecord::Relation#policy_class as nil, which hides every
@@ -77,7 +88,8 @@ module RailsAdminNext
         end
 
         def model_scope(model)
-          scope_class = ::Pundit::PolicyFinder.new(model).scope
+          finder = [model, *ModelLineage.superclasses(model)].lazy.map { ::Pundit::PolicyFinder.new(it) }.find(&:policy)
+          scope_class = finder&.scope
           return model.none unless scope_class
 
           @controller.instance_variable_set(:@_pundit_policy_scoped, true)

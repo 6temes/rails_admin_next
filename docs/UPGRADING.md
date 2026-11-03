@@ -30,7 +30,8 @@ end
 ```
 
 - **`ApplicationPolicy`.** The adapter falls back to `::ApplicationPolicy` for the dashboard
-  (record `nil`) and for any model without its own policy.
+  (record `nil`) and for any model without a policy of its own or a parent model's (see
+  [STI subclasses use their parent model's policy](#sti-subclasses-use-their-parent-models-policy)).
 - **Action predicates.** The adapter calls each action's authorization key with a `?`
   suffix: `dashboard?`, `index?`, `show?`, `new?`, `edit?`, `export?`, `destroy?`,
   `history?` and `show_in_app?`. Saving a new record also calls `create?`, and saving an
@@ -579,7 +580,8 @@ change how a ported Pundit policy behaves:
   `ActionPolicy::Base`, instead of raising. That includes a mistyped `authorization_key`,
   so a policy whose `manage?` is true lets that action through.
 
-A model with no policy, and the dashboard, are checked against `ApplicationPolicy`. Lists,
+A model with no policy of its own or a parent model's, and the dashboard, are checked against
+`ApplicationPolicy`. Lists,
 export, bulk delete and dashboard counts use the policy's default `relation_scope`; a model
 with no policy, no relation scope, or only named ones lists nothing. To prefill new records,
 define `attributes_for(action)` on the policy, as with Pundit.
@@ -746,6 +748,22 @@ matching records now contains the header row instead of an empty line.
 Every admin page now ends with a small, muted "Made in Tokyo with ❤️ and 🤖" line under the page
 content. It is not shown inside modals. To hide it, set `config.show_footer = false` in your
 initializer.
+
+## STI subclasses use their parent model's policy
+
+Both the Pundit and the ActionPolicy adapter used to check an STI subclass with no policy of its
+own against `ApplicationPolicy`, and to list none of its records. Such a subclass now takes the
+nearest parent model's policy, for its rules and its scope alike, before `ApplicationPolicy`:
+a `Hardball < Ball` with no `HardballPolicy` uses `BallPolicy`. A subclass that defines its own
+policy still uses it, and lists nothing if that policy has no scope.
+
+If `ApplicationPolicy` granted a subclass what its parent's policy denies, it is now denied. If
+`ApplicationPolicy` denied a subclass what its parent's policy grants, it is now granted, and the
+subclass lists what the parent's scope returns. Either way, give the subclass its own policy to
+keep the old access.
+
+The walk follows Ruby class inheritance, not the `type` column: a concrete subclass of a model
+takes that model's policy even when it is not STI.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
