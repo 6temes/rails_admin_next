@@ -269,8 +269,19 @@ module RailsAdminNext
       return nil unless field&.association? && !field.polymorphic? && field.associated_model_config == @model_config
 
       source_object = source_abstract_model.get(params[:source_object_id])
+      return nil if source_object && !source_editable?(source_abstract_model, source_object)
+
       @association = field.with(controller: self, object: source_object)
       @association.associated_collection_scope
+    end
+
+    # Asks the adapter directly: going through the edit action's authorized? would also apply its
+    # enabled?/visible settings, changing pickers for hosts that only hide the edit link.
+    def source_editable?(abstract_model, object)
+      return true unless @authorization_adapter
+
+      edit = RailsAdminNext::Config::Actions.find(:edit).with(controller: self, abstract_model:, object:)
+      @authorization_adapter.authorized?(edit.authorization_key, abstract_model, object)
     end
   end
 end

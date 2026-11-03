@@ -573,6 +573,57 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "association picker source record" do
+    let!(:team) { FactoryBot.create(:team) }
+    let!(:teammate) { FactoryBot.create(:player, team:) }
+    let!(:free_agent) { FactoryBot.create(:player) }
+
+    before do
+      stub_const("TeamPolicy", Class.new(ApplicationPolicy) {
+        def edit? = user.roles.include?(:update_team)
+        alias_method :update?, :edit?
+      })
+      RailsAdminNext.config Team do
+        field :players do
+          associated_collection_scope do
+            team = bindings[:object]
+            proc { |scope| scope.where(team_id: team&.id) }
+          end
+        end
+      end
+    end
+
+    def picked_player_ids(**params)
+      get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", source_abstract_model: "team", **params)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "lists without the source record when the user may not edit it" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "judges a source record named on a create form the same way" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "create", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "scopes by the source record the user may edit" do
+      @user.update(roles: %i[admin update_team])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id)
+    end
+
+    it "scopes a new-record picker with no source record" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "create")).to contain_exactly(free_agent.id)
+    end
+
+    it "scopes as for a new record when the source record does not exist" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "update", source_object_id: 0)).to contain_exactly(free_agent.id)
+    end
+  end
+
   context "when the host controller overrides policy_scope with one argument" do
     it "lists through the override", :aggregate_failures do
       @user.update(roles: %i[admin manage_player])

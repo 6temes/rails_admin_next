@@ -902,6 +902,24 @@ RSpec.describe "Index action", type: :request do
     end
   end
 
+  context "with an associated_collection_scope that reads the source record and no authorization adapter" do
+    it "scopes by the source record" do
+      team = FactoryBot.create(:team)
+      teammate = FactoryBot.create(:player, team:)
+      FactoryBot.create(:player)
+      RailsAdminNext.config Team do
+        field :players do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(team_id: source&.id) }
+          end
+        end
+      end
+      get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: team.id)
+      expect(JSON.parse(response.body).map { it["id"].to_i }).to eq([teammate.id])
+    end
+  end
+
   context "with an associated_collection the picker guard rejects" do
     before do
       RailsAdminNext.config.default_items_per_page = 1
