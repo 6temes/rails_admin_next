@@ -16,8 +16,10 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
+            destroyable = ->(object) { @authorization_adapter.nil? || @authorization_adapter.authorized?(@action.authorization_key, @abstract_model, object) }
+
             if request.post? # BULK DELETE
-              @objects = list_entries(@model_config, :destroy)
+              @objects = list_entries(@model_config, :destroy).select(&destroyable)
 
               if @objects.blank?
                 flash[:error] = t("admin.flash.error", name: pluralize(0, @model_config.label, plural: @model_config.label_plural), action: t("admin.actions.delete.done"))
@@ -37,6 +39,8 @@ module RailsAdminNext
                   # Rescue per record: dependent: :restrict_with_exception raises, and an
                   # escaping raise would abandon every record behind it in the batch.
                   destroyed, not_destroyed = Array.wrap(@objects).partition do |object|
+                    next false unless destroyable.call(object)
+
                     object.destroy
                     object.destroyed?
                   rescue ActiveRecord::DeleteRestrictionError

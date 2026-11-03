@@ -50,10 +50,10 @@ end
 Three differences from CanCanCan to check before switching:
 
 - **One `Scope` bounds every list.** The adapter passes no action to the `Scope`, so the same
-  scope bounds index, export, bulk delete and the dashboard count. Bulk destroy deletes every
-  selected record that `Scope` returns, with no per-record `destroy?` check. If an ability
-  allowed destroy or export on fewer records than read, resolve the `Scope` to the narrowest
-  of them, or stay on a custom adapter whose `query` honours the action.
+  scope bounds index, export, bulk delete and the dashboard count. Bulk delete also asks
+  `destroy?` of each selected record, but export does not. If an ability allowed export on
+  fewer records than read, resolve the `Scope` to the narrowest of them, or stay on a custom
+  adapter whose `query` honours the action.
 - **Nothing checks `:access, :rails_admin`.** Admin access is decided by the same policies,
   and the `ApplicationPolicy` fallback, that the rest of the app uses. If those admit
   ordinary users, gate admin entry separately: in `config.authenticate_with`, or with
@@ -538,8 +538,8 @@ erroring.
 ## Pundit: a model with no policy Scope lists nothing
 
 A model whose policy defines no `Scope` used to list every record. It now lists none: the
-list, export, bulk delete and dashboard count all return an empty set. Bulk delete deletes
-whatever the scope returns, with no per-record check, so "no Scope" can't mean "everything".
+list, export, bulk delete and dashboard count all return an empty set, so "no Scope" can't
+mean "everything".
 
 This holds only when no `Scope` constant resolves. A policy that subclasses `ApplicationPolicy`
 without its own `Scope` inherits `ApplicationPolicy::Scope`: Pundit's generated `resolve` there
@@ -577,7 +577,8 @@ change how a ported Pundit policy behaves:
 
 - `new?` is an alias of `create?` unless the policy defines `new?` itself.
 - A rule the policy does not define resolves to `manage?`, which is `false` on
-  `ActionPolicy::Base`, instead of raising.
+  `ActionPolicy::Base`, instead of raising. That includes a mistyped `authorization_key`,
+  so a policy whose `manage?` is true lets that action through.
 
 A model with no policy of its own or a parent model's, and the dashboard, are checked against
 `ApplicationPolicy`. Lists,
@@ -714,6 +715,15 @@ end
 own model, its `additional_scope` defaults to `nil`, and it no longer reads the
 `associated_collection` picker params. Custom actions that listed picker records through
 it should call `association_entries(model_config, collection_scope)` instead.
+
+## Bulk delete checks `destroy?` on each record
+
+Bulk delete now asks the policy's `destroy?` (or the rule named by the action's
+`authorization_key`) of every selected record, as the single delete does, with both Pundit
+and ActionPolicy. A record it refuses is left out of the confirmation
+page, is not destroyed, and counts in the "failed to be deleted" message. Before, bulk
+delete honoured only the scope, so a `destroy?` rule that reads the record, such as
+`!record.locked?`, stopped the single delete but not the bulk one.
 
 ## `associated_collection_scope` runs after the list sort
 

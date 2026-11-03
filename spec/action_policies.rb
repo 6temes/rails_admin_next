@@ -58,6 +58,10 @@ module ActionPolicies
     relation_scope { |relation| relation.where(retired: true) }
   end
 
+  class SuspendedPlayerPolicy < PlayerPolicy
+    def destroy? = super && !(record.is_a?(Player) && record.suspended)
+  end
+
   class AccountPlayerPolicy < PlayerPolicy
     authorize :account
 

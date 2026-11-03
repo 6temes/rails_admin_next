@@ -200,6 +200,31 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
         expect(@player_model.get(@retired.id)).not_to be_nil
       end
 
+      context "with a destroy? rule that depends on the record" do
+        before do
+          allow(Player).to receive(:policy_class).and_return(ActionPolicies::SuspendedPlayerPolicy)
+          @suspended = FactoryBot.create :player, name: "Dana", suspended: true
+        end
+
+        it "refuses a single delete" do
+          expect { visit delete_path(model_name: "player", id: @suspended.id) }.to raise_error(ActionPolicy::Unauthorized)
+        end
+
+        it "does not list records destroy? refuses for bulk delete", :aggregate_failures do
+          post bulk_action_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [@active, @suspended].collect(&:id))
+          expect(response.body).to include(@active.name)
+          expect(response.body).not_to include(@suspended.name)
+        end
+
+        it "bulk destroy leaves records destroy? refuses and counts them as failed", :aggregate_failures do
+          delete bulk_delete_path(model_name: "player", bulk_ids: [@active, @suspended].collect(&:id))
+          expect(@player_model.get(@active.id)).to be_nil
+          expect(@player_model.get(@suspended.id)).not_to be_nil
+          expect(flash[:success]).to eq "1 Player successfully deleted"
+          expect(flash[:error]).to eq "1 Player failed to be deleted"
+        end
+      end
+
       it "does not let a tab that drops conditions destroy records outside the scope" do
         RailsAdminNext.config Player do
           list { scopes [nil, :unscoped] }
