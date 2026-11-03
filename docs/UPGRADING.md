@@ -765,6 +765,12 @@ keep the old access.
 The walk follows Ruby class inheritance, not the `type` column: a concrete subclass of a model
 takes that model's policy even when it is not STI.
 
+The Pundit adapter builds the parent's policy as `PolicyClass.new(pundit_user, record)` and its
+scope as `PolicyClass::Scope.new(pundit_user, scope)`, Pundit's standard constructors. If your
+policy classes take different arguments, a subclass that falls back to its parent's policy raises
+instead. The navigation checks every visible model, so every admin page then shows an error:
+access is denied, never granted. Define that subclass's own policy to avoid the fallback.
+
 ## Removed: options deprecated before RailsAdmin 3.0
 
 These six were deprecated upstream between 2019-07 and 2022-01 and had no effect for
