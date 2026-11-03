@@ -457,6 +457,31 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       expect { visit index_path(model_name: "player") }.to raise_error(ActionPolicy::AuthorizationContextMissing)
     end
 
+    it "passes the context to the associated model's rule when exporting an association", :aggregate_failures do
+      stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) {
+        authorize :account
+        def index? = account.name == "Mets"
+      })
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+          field :team
+        end
+      end
+      RailsAdminNext.config(Team) { export { field :name } }
+      @own_team.update!(name: "Mets")
+      @own_player.update!(name: "Alice")
+      schema = {only: ["name"], include: {team: {only: ["name"]}}}
+
+      configure_context(account: -> { Team.find_by(manager: _current_user.email) })
+      page.driver.post(export_path(model_name: "player", schema:, json: true, all: true))
+      expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice", "team" => {"name" => "Mets"}}]
+
+      @own_team.update!(name: "Jets")
+      page.driver.post(export_path(model_name: "player", schema:, json: true, all: true))
+      expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice"}]
+    end
+
     it "still lists nothing for a model whose policy has no relation scope" do
       configure_context(account: -> { Team.find_by(manager: _current_user.email) })
       RailsAdminNext.config do |c|
