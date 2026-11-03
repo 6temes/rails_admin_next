@@ -16,6 +16,8 @@ module RailsAdminNext
 
     DEFAULT_AUTHORIZE = proc {}
 
+    AUTHORIZATION_ADAPTER_METHODS = %i[authorize authorized? query attributes_for].freeze
+
     DEFAULT_AUDIT = proc {}
 
     DEFAULT_CURRENT_USER = proc {}
@@ -199,7 +201,8 @@ module RailsAdminNext
       # while this config block runs, so a misconfigured option fails at boot.
       #
       # A custom adapter is registered with
-      # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here.
+      # RailsAdminNext.add_extension(key, mod, authorization: true) before it is named here, and
+      # must publicly define authorize, authorized?, query and attributes_for, or this raises.
       # See docs/UPGRADING.md for the adapter contract.
       #
       # @see RailsAdminNext::Config::DEFAULT_AUTHORIZE
@@ -218,6 +221,11 @@ module RailsAdminNext
               "(no per-record checks or list scoping). See docs/UPGRADING.md."
           end
           klass.setup if klass.respond_to? :setup
+          missing = AUTHORIZATION_ADAPTER_METHODS.reject { klass.public_method_defined?(it) }
+          if missing.any?
+            raise ArgumentError, "Authorization adapter #{extension.inspect} (#{klass.name || klass.inspect}) " \
+              "does not publicly define #{missing.join(", ")}. See docs/UPGRADING.md for the adapter contract."
+          end
           klass.validate_options!(*args, **options) if klass.respond_to? :validate_options!
           @authorize = proc do
             @authorization_adapter = klass.new(*([self] + args).compact, **options, &block)

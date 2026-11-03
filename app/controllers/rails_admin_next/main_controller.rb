@@ -45,7 +45,7 @@ module RailsAdminNext
 
       get_model unless action.root?
       get_object if action.member?
-      @authorization_adapter.try(:authorize, action.authorization_key, @abstract_model, @object)
+      @authorization_adapter&.authorize(action.authorization_key, @abstract_model, @object)
       @action = action.with({controller: self, abstract_model: @abstract_model, object: @object})
       raise(ActionNotAllowed) unless @action.enabled?
 

@@ -150,9 +150,61 @@ RSpec.describe RailsAdminNext::Config do
       end
     end
 
+    context "given an adapter that does not implement the adapter contract" do
+      def register(adapter)
+        RailsAdminNext.add_extension(:incomplete, Module.new.tap { it.const_set(:AuthorizationAdapter, adapter) }, authorization: true)
+      end
+
+      after { RailsAdminNext::AUTHORIZATION_ADAPTERS.delete(:incomplete) }
+
+      it "rejects an adapter missing authorize while the config block runs, naming only what is missing" do
+        register(Class.new {
+          def authorized?(*) = true
+
+          def query(*) = nil
+
+          def attributes_for(*) = {}
+        })
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:incomplete) }
+        }.to raise_error(ArgumentError) { |error|
+          expect(error.message).to include(":incomplete", "authorize", "docs/UPGRADING.md")
+          expect(error.message).not_to include("authorized?", "query", "attributes_for")
+        }
+      end
+
+      it "names every missing method" do
+        register(Class.new)
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:incomplete) }
+        }.to raise_error(ArgumentError) { |error|
+          expect(error.message).to include("authorize,", "authorized?", "query", "attributes_for")
+        }
+      end
+
+      it "counts a private authorize as missing" do
+        register(Class.new(ExampleModule::AuthorizationAdapter) { private :authorize })
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:incomplete) }
+        }.to raise_error(ArgumentError, /authorize/)
+      end
+
+      it "accepts a subclass of a built-in adapter" do
+        register(Class.new(RailsAdminNext::Extensions::Pundit::AuthorizationAdapter))
+        expect {
+          RailsAdminNext.config { |config| config.authorize_with(:incomplete) }
+        }.not_to raise_error
+      end
+    end
+
+    it "accepts the built-in adapters", :aggregate_failures do
+      expect { RailsAdminNext.config { |config| config.authorize_with(:pundit) } }.not_to raise_error
+      expect { RailsAdminNext.config { |config| config.authorize_with(:action_policy) } }.not_to raise_error
+    end
+
     context "given an adapter that takes keyword options" do
       let(:adapter) do
-        Class.new do
+        Class.new(ExampleModule::AuthorizationAdapter) do
           attr_reader :flag
 
           def self.validate_options!(flag:)
@@ -528,7 +580,15 @@ RSpec.describe RailsAdminNext::Config do
 end
 
 module ExampleModule
-  class AuthorizationAdapter; end
+  class AuthorizationAdapter
+    def authorize(*) = nil
+
+    def authorized?(*) = true
+
+    def query(*) = nil
+
+    def attributes_for(*) = {}
+  end
 
   class ConfigurationAdapter; end
 
