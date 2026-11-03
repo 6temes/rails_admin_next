@@ -153,7 +153,6 @@ class StiBallPolicy < ApplicationPolicy
   alias_method :update?, :edit?
 end
 
-# Specs stub_const this in as PaperTrailTestPolicy, so PaperTrailTest keeps no policy everywhere else.
 class ScopedPaperTrailTestPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
     def resolve

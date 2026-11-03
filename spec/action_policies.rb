@@ -80,7 +80,6 @@ module ActionPolicies
     def index? = admin?
   end
 
-  # Stubbed in as PaperTrailTestPolicy.
   class PaperTrailTestPolicy < ApplicationPolicy
     relation_scope { |relation| relation.where.not(name: "out of scope") }
 

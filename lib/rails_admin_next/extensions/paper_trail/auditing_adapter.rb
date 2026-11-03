@@ -128,7 +128,7 @@ module RailsAdminNext
 
         # +scope+ is the relation of the model's records the user may see; nil means unrestricted.
         def listing_for_model(model, query, sort, sort_reverse, all, page, per_page = RailsAdminNext::Config.default_items_per_page || 20, scope: nil)
-          listing_for_model_or_object(model, nil, query, sort, sort_reverse, all, page, per_page, scope)
+          listing_for_model_or_object(model, nil, query, sort, sort_reverse, all, page, per_page, scope:)
         end
 
         def listing_for_object(model, object, query, sort, sort_reverse, all, page, per_page = RailsAdminNext::Config.default_items_per_page || 20)
@@ -138,7 +138,7 @@ module RailsAdminNext
         protected
 
         # - model - a RailsAdminNext::AbstractModel
-        def listing_for_model_or_object(model, object, query, sort, sort_reverse, all, page, per_page, scope = nil)
+        def listing_for_model_or_object(model, object, query, sort, sort_reverse, all, page, per_page, scope: nil)
           sort =
             if sort.present?
               {COLUMN_MAPPING[sort.to_sym] => sort_reverse ? :desc : :asc}
@@ -182,13 +182,15 @@ module RailsAdminNext
           end
         end
 
-        # One subquery per model, so no record ids are loaded into Ruby.
         def versions_within(scopes)
           scopes.filter_map { |abstract_model, scope|
             model = abstract_model.model
-            # Unversioned models have nothing to show, and a composite key cannot fill item_id's subquery.
-            version_class.where(versions_condition(model, scope)) if model.respond_to?(:paper_trail_options)
+            version_class.where(versions_condition(model, scope)) if versioned?(model)
           }.reduce(:or) || version_class.none
+        end
+
+        def versioned?(model)
+          model.respond_to?(:paper_trail_options)
         end
 
         # PT can be configured to use [custom version
