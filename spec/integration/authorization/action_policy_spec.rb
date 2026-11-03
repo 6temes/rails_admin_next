@@ -173,6 +173,32 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       expect(CSV.parse(page.driver.response.body)).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
 
+    it "exports only the associations whose model the user may list", :aggregate_failures do
+      @user.update(roles: %i[admin read_player])
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+          field :team
+          field :draft
+        end
+      end
+      RailsAdminNext.config(Team) { export { field :name } }
+      RailsAdminNext.config(Draft) { export { field :college } }
+      Player.find_by!(name: "Alice").update!(team: FactoryBot.create(:team, name: "Mets"))
+      FactoryBot.create :draft, player: Player.find_by!(name: "Alice"), college: "Yale"
+      schema = {only: ["name"], include: {team: {only: ["name"]}, draft: {only: ["college"]}}}
+
+      page.driver.post(export_path(model_name: "player", schema:, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+      expect(CSV.parse(page.driver.response.body)).to eq [["Name", "Name [Team]"], ["Alice", "Mets"], ["Charlie", ""]]
+
+      page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+      expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"})
+
+      visit export_path(model_name: "player")
+      is_expected.to have_field("schema_include_team_only_name")
+      is_expected.not_to have_field("schema_include_draft_only_college")
+    end
+
     it "comes from the policy a model names with policy_class", :aggregate_failures do
       @user.update(roles: %i[admin read_player])
       allow(Player).to receive(:policy_class).and_return(ActionPolicies::RetiredPlayerPolicy)

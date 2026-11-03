@@ -53,7 +53,7 @@
         </div>
       </div>
     </div>
-    <% visible_fields.select{ |f| f.association? && !f.association.polymorphic? }.each do |field| %>
+    <% visible_fields.select{ |f| f.association? && !f.association.polymorphic? && f.associated_model_listable? }.each do |field| %>
       <% fields = field.associated_model_config.export.with(controller: self.controller, view: self, object: (associated_model = field.associated_model_config.abstract_model.model).new).visible_fields.select{ |f| !f.association? } %>
       <div class="control-group row">
         <div class="col-sm-12">

@@ -16,6 +16,17 @@ module RailsAdminNext
           nested_form ? :"#{name}_attributes" : association.key_accessor
         end
 
+        # Exporting an association's columns reads its records, so it takes the right to list them.
+        # Only the adapter is asked: with none configured, nothing is withheld.
+        def associated_model_listable?
+          adapter = bindings[:controller].authorization_adapter
+          return true unless adapter
+
+          abstract_model = associated_model_config.abstract_model
+          index = RailsAdminNext::Config::Actions.find(:index)&.with(controller: bindings[:controller], abstract_model:)
+          index.present? && adapter.authorized?(index.authorization_key, abstract_model).present?
+        end
+
         register_instance_option :pretty_value do
           v = bindings[:view]
           [value].flatten.select(&:present?).collect do |associated|

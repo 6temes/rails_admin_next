@@ -39,7 +39,7 @@ module RailsAdminNext
         fields = @section.visible_fields
         names = field_names(fields.select { |f| !f.association? || f.association.polymorphic? })
         if @include_associations
-          names[:include] = fields.select { |f| f.association? && !f.association.polymorphic? }.to_h do |field|
+          names[:include] = fields.select { |f| f.association? && !f.association.polymorphic? && f.associated_model_listable? }.to_h do |field|
             associated = field.associated_model_config.export.with(@section.bindings.merge(object: field.associated_model_config.abstract_model.model.new))
             [field.name, field_names(associated.visible_fields.reject(&:association?))]
           end
