@@ -75,7 +75,9 @@ end
 ```
 
 The module defines an `AuthorizationAdapter` class. `authorize_with` builds it with
-`new(controller, *args, **options, &block)` and it answers:
+`new(controller, *args, **options, &block)`. It must publicly define the first four methods
+below; `authorize_with` raises `ArgumentError` while the initializer loads, naming any that are
+missing or private:
 
 - `authorize(action, abstract_model, object)`: raises when the action is denied.
 - `authorized?(action, abstract_model, object)`: returns a boolean, for links and buttons.
@@ -86,6 +88,10 @@ The module defines an `AuthorizationAdapter` class. `authorize_with` builds it w
   config block runs; raise `ArgumentError` there so a misconfigured option fails at boot. A
   subclass of a built-in adapter inherits its `validate_options!`, so one that takes options of
   its own overrides it.
+
+An adapter that a `config.authorize_with { ... }` block assigns to `@authorization_adapter` is not
+checked at boot; if it lacks `authorize`, the first admin action raises `NoMethodError` instead of
+running unauthorized.
 
 `lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` in the gem is the template.
 The removed CanCanCan adapter is a starting point you can copy:
@@ -804,6 +810,18 @@ authorization adapter configured, a scope that is not an `ActiveRecord::Relation
 nothing, whichever adapter returned it, custom adapters included. That includes the model class
 itself: return `scope.all` or `Model.all`, not `Model`. Return a relation from every branch of the
 scope. Without an authorization adapter nothing changes.
+
+## Association pickers check the source record
+
+An association picker's list can be shaped by the record whose form it sits on: an
+`associated_collection_scope` block reads it as `bindings[:object]`. With an authorization adapter
+configured, the picker now binds that record only when the adapter allows the edit action on it.
+Otherwise the picker lists the picked model's index scope with no record bound, as it does on a new
+record's form. Hosts without an adapter see no change.
+
+Inside a nested form the record is the nested one, not its parent. A model edited only through its
+parent's form needs a policy that allows `edit?` (or `update?`) for its pickers to keep their
+`associated_collection_scope`.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
