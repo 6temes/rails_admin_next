@@ -26,6 +26,14 @@ RSpec.shared_examples "history within the authorization scope" do |policy|
     is_expected.not_to have_content("deleted-record-change")
   end
 
+  it "shows on the dashboard no changes to a versioned model the user may not list" do
+    stub_const("PaperTrailTestPolicy", Class.new(policy) { def index? = false })
+
+    visit dashboard_path
+
+    is_expected.not_to have_content("in-scope-change")
+  end
+
   it "shows on a model's history only changes to records in the user's scope", :aggregate_failures do
     visit history_index_path(model_name: "paper_trail_test")
 

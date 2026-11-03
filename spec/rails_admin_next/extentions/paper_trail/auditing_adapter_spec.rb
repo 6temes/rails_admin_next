@@ -46,6 +46,11 @@ RSpec.describe RailsAdminNext::Extensions::PaperTrail::AuditingAdapter, active_r
       expect(queries.first).to match(/FROM "versions" .*IN \(SELECT "paper_trail_tests"\."id" FROM "paper_trail_tests"/i)
     end
 
+    it "skips a model without versions, even one with a composite key" do
+      fanship = RailsAdminNext::AbstractModel.new(Fanship)
+      expect(adapter.latest(scopes: {fanship => Fanship.all, model => PaperTrailTest.where(name: "kept")}).map(&:message)).to eq ["kept"]
+    end
+
     it "lists nothing for no scopes" do
       expect(adapter.latest(scopes: {})).to be_empty
     end

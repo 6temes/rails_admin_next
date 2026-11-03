@@ -113,7 +113,7 @@ module RailsAdminNext
         next unless abstract_model.properties.detect { |c| c.name == :created_at }
 
         authorized_scope = bindings&.dig(:controller)&.authorization_adapter&.query(:index, abstract_model)
-        (authorized_scope || abstract_model.model).last.try(:created_at)
+        (authorized_scope&.unscope(:order) || abstract_model.model).last.try(:created_at)
       end
 
       # Act as a proxy for the base section configuration that actually
