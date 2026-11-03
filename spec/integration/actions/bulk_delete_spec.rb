@@ -190,6 +190,33 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  context "when a destroy raises an unexpected error mid-batch", active_record: true do
+    # Created in reverse: the batch runs in the list's default id-descending order.
+    let!(:failing) { FactoryBot.create(:player) }
+    let!(:destroyed_first) { FactoryBot.create(:player) }
+
+    before do
+      RailsAdminNext.config do |config|
+        config.audit_with :paper_trail
+      end
+      allow_any_instance_of(Player).to receive(:destroy_hook) do |player|
+        raise ActiveRecord::StatementInvalid, "boom" if player.id == failing.id
+      end
+    end
+
+    it "audits the records destroyed before the error" do
+      audited = []
+      allow_any_instance_of(RailsAdminNext::Extensions::PaperTrail::AuditingAdapter).to receive(:delete_object) { |_adapter, object| audited << object.id }
+
+      expect {
+        delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [destroyed_first.id, failing.id]))
+      }.to raise_error(ActiveRecord::StatementInvalid, "boom")
+
+      expect(Player.where(id: destroyed_first.id)).not_to exist
+      expect(audited).to eq [destroyed_first.id]
+    end
+  end
+
   context "with composite primary keys", composite_primary_keys: true do
     let!(:fanships) { FactoryBot.create_list(:fanship, 3) }
 

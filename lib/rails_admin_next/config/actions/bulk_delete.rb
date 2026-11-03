@@ -38,16 +38,16 @@ module RailsAdminNext
                 unless @objects.blank?
                   # Rescue per record: dependent: :restrict_with_exception raises, and an
                   # escaping raise would abandon every record behind it in the batch.
+                  # Audit inside the loop so any other raise still leaves a history row
+                  # for each record already destroyed.
                   destroyed, not_destroyed = Array.wrap(@objects).partition do |object|
                     next false unless destroyable.call(object)
 
                     object.destroy
+                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user) if object.destroyed?
                     object.destroyed?
                   rescue ActiveRecord::DeleteRestrictionError
                     false
-                  end
-                  destroyed.each do |object|
-                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
                   end
                 end
               end
