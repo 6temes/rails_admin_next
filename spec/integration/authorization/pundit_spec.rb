@@ -508,7 +508,7 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       policy = Class.new(PlayerPolicy)
       policy.const_set(:Scope, Class.new(PlayerPolicy::Scope) { def resolve = nil })
       stub_const("PlayerPolicy", policy)
-      @user.update(roles: %i[admin])
+      @user.update(roles: %i[admin export_player])
     end
 
     it_behaves_like "an authorization scope that resolves to nil"
