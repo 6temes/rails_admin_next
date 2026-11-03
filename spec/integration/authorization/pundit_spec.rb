@@ -167,6 +167,30 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
         expect(page.driver.response.body).not_to include("Yale")
       end
 
+      it "leaves out an association whose model has the index action disabled" do
+        RailsAdminNext.config do |c|
+          c.actions do
+            dashboard
+            index { except %w[Team] }
+            export
+          end
+        end
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice")
+      end
+
+      it "asks the rule named by the index action's authorization_key" do
+        RailsAdminNext.config do |c|
+          c.actions do
+            dashboard
+            index { authorization_key :rails_admin_index }
+            export
+          end
+        end
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"}, "draft" => {"college" => "Yale"})
+      end
+
       it "offers on the export form only the associations whose model the user may list", :aggregate_failures do
         visit export_path(model_name: "player")
         is_expected.to have_field("schema_include_team_only_name")

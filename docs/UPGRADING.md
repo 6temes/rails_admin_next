@@ -728,7 +728,8 @@ delete honoured only the scope, so a `destroy?` rule that reads the record, such
 ## Export includes an association only if its model may be listed
 
 With Pundit or ActionPolicy configured, export leaves out an association unless the policy grants
-`index?` on the associated model (or the rule named by the index action's `authorization_key`).
+`index?` on the associated model (or the rule named by the index action's `authorization_key`) and
+the index action is enabled for it.
 The export form stops offering its fields, and a submitted `schema[include]` naming it is dropped,
 for CSV, JSON and XML alike. Before, the user needed only `export?` on the exported model, so a
 user who could export players but not list teams still got each player's team columns. With no
