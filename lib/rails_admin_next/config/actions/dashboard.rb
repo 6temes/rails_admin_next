@@ -20,10 +20,17 @@ module RailsAdminNext
 
         register_instance_option :controller do
           proc do
-            @history = @auditing_adapter&.latest(@action.auditing_versions_limit) if @action.history?
+            model_configs = RailsAdminNext::Config.visible_models(controller: self)
+            if @action.history? && @auditing_adapter
+              @history =
+                if @authorization_adapter
+                  scopes = model_configs.to_h { [it.abstract_model, @authorization_adapter.query(:index, it.abstract_model)] }
+                  @auditing_adapter.latest(@action.auditing_versions_limit, scopes:)
+                else
+                  @auditing_adapter.latest(@action.auditing_versions_limit)
+                end
+            end
             if @action.statistics?
-              model_configs = RailsAdminNext::Config.visible_models(controller: self)
-
               @abstract_models = model_configs.map(&:abstract_model)
               @most_recent_created = {}
               @count = {}

@@ -108,8 +108,12 @@ module RailsAdminNext
         abstract_model.scoped
       end
 
+      # Bound to a controller with an authorization adapter, only the records the user may list count.
       register_instance_option :last_created_at do
-        abstract_model.model.last.try(:created_at) if abstract_model.properties.detect { |c| c.name == :created_at }
+        next unless abstract_model.properties.detect { |c| c.name == :created_at }
+
+        authorized_scope = bindings&.[](:controller)&.authorization_adapter&.query(:index, abstract_model)
+        (authorized_scope || abstract_model.model).last.try(:created_at)
       end
 
       # Act as a proxy for the base section configuration that actually

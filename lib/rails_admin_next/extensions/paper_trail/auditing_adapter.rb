@@ -104,8 +104,12 @@ module RailsAdminNext
           {id: :desc}
         end
 
-        def latest(count = 100)
-          version_class
+        # +scopes+ maps each AbstractModel the user may list to the relation that user may see; nil
+        # means unrestricted. Under scopes, a version shows only while its item is in its model's
+        # relation, so a deleted record's versions drop out.
+        def latest(count = 100, scopes: nil)
+          versions = scopes ? versions_within(scopes) : version_class.all
+          versions
             .order(sort_by).includes(:item).limit(count)
             .collect { |version| VersionProxy.new(version, user_class) }
         end
@@ -122,8 +126,9 @@ module RailsAdminNext
           # do nothing
         end
 
-        def listing_for_model(model, query, sort, sort_reverse, all, page, per_page = RailsAdminNext::Config.default_items_per_page || 20)
-          listing_for_model_or_object(model, nil, query, sort, sort_reverse, all, page, per_page)
+        # +scope+ is the relation of the model's records the user may see; nil means unrestricted.
+        def listing_for_model(model, query, sort, sort_reverse, all, page, per_page = RailsAdminNext::Config.default_items_per_page || 20, scope: nil)
+          listing_for_model_or_object(model, nil, query, sort, sort_reverse, all, page, per_page, scope)
         end
 
         def listing_for_object(model, object, query, sort, sort_reverse, all, page, per_page = RailsAdminNext::Config.default_items_per_page || 20)
@@ -133,7 +138,7 @@ module RailsAdminNext
         protected
 
         # - model - a RailsAdminNext::AbstractModel
-        def listing_for_model_or_object(model, object, query, sort, sort_reverse, all, page, per_page)
+        def listing_for_model_or_object(model, object, query, sort, sort_reverse, all, page, per_page, scope = nil)
           sort =
             if sort.present?
               {COLUMN_MAPPING[sort.to_sym] => sort_reverse ? :desc : :asc}
@@ -141,7 +146,7 @@ module RailsAdminNext
               sort_by
             end
 
-          versions = object.nil? ? versions_for_model(model) : object.public_send(model.model.versions_association_name)
+          versions = object.nil? ? versions_for_model(model, scope) : object.public_send(model.model.versions_association_name)
           versions = versions.where("event LIKE ?", "%#{query}%") if query.present?
           versions = versions.reorder(sort)
 
@@ -163,18 +168,27 @@ module RailsAdminNext
           RailsAdminNext::PaginatedCollection.new(proxies, current_page: page.number, per_page:, total_count: recordset.records_count)
         end
 
-        def versions_for_model(model)
-          model_name = model.model.name
-          base_class_name = model.model.base_class.name
+        def versions_for_model(model, scope = nil)
+          version_class_for(model.model).where(versions_condition(model.model, scope))
+        end
 
-          options =
-            if base_class_name == model_name
-              {item_type: model_name}
-            else
-              {item_type: base_class_name, item_id: model.model.all}
-            end
+        def versions_condition(model, scope)
+          if scope
+            {item_type: model.base_class.name, item_id: scope.reselect(model.primary_key)}
+          elsif model.base_class == model
+            {item_type: model.name}
+          else
+            {item_type: model.base_class.name, item_id: model.all}
+          end
+        end
 
-          version_class_for(model.model).where(options)
+        # One subquery per model, so no record ids are loaded into Ruby.
+        def versions_within(scopes)
+          scopes.filter_map { |abstract_model, scope|
+            model = abstract_model.model
+            # Unversioned models have nothing to show, and a composite key cannot fill item_id's subquery.
+            version_class.where(versions_condition(model, scope)) if model.respond_to?(:paper_trail_options)
+          }.reduce(:or) || version_class.none
         end
 
         # PT can be configured to use [custom version
