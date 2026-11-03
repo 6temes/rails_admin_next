@@ -815,12 +815,14 @@ scope. Without an authorization adapter nothing changes.
 
 An association picker's list can be shaped by the record whose form it sits on: an
 `associated_collection_scope` block reads it as `bindings[:object]`. With an authorization adapter
-configured, the picker now binds that record only when the adapter allows the edit action on it.
+configured, the picker now binds that record only when the adapter allows the edit action on it
+(`edit?` unless the action's `authorization_key` is changed; ActionPolicy aliases `edit?` to `update?`,
+Pundit does not). A host with no `edit` action binds no record.
 Otherwise the picker skips the field's `associated_collection_scope` and lists the picked model's
 index, as it does for any picker request it rejects. Hosts without an adapter see no change.
 
 Inside a nested form the record is the nested one, not its parent. A model edited only through its
-parent's form needs a policy that allows `edit?` (or `update?`) for its pickers to keep their
+parent's form needs a policy that allows `edit?` for its pickers to keep their
 `associated_collection_scope`.
 
 ## Removed: options deprecated before RailsAdmin 3.0

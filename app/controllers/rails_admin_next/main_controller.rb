@@ -280,8 +280,11 @@ module RailsAdminNext
     def source_editable?(abstract_model, object)
       return true unless @authorization_adapter
 
-      edit = RailsAdminNext::Config::Actions.find(:edit).with(controller: self, abstract_model:, object:)
-      @authorization_adapter.authorized?(edit.authorization_key, abstract_model, object)
+      edit = RailsAdminNext::Config::Actions.find(:edit)
+      return false unless edit
+
+      key = edit.with(controller: self, abstract_model:, object:).authorization_key
+      @authorization_adapter.authorized?(key, abstract_model, object)
     end
   end
 end

@@ -613,6 +613,18 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id)
     end
 
+    it "lists without the source record when the host has no edit action" do
+      @user.update(roles: %i[admin update_team])
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index
+          new
+        end
+      end
+      expect(picked_player_ids(current_action: "create", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
     it "scopes a new-record picker with no source record" do
       @user.update(roles: %i[admin])
       expect(picked_player_ids(current_action: "create")).to contain_exactly(free_agent.id)
