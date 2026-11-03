@@ -43,7 +43,7 @@ RSpec.describe RailsAdminNext::Extensions::PaperTrail::AuditingAdapter, active_r
       end
 
       expect(versions.map(&:message)).to eq ["kept"]
-      expect(queries.first).to match(/FROM "versions" .*IN \(SELECT "paper_trail_tests"\."id" FROM "paper_trail_tests"/i)
+      expect(queries.first).to match(/FROM [`"]versions[`"] .*IN \(SELECT [`"]paper_trail_tests[`"]\.[`"]id[`"] FROM [`"]paper_trail_tests[`"]/i)
     end
 
     it "skips a model without versions, even one with a composite key" do
