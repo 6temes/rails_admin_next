@@ -297,6 +297,19 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
   end
 
+  describe "a relation scope that resolves to nil", active_record: true do
+    before do
+      stub_const("PlayerPolicy", Class.new(ActionPolicies::PlayerPolicy) {
+        def self.name = "PlayerPolicy"
+
+        relation_scope { |_relation| nil }
+      })
+      @user.update(roles: %i[admin])
+    end
+
+    it_behaves_like "an authorization scope that resolves to nil"
+  end
+
   context "when custom authorization key is suffixed with ?" do
     before do
       @user.update(roles: [:admin])

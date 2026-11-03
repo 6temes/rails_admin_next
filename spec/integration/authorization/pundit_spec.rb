@@ -503,6 +503,17 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "a policy Scope that resolves to nil", active_record: true do
+    before do
+      policy = Class.new(PlayerPolicy)
+      policy.const_set(:Scope, Class.new(PlayerPolicy::Scope) { def resolve = nil })
+      stub_const("PlayerPolicy", policy)
+      @user.update(roles: %i[admin])
+    end
+
+    it_behaves_like "an authorization scope that resolves to nil"
+  end
+
   context "when custom authorization key is suffixed with ?" do
     before do
       @user.update(roles: [:admin])

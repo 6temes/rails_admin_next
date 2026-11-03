@@ -23,7 +23,7 @@ module RailsAdminNext
             history = @action.history? && @auditing_adapter
             if history || @action.statistics?
               model_configs = RailsAdminNext::Config.visible_models(controller: self)
-              scopes = model_configs.to_h { [it.abstract_model, @authorization_adapter&.query(:index, it.abstract_model)] }
+              scopes = model_configs.to_h { [it.abstract_model, authorization_scope(:index, it.abstract_model)] }
             end
             if history
               @history =
