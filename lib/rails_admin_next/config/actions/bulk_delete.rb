@@ -44,8 +44,10 @@ module RailsAdminNext
                     next false unless destroyable.call(object)
 
                     object.destroy
-                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user) if object.destroyed?
-                    object.destroyed?
+                    next false unless object.destroyed?
+
+                    @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
+                    true
                   rescue ActiveRecord::DeleteRestrictionError
                     false
                   end
