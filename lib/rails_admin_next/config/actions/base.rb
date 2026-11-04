@@ -58,8 +58,6 @@ module RailsAdminNext
           )
         end
 
-        # Whether the auditing adapter can list history for the bound model. An adapter that does not
-        # define auditable? keeps every model's history actions.
         def auditable?
           adapter = bindings[:controller].try(:auditing_adapter)
           bindings[:abstract_model].nil? || !adapter.respond_to?(:auditable?) || adapter.auditable?(bindings[:abstract_model])
