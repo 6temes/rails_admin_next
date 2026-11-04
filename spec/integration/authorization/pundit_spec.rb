@@ -503,15 +503,22 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
-  describe "a policy Scope that resolves to nil", active_record: true do
-    before do
-      policy = Class.new(PlayerPolicy)
-      policy.const_set(:Scope, Class.new(PlayerPolicy::Scope) { def resolve = nil })
-      stub_const("PlayerPolicy", policy)
-      @user.update(roles: %i[admin export_player])
-    end
+  {
+    "nil" => [->(_) {}, true],
+    "a hash" => [->(_) { {} }, false],
+    "a proc" => [->(_) { -> {} }, true],
+    "an array" => [->(scope) { scope.to_a }, false]
+  }.each do |label, (resolve, counted_on_dashboard)|
+    describe "a policy Scope that resolves to #{label}", active_record: true do
+      before do
+        policy = Class.new(PlayerPolicy)
+        policy.const_set(:Scope, Class.new(PlayerPolicy::Scope) { define_method(:resolve) { resolve.call(scope) } })
+        stub_const("PlayerPolicy", policy)
+        @user.update(roles: %i[admin export_player])
+      end
 
-    it_behaves_like "an authorization scope that resolves to nil"
+      it_behaves_like "an authorization scope that is not a relation", counted_on_dashboard:
+    end
   end
 
   context "when custom authorization key is suffixed with ?" do

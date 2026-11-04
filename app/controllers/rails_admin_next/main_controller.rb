@@ -39,12 +39,14 @@ module RailsAdminNext
 
     private
 
-    # nil without an authorization adapter. With one, a nil scope comes from a broken policy
-    # and lists nothing, so it can never widen a list to every record.
+    # nil without an authorization adapter. With one, a scope that is not a relation (nil, a
+    # Hash, a Proc, an Array) comes from a broken policy and lists nothing: merged in, most of
+    # them would widen a list to every record.
     def authorization_scope(action, abstract_model)
       return unless @authorization_adapter
 
-      @authorization_adapter.query(action, abstract_model) || abstract_model.model.none
+      scope = @authorization_adapter.query(action, abstract_model)
+      scope.is_a?(ActiveRecord::Relation) ? scope : abstract_model.model.none
     end
 
     def action_missing(name, *_args)

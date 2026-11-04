@@ -771,14 +771,16 @@ policy classes take different arguments, a subclass that falls back to its paren
 instead. The navigation checks every visible model, so every admin page then shows an error:
 access is denied, never granted. Define that subclass's own policy to avoid the fallback.
 
-## A scope that resolves to nil lists nothing
+## A scope that is not a relation lists nothing
 
 A policy scope that returned `nil` (a Pundit `Scope#resolve` or an ActionPolicy `relation_scope`
 with a branch that falls through, such as `scope.all if user.admin?`) used to remove the
 restriction, so the list, export, bulk actions, association pickers and dashboard counts showed
-every record. With an authorization adapter configured, a `nil` scope now lists nothing, whichever
-adapter returned it, custom adapters included. Return a relation from every branch of the scope.
-Without an authorization adapter nothing changes.
+every record. A `Hash` or a `Proc` did the same, and an `Array` (`scope.to_a`) raised. With an
+authorization adapter configured, a scope that is not an `ActiveRecord::Relation` now lists
+nothing, whichever adapter returned it, custom adapters included. That includes the model class
+itself: return `scope.all` or `Model.all`, not `Model`. Return a relation from every branch of the
+scope. Without an authorization adapter nothing changes.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 

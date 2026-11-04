@@ -1,6 +1,7 @@
-# The including spec stubs a Player policy whose scope resolves to nil, and signs in a user
-# who may list players.
-RSpec.shared_examples "an authorization scope that resolves to nil" do
+# The including spec stubs a Player policy whose scope resolves to something other than a
+# relation, and signs in a user who may list players. Hash#count(:all) and Array#count(:all)
+# are 0 whatever they hold, so the dashboard can only leak through a nil or a Proc.
+RSpec.shared_examples "an authorization scope that is not a relation" do |counted_on_dashboard: true|
   let!(:player) { FactoryBot.create(:player, name: "Hidden player") }
 
   it "lists nothing" do
@@ -23,10 +24,12 @@ RSpec.shared_examples "an authorization scope that resolves to nil" do
     expect(page.driver.response.body).not_to include("Hidden player")
   end
 
-  it "counts nothing on the dashboard" do
-    visit dashboard_path
+  if counted_on_dashboard
+    it "counts nothing on the dashboard" do
+      visit dashboard_path
 
-    expect(find("tr.player_links .progress-bar")).to have_text(/\A\s*0\s*\z/)
+      expect(find("tr.player_links .progress-bar")).to have_text(/\A\s*0\s*\z/)
+    end
   end
 
   it "offers nothing in an association picker" do
