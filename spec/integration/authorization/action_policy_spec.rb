@@ -174,6 +174,7 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
 
     it "exports only the associations whose model the user may list", :aggregate_failures do
+      stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) { relation_scope { |relation| relation } })
       @user.update(roles: %i[admin read_player])
       RailsAdminNext.config(Player) do
         export do
@@ -197,6 +198,31 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       visit export_path(model_name: "player")
       is_expected.to have_field("schema_include_team_only_name")
       is_expected.not_to have_field("schema_include_draft_only_college")
+    end
+
+    it "exports only the associated records the associated model's scope lets the user list", :aggregate_failures do
+      stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) { relation_scope { |relation| relation.where.not(name: "Yankees") } })
+      @user.update(roles: %i[admin read_player])
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+          field :team
+        end
+      end
+      RailsAdminNext.config(Team) { export { field :name } }
+      Player.find_by!(name: "Alice").update!(team: FactoryBot.create(:team, name: "Mets"))
+      Player.find_by!(name: "Charlie").update!(team: FactoryBot.create(:team, name: "Yankees"))
+      schema = {only: ["name"], include: {team: {only: ["name"]}}}
+
+      page.driver.post(export_path(model_name: "player", schema:, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+      expect(CSV.parse(page.driver.response.body)).to eq [["Name", "Name [Team]"], ["Alice", "Mets"], ["Charlie", ""]]
+
+      page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+      expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice", "team" => {"name" => "Mets"}}, {"name" => "Charlie"}]
+
+      page.driver.post(export_path(model_name: "player", schema:, xml: true, all: true, sort: "name"))
+      expect(page.driver.response.body).to include("<name>Mets</name>")
+      expect(page.driver.response.body).not_to include("Yankees")
     end
 
     it "comes from the policy a model names with policy_class", :aggregate_failures do
@@ -460,6 +486,7 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     it "passes the context to the associated model's rule when exporting an association", :aggregate_failures do
       stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) {
         authorize :account
+        relation_scope { |relation| relation }
         def index? = account.name == "Mets"
       })
       RailsAdminNext.config(Player) do

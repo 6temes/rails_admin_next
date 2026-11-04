@@ -194,6 +194,57 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
         expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"}, "draft" => {"college" => "Yale"})
       end
 
+      context "when the associated model's scope hides some of its records" do
+        before do
+          Player.find_by!(name: "Charlie").update!(team: FactoryBot.create(:team, name: "Yankees"))
+        end
+
+        it "exports only the associated records the scope lets the user list", :aggregate_failures do
+          page.driver.post(export_path(model_name: "player", schema:, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+          expect(CSV.parse(page.driver.response.body)).to eq [["Name", "Name [Team]"], ["Alice", "Mets"], ["Charlie", ""]]
+
+          page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+          expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice", "team" => {"name" => "Mets"}}, {"name" => "Charlie"}]
+
+          page.driver.post(export_path(model_name: "player", schema:, xml: true, all: true, sort: "name"))
+          expect(page.driver.response.body).to include("<name>Mets</name>")
+          expect(page.driver.response.body).not_to include("Yankees")
+        end
+
+        it "exports only the records of a has-many association the scope lets the user list" do
+          @user.update(roles: %i[admin export_player])
+          Player.find_by!(name: "Bob").update!(team: Team.find_by!(name: "Mets"))
+          RailsAdminNext.config(Team) do
+            export do
+              field :name
+              field :players
+            end
+          end
+          RailsAdminNext.config(Player) { export { field :name } }
+          team_schema = {only: ["name"], include: {players: {only: ["name"]}}}
+
+          page.driver.post(export_path(model_name: "team", schema: team_schema, json: true, all: true, sort: "name"))
+          expect(JSON.parse(page.driver.response.body).find { it["name"] == "Mets" }).to eq("name" => "Mets", "players" => [{"name" => "Alice"}])
+        end
+      end
+
+      it "loads each included association in one query per batch, however many rows" do
+        stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 100)
+        export = ->(format) do
+          queries = 0
+          counter = ->(*, payload) { queries += 1 unless payload[:name].in?(%w[SCHEMA TRANSACTION]) || payload[:sql].start_with?("SAVEPOINT", "RELEASE") }
+          ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
+            page.driver.post(export_path({model_name: "player", schema:, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}}.merge(format => true)))
+          end
+          queries
+        end
+
+        export.call(:csv) # the first request skips the signed-in user's lookup
+        before = %i[csv json xml].index_with(&export)
+        3.times { FactoryBot.create(:draft, player: FactoryBot.create(:player, team: FactoryBot.create(:team))) }
+        expect(%i[csv json xml].index_with(&export)).to eq before
+      end
+
       it "includes an association whose index rule returns a truthy non-boolean" do
         stub_const("TeamPolicy", Class.new(TeamPolicy) { def index? = [] })
         page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))

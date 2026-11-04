@@ -6,7 +6,9 @@ module RailsAdminNext
   class CSVConverter
     BATCH_SIZE = 1000
 
-    def initialize(objects = [], schema = nil)
+    # prepare_batch receives each batch of records before its rows are written.
+    def initialize(objects = [], schema = nil, prepare_batch: ->(batch) { batch })
+      @prepare_batch = prepare_batch
       @fields = []
       @associations = []
       schema ||= {}
@@ -20,7 +22,7 @@ module RailsAdminNext
       @methods = [(schema[:only] || []) + (schema[:methods] || [])].flatten.compact
       @fields = @methods.collect { |m| export_field_for(m) }.compact
       @empty = ::I18n.t("admin.export.empty_value_for_associated_objects")
-      schema_include = schema.delete(:include) || {}
+      schema_include = schema[:include] || {}
 
       @associations = schema_include.each_with_object({}) do |(key, values), hash|
         association = export_field_for(key)
@@ -76,12 +78,16 @@ module RailsAdminNext
     end
 
     def each_object(&)
-      return @objects.each(&) unless @objects.is_a?(ActiveRecord::Relation)
+      each_batch { @prepare_batch.call(it).each(&) }
+    end
+
+    def each_batch(&)
+      return yield(@objects.to_a) unless @objects.is_a?(ActiveRecord::Relation)
       # Batching sets its own limit and offset, which would drop the relation's.
-      return @objects.each(&) if @objects.limit_value || @objects.offset_value
+      return yield(@objects.to_a) if @objects.limit_value || @objects.offset_value
 
       if (direction = primary_key_direction)
-        @objects.unscope(:order).find_each(order: direction, batch_size: BATCH_SIZE, &)
+        @objects.unscope(:order).find_in_batches(order: direction, batch_size: BATCH_SIZE, &)
       else
         each_in_offset_batches(&)
       end
@@ -104,13 +110,13 @@ module RailsAdminNext
     # The primary-key tie-break makes the order total, so rows that tie on the sort
     # column cannot shift between batches. A short batch is not the last one: sorting
     # on an eager-loaded has-many column returns fewer records than the limit.
-    def each_in_offset_batches(&)
+    def each_in_offset_batches
       ordered = @objects.order(Array(@model.primary_key).index_with(:asc))
       0.step(by: BATCH_SIZE) do |offset|
         batch = ordered.limit(BATCH_SIZE).offset(offset).to_a
         break if batch.empty?
 
-        batch.each(&)
+        yield batch
       end
     end
 

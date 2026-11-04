@@ -735,11 +735,12 @@ for CSV, JSON and XML alike. Before, the user needed only `export?` on the expor
 user who could export players but not list teams still got each player's team columns. With no
 authorization adapter nothing changes.
 
-The associated records themselves are not narrowed by the associated model's scope: an included
-association exports every record linked to an exported row, with all of its export fields. The list
-and show pages also display those records, but only by their label. If a policy scope on the
-associated model keeps some of its records confidential, leave that association out of the
-exported model's `export` section.
+An included association also exports only the records the associated model's policy scope (Pundit
+`Scope`, ActionPolicy `relation_scope`) lets the user list. A linked record outside that scope
+exports as an empty cell in CSV and is left out of JSON and XML, as if the row had no such record.
+An associated model whose policy defines no scope exports none of its records, as its list shows
+none. Each batch of exported rows loads an included association in one query. The list and show
+pages still show associated records by their label without this scope.
 
 ## `associated_collection_scope` runs after the list sort
 

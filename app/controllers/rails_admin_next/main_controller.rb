@@ -214,6 +214,22 @@ module RailsAdminNext
       @_list_scopes ||= @model_config.list.with(controller: self, view: view_context, object: @abstract_model.model.new).scopes
     end
 
+    # Export's included associations hold only the rows the user may list on the associated model.
+    # One query per association for each batch of records.
+    def authorize_included(records)
+      names = @schema&.dig(:include)&.keys
+      return records if @authorization_adapter.nil? || names.blank?
+
+      records = records.to_a
+      names.each do |name|
+        klass = @abstract_model.model.reflect_on_association(name).klass
+        auth_scope = @authorization_adapter.query(:index, RailsAdminNext::AbstractModel.new(klass))
+        records.each { it.association(name).reset }
+        ActiveRecord::Associations::Preloader.new(records:, associations: name, scope: within_authorized(klass.all, auth_scope)).call
+      end
+      records
+    end
+
     # A row-value IN: `where(primary_key => relation)` renders an empty condition for composite keys.
     def within_authorized(scope, auth_scope)
       key = Array(scope.primary_key).map { scope.arel_table[it] }
