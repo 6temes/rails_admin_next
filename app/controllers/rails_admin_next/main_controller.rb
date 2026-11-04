@@ -260,6 +260,7 @@ module RailsAdminNext
     end
 
     def get_association_scope_from_params
+      return nil unless params[:associated_collection].is_a?(String) && params[:source_abstract_model].is_a?(String)
       return nil unless params[:associated_collection].present? && params[:source_abstract_model].present?
       return nil unless (source_abstract_model = visible_abstract_model(to_model_name(params[:source_abstract_model])))
 
@@ -273,9 +274,9 @@ module RailsAdminNext
       # A new record's picker names no source. A named source that is missing, outside the model's
       # scope or not editable lists the same way, so the response does not reveal which ids exist.
       source_object = nil
-      if params[:source_object_id].present?
-        source_object = source_abstract_model.get(params[:source_object_id], source_model_config.scope)
-        return nil unless source_object && source_editable?(source_abstract_model, source_object, picker_source_parents)
+      if (source_id = params[:source_object_id]).present?
+        return nil unless source_id.is_a?(String) && (source_object = source_abstract_model.get(source_id, source_model_config.scope))
+        return nil unless source_editable?(source_abstract_model, source_object, picker_source_parents)
       end
 
       @association = field.with(controller: self, object: source_object)
@@ -310,22 +311,26 @@ module RailsAdminNext
 
     # A subform's record is edited through the form it is nested in. A parent the user may edit
     # renders its update section; any other parent is itself a subform, rendered from its nested
-    # section and reached through the next parent up.
-    def edited_through_parent?(edit, abstract_model, object, parents)
+    # section and reached through the next parent up. The form stops rendering an association's
+    # subforms after MAX_NESTED_FORM_RECURSION repeats, so a longer chain reaches no form.
+    def edited_through_parent?(edit, abstract_model, object, parents, nested_via = [])
       parent_ref, *outer_parents = parents
       return false unless parent_ref && (parent_model = visible_abstract_model(to_model_name(parent_ref[:model])))
       return false unless (parent = parent_model.get(parent_ref[:id], parent_model.config.scope))
 
-      if editable?(edit, parent_model, parent)
-        nested_under?(parent_model.config.update, parent, abstract_model, object)
-      else
-        nested_under?(parent_model.config.nested, parent, abstract_model, object) &&
-          edited_through_parent?(edit, parent_model, parent, outer_parents)
-      end
+      parent_editable = editable?(edit, parent_model, parent)
+      section = parent_editable ? parent_model.config.update : parent_model.config.nested
+      return false unless (field = nesting_field(section, parent, abstract_model, object))
+
+      nested_via += [field.name]
+      return false if nested_via.count(field.name) > RailsAdminNext::FormBuilder::MAX_NESTED_FORM_RECURSION
+
+      parent_editable || edited_through_parent?(edit, parent_model, parent, outer_parents, nested_via)
     end
 
-    def nested_under?(section, parent, abstract_model, object)
-      section.with(controller: self, view: view_context, object: parent).visible_fields.any? do |field|
+    # The parent's form shows only the fields of its visible groups.
+    def nesting_field(section, parent, abstract_model, object)
+      section.with(controller: self, view: view_context, object: parent).visible_groups.flat_map(&:visible_fields).detect do |field|
         next false unless field.nested_form && !field.read_only? && field.associated_model_config == abstract_model.config
 
         field.multiple? ? parent.public_send(field.name).include?(object) : parent.public_send(field.name) == object

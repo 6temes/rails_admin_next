@@ -162,7 +162,7 @@ RSpec.describe RailsAdminNext::MainController, type: :controller do
   describe "#association_entries for associated_collection" do
     before do
       @team = FactoryBot.create :team
-      controller.params = {associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: @team.id, model_name: "player", action: "index"}
+      controller.params = {associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: @team.id.to_s, model_name: "player", action: "index"}
       controller.get_model
     end
 

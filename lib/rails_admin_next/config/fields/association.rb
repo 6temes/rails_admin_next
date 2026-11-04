@@ -165,7 +165,7 @@ module RailsAdminNext
         # edits only through its parent's form still scopes its choices.
         def picker_source_params
           {
-            source_object_id: abstract_model.format_id(bindings[:object].id),
+            source_object_id: (abstract_model.format_id(bindings[:object].id) if bindings[:object].persisted?),
             source_abstract_model: abstract_model.to_param,
             source_parents: picker_source_parents.presence,
             associated_collection: name
@@ -178,7 +178,7 @@ module RailsAdminNext
           builder = bindings[:form]
           parents = []
           while (builder = builder&.options&.[](:parent_builder)) && builder.object.persisted?
-            parent_model = RailsAdminNext.config(builder.object).abstract_model
+            parent_model = builder.model_config.abstract_model
             parents << {model: parent_model.to_param, id: parent_model.format_id(builder.object.id)}
           end
           parents

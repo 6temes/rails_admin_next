@@ -832,8 +832,11 @@ bound, and a source id that does not exist now lists the index instead of runnin
 Inside a nested form the record is the nested one. Its pickers now also send the persisted records
 it is nested under. The record counts as editable when the adapter allows editing a parent and the
 record belongs to a nested-form association that parent's form shows and lets the user edit: the
-`update` section of the parent the user edits, and the `nested` section of any parent in between.
-A model edited only through its parent's form no longer needs an `edit?` policy of its own.
+`update` section of the parent the user edits, and the `nested` section of any parent in between,
+counting only fields in visible groups and no deeper than the form renders. A model edited only
+through its parent's form no longer needs an `edit?` policy of its own. That check runs the
+parent's `visible` blocks with `bindings[:controller]`, `bindings[:view]` and `bindings[:object]`
+set, but no `bindings[:form]`.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 

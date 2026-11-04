@@ -722,12 +722,83 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to eq([draft.team_id])
     end
 
+    it "lists without a subform record whose field group the parent's form hides" do
+      @user.update(roles: %i[admin update_player])
+      RailsAdminNext.config(NestedPlayer) do
+        update do
+          group(:locked) { visible false }
+          configure(:draft) { group :locked }
+        end
+      end
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a source when the picker's params are malformed", :aggregate_failures do
+      @user.update(roles: %i[admin update_player])
+      base = {model_name: "team", compact: true, format: :json, current_action: "update"}
+      get index_path(**base, associated_collection: "team", source_abstract_model: "draft", source_object_id: {a: draft.id})
+      expect(response).to have_http_status(:ok)
+      get index_path(**base, associated_collection: "team", source_abstract_model: {a: "draft"}, source_object_id: draft.id)
+      expect(response).to have_http_status(:ok)
+      get index_path(**base, associated_collection: {a: "team"}, source_abstract_model: "draft", source_object_id: draft.id)
+      expect(response).to have_http_status(:ok)
+    end
+
     it "lists without a subform record when the parent chain is malformed", :aggregate_failures do
       @user.update(roles: %i[admin update_player])
       get index_path(model_name: "team", compact: true, format: :json, associated_collection: "team", source_abstract_model: "draft",
         current_action: "update", source_object_id: draft.id, source_parents: "nested_player")
       expect(response).to have_http_status(:ok)
       expect(picked_team_ids(draft, [{model: "nested_player"}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+  end
+
+  describe "association picker inside a self-nesting form" do
+    let!(:root) { NestedCategory.create! }
+    let!(:chain) { [root].tap { |categories| 4.times { categories << NestedCategory.create!(parent_category: categories.last) } } }
+
+    before do
+      stub_const("NestedCategoryPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+        def edit? = record.is_a?(NestedCategory) && record.parent_category_id.nil?
+        alias_method :update?, :edit?
+      })
+      RailsAdminNext.config NestedCategory do
+        configure :parent_category do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.parent_category_id) }
+          end
+        end
+      end
+      @user.update(roles: %i[admin])
+    end
+
+    def picked_category_ids(source)
+      parents = chain.take_while { it != source }.reverse.map { {model: "nested_category", id: it.id} }
+      get index_path(model_name: "nested_category", compact: true, format: :json, associated_collection: "parent_category",
+        source_abstract_model: "nested_category", current_action: "update", source_object_id: source.id, source_parents: parents)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "scopes a record as deep as the form renders" do
+      expect(picked_category_ids(chain[3])).to eq([chain[2].id])
+    end
+
+    it "lists without a record deeper than the form renders" do
+      expect(picked_category_ids(chain[4])).to match_array(chain.map(&:id))
+    end
+  end
+
+  describe "association picker on a new record with a composite key" do
+    it "names no source record" do
+      @user.update(roles: %i[admin])
+      get new_path(model_name: "fanship")
+      sources = Nokogiri::HTML(response.body).css("[data-filtering-select-options-value]").map do |select|
+        Rack::Utils.parse_nested_query(URI(JSON.parse(select["data-filtering-select-options-value"])["remote_source"]).query)
+      end
+      expect(sources).to be_present.and all(satisfy { !it.key?("source_object_id") })
     end
   end
 
