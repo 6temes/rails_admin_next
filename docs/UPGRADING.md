@@ -75,7 +75,9 @@ end
 ```
 
 The module defines an `AuthorizationAdapter` class. `authorize_with` builds it with
-`new(controller, *args, **options, &block)` and it answers:
+`new(controller, *args, **options, &block)`. It must publicly define the first four methods
+below; `authorize_with` raises `ArgumentError` while the initializer loads, naming any that are
+missing or private:
 
 - `authorize(action, abstract_model, object)`: raises when the action is denied.
 - `authorized?(action, abstract_model, object)`: returns a boolean, for links and buttons.
@@ -86,6 +88,10 @@ The module defines an `AuthorizationAdapter` class. `authorize_with` builds it w
   config block runs; raise `ArgumentError` there so a misconfigured option fails at boot. A
   subclass of a built-in adapter inherits its `validate_options!`, so one that takes options of
   its own overrides it.
+
+An adapter that a `config.authorize_with { ... }` block assigns to `@authorization_adapter` is not
+checked at boot; if it lacks `authorize`, the first admin action raises `NoMethodError` instead of
+running unauthorized.
 
 `lib/rails_admin_next/extensions/pundit/authorization_adapter.rb` in the gem is the template.
 The removed CanCanCan adapter is a starting point you can copy:
@@ -804,6 +810,33 @@ authorization adapter configured, a scope that is not an `ActiveRecord::Relation
 nothing, whichever adapter returned it, custom adapters included. That includes the model class
 itself: return `scope.all` or `Model.all`, not `Model`. Return a relation from every branch of the
 scope. Without an authorization adapter nothing changes.
+
+## Association pickers check the source record
+
+An association picker's list can be shaped by the record whose form it sits on: an
+`associated_collection_scope` block reads it as `bindings[:object]`. The picker now binds that
+record only when it can be loaded through the source model's `scope`, and, with an authorization
+adapter configured, only when the adapter allows the edit action on it (`edit?` unless the
+action's `authorization_key` is changed; ActionPolicy aliases `edit?` to `update?`, Pundit does
+not). A host with an adapter but no `edit` action binds no record.
+
+Otherwise the picker skips the field's `associated_collection_scope` and lists the picked model's
+index, as it does for any picker request it rejects. A source id that does not exist gets the same
+list, so the response does not reveal which ids exist. A new record's form names no source and
+still runs `associated_collection_scope` with a `nil` record.
+
+Hosts without an adapter see two changes: a source record outside the model's `scope` is no longer
+bound, and a source id that does not exist now lists the index instead of running
+`associated_collection_scope` with a `nil` record.
+
+Inside a nested form the record is the nested one. Its pickers now also send the persisted records
+it is nested under. The record counts as editable when the adapter allows editing a parent and the
+record belongs to a nested-form association that parent's form shows and lets the user edit: the
+`update` section of the parent the user edits, and the `nested` section of any parent in between,
+counting only fields in visible groups and no deeper than the form renders. A model edited only
+through its parent's form no longer needs an `edit?` policy of its own. That check runs the
+parent's `visible` blocks with `bindings[:controller]`, `bindings[:view]` and `bindings[:object]`
+set, but no `bindings[:form]`.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 

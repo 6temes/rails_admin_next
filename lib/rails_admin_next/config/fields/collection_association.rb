@@ -68,7 +68,7 @@ module RailsAdminNext
           {
             xhr: !associated_collection_cache_all,
             "edit-url": ((inline_edit && bindings[:view].authorized?(:edit, associated_model_config.abstract_model)) ? bindings[:view].edit_path(model_name: associated_model_config.abstract_model.to_param, id: "__ID__") : ""),
-            remote_source: bindings[:view].index_path(associated_model_config.abstract_model, source_object_id: abstract_model.format_id(bindings[:object].id), source_abstract_model: abstract_model.to_param, associated_collection: name, current_action: bindings[:view].current_action, compact: true),
+            remote_source: bindings[:view].index_path(associated_model_config.abstract_model, **picker_source_params, current_action: bindings[:view].current_action, compact: true),
             scopeBy: dynamic_scope_relationships,
             sortable: !!orderable,
             removable: !!removable,

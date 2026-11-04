@@ -440,6 +440,48 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
   end
 
+  describe "association picker source record" do
+    let!(:team) { FactoryBot.create(:team) }
+    let!(:teammate) { FactoryBot.create(:player, team:) }
+    let!(:free_agent) { FactoryBot.create(:player) }
+
+    before do
+      stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) {
+        def self.name = "TeamPolicy"
+
+        def update? = role?(:update_team)
+      })
+      RailsAdminNext.config Team do
+        field :players do
+          associated_collection_scope do
+            team = bindings[:object]
+            proc { |scope| scope.where(team_id: team&.id) }
+          end
+        end
+      end
+    end
+
+    def picked_player_ids(**params)
+      get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", source_abstract_model: "team", **params)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "lists without the source record when the user may not edit it" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "scopes by the source record the user may edit" do
+      @user.update(roles: %i[admin update_team])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id)
+    end
+
+    it "scopes a new-record picker with no source record" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "create")).to contain_exactly(free_agent.id)
+    end
+  end
+
   describe "with an authorization context beyond the user" do
     before do
       stub_const("PlayerPolicy", ActionPolicies::AccountPlayerPolicy)

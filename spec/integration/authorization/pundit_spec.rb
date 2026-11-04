@@ -573,6 +573,312 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "association picker source record" do
+    let!(:team) { FactoryBot.create(:team) }
+    let!(:teammate) { FactoryBot.create(:player, team:) }
+    let!(:free_agent) { FactoryBot.create(:player) }
+
+    before do
+      stub_const("TeamPolicy", Class.new(ApplicationPolicy) {
+        def edit? = user.roles.include?(:update_team)
+        alias_method :update?, :edit?
+      })
+      RailsAdminNext.config Team do
+        field :players do
+          associated_collection_scope do
+            team = bindings[:object]
+            proc { |scope| scope.where(team_id: team&.id) }
+          end
+        end
+      end
+    end
+
+    def picked_player_ids(**params)
+      get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", source_abstract_model: "team", **params)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "lists without the source record when the user may not edit it" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "judges a source record named on a create form the same way" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "create", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "scopes by the source record the user may edit" do
+      @user.update(roles: %i[admin update_team])
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id)
+    end
+
+    it "lists without the source record when the host has no edit action" do
+      @user.update(roles: %i[admin update_team])
+      RailsAdminNext.config do |c|
+        c.actions do
+          dashboard
+          index
+          new
+        end
+      end
+      expect(picked_player_ids(current_action: "create", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "scopes a new-record picker with no source record" do
+      @user.update(roles: %i[admin])
+      expect(picked_player_ids(current_action: "create")).to contain_exactly(free_agent.id)
+    end
+
+    it "lists without a source record that does not exist" do
+      @user.update(roles: %i[admin update_team])
+      expect(picked_player_ids(current_action: "update", source_object_id: 0)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "answers a denied source record exactly as a missing one" do
+      @user.update(roles: %i[admin])
+      picked_player_ids(current_action: "update", source_object_id: team.id)
+      denied = response.body
+      picked_player_ids(current_action: "update", source_object_id: 0)
+      expect(response.body).to eq(denied)
+    end
+
+    it "lists without a source record outside the model's scope" do
+      @user.update(roles: %i[admin update_team])
+      excluded = team.id
+      RailsAdminNext.config(Team) { scope { Team.where.not(id: excluded) } }
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
+    end
+  end
+
+  describe "association picker inside a nested form" do
+    let!(:player) { FactoryBot.create(:player) }
+    let!(:draft) { FactoryBot.create(:draft, player:) }
+    let!(:other_draft) { FactoryBot.create(:draft) }
+
+    before do
+      stub_const("DraftPolicy", Class.new(ApplicationPolicy) {
+        def edit? = false
+        alias_method :update?, :edit?
+      })
+      stub_const("TeamPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+      })
+      RailsAdminNext.config Draft do
+        field :team do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.team_id) }
+          end
+        end
+      end
+    end
+
+    def picked_team_ids(source, parents)
+      get index_path(model_name: "team", compact: true, format: :json, associated_collection: "team", source_abstract_model: "draft",
+        current_action: "update", source_object_id: source.id, source_parents: parents)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "sends the parent record with the subform's picker" do
+      @user.update(roles: %i[admin update_player])
+      get edit_path(model_name: "nested_player", id: player.id)
+      sources = Nokogiri::HTML(response.body).css("[data-filtering-select-options-value]").map do |select|
+        Rack::Utils.parse_nested_query(URI(JSON.parse(select["data-filtering-select-options-value"])["remote_source"]).query)
+      end
+      expect(sources).to include(a_hash_including("source_object_id" => draft.id.to_s, "source_parents" => [{"model" => "nested_player", "id" => player.id.to_s}]))
+    end
+
+    it "scopes by a subform record the user edits through its parent" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to eq([draft.team_id])
+    end
+
+    it "lists without a subform record when the user may not edit its parent" do
+      @user.update(roles: %i[admin])
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a record that does not belong to the named parent" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(other_draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a parent the model does not nest the record under" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(draft, [{model: "player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a subform record the parent's update form does not nest" do
+      @user.update(roles: %i[admin update_player])
+      RailsAdminNext.config(NestedPlayer) { update { exclude_fields :draft } }
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "binds the view while judging the parent's fields" do
+      @user.update(roles: %i[admin update_player])
+      RailsAdminNext.config(NestedPlayer) { configure(:name) { visible { bindings[:view]._current_user.present? } } }
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to eq([draft.team_id])
+    end
+
+    it "lists without a subform record whose field group the parent's form hides" do
+      @user.update(roles: %i[admin update_player])
+      RailsAdminNext.config(NestedPlayer) do
+        update do
+          group(:locked) { visible false }
+          configure(:draft) { group :locked }
+        end
+      end
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a source when the picker's params are malformed", :aggregate_failures do
+      @user.update(roles: %i[admin update_player])
+      base = {model_name: "team", compact: true, format: :json, current_action: "update"}
+      get index_path(**base, associated_collection: "team", source_abstract_model: "draft", source_object_id: {a: draft.id})
+      expect(response).to have_http_status(:ok)
+      get index_path(**base, associated_collection: "team", source_abstract_model: {a: "draft"}, source_object_id: draft.id)
+      expect(response).to have_http_status(:ok)
+      get index_path(**base, associated_collection: {a: "team"}, source_abstract_model: "draft", source_object_id: draft.id)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "lists without a subform record when the parent chain is malformed", :aggregate_failures do
+      @user.update(roles: %i[admin update_player])
+      get index_path(model_name: "team", compact: true, format: :json, associated_collection: "team", source_abstract_model: "draft",
+        current_action: "update", source_object_id: draft.id, source_parents: "nested_player")
+      expect(response).to have_http_status(:ok)
+      expect(picked_team_ids(draft, [{model: "nested_player"}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+  end
+
+  describe "association picker inside a self-nesting form" do
+    let!(:root) { NestedCategory.create! }
+    let!(:chain) { [root].tap { |categories| 4.times { categories << NestedCategory.create!(parent_category: categories.last) } } }
+
+    before do
+      stub_const("NestedCategoryPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+        def edit? = record.is_a?(NestedCategory) && record.parent_category_id.nil?
+        alias_method :update?, :edit?
+      })
+      RailsAdminNext.config NestedCategory do
+        configure :parent_category do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.parent_category_id) }
+          end
+        end
+      end
+      @user.update(roles: %i[admin])
+    end
+
+    def picked_category_ids(source)
+      parents = chain.take_while { it != source }.reverse.map { {model: "nested_category", id: it.id} }
+      get index_path(model_name: "nested_category", compact: true, format: :json, associated_collection: "parent_category",
+        source_abstract_model: "nested_category", current_action: "update", source_object_id: source.id, source_parents: parents)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "scopes a record as deep as the form renders" do
+      expect(picked_category_ids(chain[3])).to eq([chain[2].id])
+    end
+
+    it "lists without a record deeper than the form renders" do
+      expect(picked_category_ids(chain[4])).to match_array(chain.map(&:id))
+    end
+  end
+
+  describe "association picker on a new record with a composite key" do
+    it "names no source record" do
+      @user.update(roles: %i[admin])
+      get new_path(model_name: "fanship")
+      sources = Nokogiri::HTML(response.body).css("[data-filtering-select-options-value]").map do |select|
+        Rack::Utils.parse_nested_query(URI(JSON.parse(select["data-filtering-select-options-value"])["remote_source"]).query)
+      end
+      expect(sources).to be_present.and all(satisfy { !it.key?("source_object_id") })
+    end
+  end
+
+  describe "association picker inside a nested collection" do
+    let!(:field_test) { FieldTest.create! }
+    let!(:another_field_test) { FieldTest.create! }
+    let!(:nested) { NestedFieldTest.create!(field_test:) }
+    let!(:deeply_nested) { DeeplyNestedFieldTest.create!(nested_field_test: nested) }
+    let!(:other_nested) { NestedFieldTest.create!(field_test: another_field_test) }
+
+    before do
+      stub_const("FieldTestPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+        def edit? = user.roles.include?(:update_field_test)
+        alias_method :update?, :edit?
+      })
+      stub_const("NestedFieldTestPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+        def edit? = false
+        alias_method :update?, :edit?
+      })
+      stub_const("DeeplyNestedFieldTestPolicy", Class.new(ApplicationPolicy) {
+        def edit? = false
+        alias_method :update?, :edit?
+      })
+      RailsAdminNext.config NestedFieldTest do
+        configure :field_test do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.field_test_id) }
+          end
+        end
+      end
+      RailsAdminNext.config DeeplyNestedFieldTest do
+        configure :nested_field_test do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.nested_field_test_id) }
+          end
+        end
+      end
+    end
+
+    def picked_ids(model_name, collection, source, parents)
+      get index_path(model_name:, compact: true, format: :json, associated_collection: collection, source_abstract_model: source.class.name.underscore,
+        current_action: "update", source_object_id: source.id, source_parents: parents)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "scopes by a record of the parent's nested collection" do
+      @user.update(roles: %i[admin update_field_test])
+      expect(picked_ids("field_test", "field_test", nested, [{model: "field_test", id: field_test.id}])).to eq([field_test.id])
+    end
+
+    it "lists without a record outside the parent's nested collection" do
+      @user.update(roles: %i[admin update_field_test])
+      expect(picked_ids("field_test", "field_test", other_nested, [{model: "field_test", id: field_test.id}])).to contain_exactly(field_test.id, another_field_test.id)
+    end
+
+    it "scopes a record two levels down through the editable grandparent" do
+      @user.update(roles: %i[admin update_field_test])
+      parents = [{model: "nested_field_test", id: nested.id}, {model: "field_test", id: field_test.id}]
+      expect(picked_ids("nested_field_test", "nested_field_test", deeply_nested, parents)).to eq([nested.id])
+    end
+
+    it "lists without a record two levels down when the grandparent is not named" do
+      @user.update(roles: %i[admin update_field_test])
+      expect(picked_ids("nested_field_test", "nested_field_test", deeply_nested, [{model: "nested_field_test", id: nested.id}])).to contain_exactly(nested.id, other_nested.id)
+    end
+
+    it "lists without a record the middle parent's nested form does not show" do
+      @user.update(roles: %i[admin update_field_test])
+      RailsAdminNext.config(NestedFieldTest) { nested { exclude_fields :deeply_nested_field_tests } }
+      parents = [{model: "nested_field_test", id: nested.id}, {model: "field_test", id: field_test.id}]
+      expect(picked_ids("nested_field_test", "nested_field_test", deeply_nested, parents)).to contain_exactly(nested.id, other_nested.id)
+    end
+  end
+
   context "when the host controller overrides policy_scope with one argument" do
     it "lists through the override", :aggregate_failures do
       @user.update(roles: %i[admin manage_player])

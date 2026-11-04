@@ -8,6 +8,10 @@ module RailsAdminNext
     # one association, rather than depth, leaves chains of distinct models uncapped.
     MAX_NESTED_FORM_RECURSION = 3
 
+    # The config this form renders its object with: a subform's is its association's, which can
+    # differ from the record's own class under STI.
+    attr_reader :model_config
+
     def generate(options = {})
       without_field_error_proc_added_div do
         options.reverse_merge!(
@@ -15,6 +19,7 @@ module RailsAdminNext
           model_config: @template.instance_variable_get(:@model_config),
           nested_in: false
         )
+        @model_config = options[:model_config]
 
         object_infos +
           visible_groups(options[:model_config], generator_action(options[:action], options[:nested_in])).collect do |fieldset|
