@@ -161,7 +161,28 @@ module RailsAdminNext
           RailsAdminNext.config.default_associated_collection_limit
         end
 
+        # The picker authorizes its source record through these, so a subform's record the user
+        # edits only through its parent's form still scopes its choices.
+        def picker_source_params
+          {
+            source_object_id: abstract_model.format_id(bindings[:object].id),
+            source_abstract_model: abstract_model.to_param,
+            source_parents: picker_source_parents.presence,
+            associated_collection: name
+          }.compact
+        end
+
         private
+
+        def picker_source_parents
+          builder = bindings[:form]
+          parents = []
+          while (builder = builder&.options&.[](:parent_builder)) && builder.object.persisted?
+            parent_model = RailsAdminNext.config(builder.object).abstract_model
+            parents << {model: parent_model.to_param, id: parent_model.format_id(builder.object.id)}
+          end
+          parents
+        end
 
         def format_key(key)
           if key.is_a?(Array)

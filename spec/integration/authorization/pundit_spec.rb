@@ -651,6 +651,66 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "association picker inside a nested form" do
+    let!(:player) { FactoryBot.create(:player) }
+    let!(:draft) { FactoryBot.create(:draft, player:) }
+    let!(:other_draft) { FactoryBot.create(:draft) }
+
+    before do
+      stub_const("DraftPolicy", Class.new(ApplicationPolicy) {
+        def edit? = false
+        alias_method :update?, :edit?
+      })
+      stub_const("TeamPolicy", Class.new(ApplicationPolicy) {
+        const_set(:Scope, Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        def index? = user.roles.include?(:admin)
+      })
+      RailsAdminNext.config Draft do
+        field :team do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(id: source&.team_id) }
+          end
+        end
+      end
+    end
+
+    def picked_team_ids(source, parents)
+      get index_path(model_name: "team", compact: true, format: :json, associated_collection: "team", source_abstract_model: "draft",
+        current_action: "update", source_object_id: source.id, source_parents: parents)
+      JSON.parse(response.body).map { it["id"].to_i }
+    end
+
+    it "sends the parent record with the subform's picker" do
+      @user.update(roles: %i[admin update_player])
+      get edit_path(model_name: "nested_player", id: player.id)
+      sources = Nokogiri::HTML(response.body).css("[data-filtering-select-options-value]").map do |select|
+        Rack::Utils.parse_nested_query(URI(JSON.parse(select["data-filtering-select-options-value"])["remote_source"]).query)
+      end
+      expect(sources).to include(a_hash_including("source_object_id" => draft.id.to_s, "source_parents" => [{"model" => "nested_player", "id" => player.id.to_s}]))
+    end
+
+    it "scopes by a subform record the user edits through its parent" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to eq([draft.team_id])
+    end
+
+    it "lists without a subform record when the user may not edit its parent" do
+      @user.update(roles: %i[admin])
+      expect(picked_team_ids(draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a record that does not belong to the named parent" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(other_draft, [{model: "nested_player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+
+    it "lists without a parent the model does not nest the record under" do
+      @user.update(roles: %i[admin update_player])
+      expect(picked_team_ids(draft, [{model: "player", id: player.id}])).to contain_exactly(draft.team_id, other_draft.team_id)
+    end
+  end
+
   context "when the host controller overrides policy_scope with one argument" do
     it "lists through the override", :aggregate_failures do
       @user.update(roles: %i[admin manage_player])

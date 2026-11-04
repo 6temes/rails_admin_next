@@ -52,7 +52,7 @@ module RailsAdminNext
         def widget_options
           {
             xhr: !associated_collection_cache_all,
-            remote_source: bindings[:view].index_path(associated_model_config.abstract_model, source_object_id: abstract_model.format_id(bindings[:object].id), source_abstract_model: abstract_model.to_param, associated_collection: name, current_action: bindings[:view].current_action, compact: true),
+            remote_source: bindings[:view].index_path(associated_model_config.abstract_model, **picker_source_params, current_action: bindings[:view].current_action, compact: true),
             scopeBy: dynamic_scope_relationships
           }
         end

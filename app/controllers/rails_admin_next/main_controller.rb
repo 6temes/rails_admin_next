@@ -6,6 +6,8 @@ module RailsAdminNext
     include RailsAdminNext::MainHelper
     include RailsAdminNext::ApplicationHelper
 
+    MAX_PICKER_SOURCE_PARENTS = 10
+
     before_action :check_for_cancel
 
     helper_method :list_scopes
@@ -273,23 +275,50 @@ module RailsAdminNext
       source_object = nil
       if params[:source_object_id].present?
         source_object = source_abstract_model.get(params[:source_object_id], source_model_config.scope)
-        return nil unless source_object && source_editable?(source_abstract_model, source_object)
+        return nil unless source_object && source_editable?(source_abstract_model, source_object, picker_source_parents)
       end
 
       @association = field.with(controller: self, object: source_object)
       @association.associated_collection_scope
     end
 
+    # The persisted records a nested subform's source sits under, innermost first. Capped because
+    # each level costs queries and the chain is client-supplied.
+    def picker_source_parents
+      Array.wrap(params[:source_parents]).first(MAX_PICKER_SOURCE_PARENTS).map do |parent|
+        return [] unless parent.is_a?(ActionController::Parameters) && parent[:model].is_a?(String) && parent[:id].is_a?(String)
+
+        parent
+      end
+    end
+
+    # A nested subform's record is edited through its parent's form, so it counts as editable when
+    # the parent is and the record really belongs to that parent's nested association.
     # Asks the adapter directly: going through the edit action's authorized? would also apply its
     # enabled?/visible settings, changing pickers for hosts that only hide the edit link.
-    def source_editable?(abstract_model, object)
+    def source_editable?(abstract_model, object, parents)
       return true unless @authorization_adapter
 
       edit = RailsAdminNext::Config::Actions.find(:edit)
       return false unless edit
 
       key = edit.with(controller: self, abstract_model:, object:).authorization_key
-      @authorization_adapter.authorized?(key, abstract_model, object)
+      return true if @authorization_adapter.authorized?(key, abstract_model, object)
+
+      parent_ref, *outer_parents = parents
+      return false unless parent_ref && (parent_model = visible_abstract_model(to_model_name(parent_ref[:model])))
+      return false unless (parent = parent_model.get(parent_ref[:id], parent_model.config.scope))
+      return false unless nested_under?(parent_model, parent, abstract_model, object)
+
+      source_editable?(parent_model, parent, outer_parents)
+    end
+
+    def nested_under?(parent_model, parent, abstract_model, object)
+      parent_model.config.edit.with(controller: self, object: parent).visible_fields.any? do |field|
+        next false unless field.nested_form && !field.read_only? && field.associated_model_config == abstract_model.config
+
+        field.multiple? ? parent.public_send(field.name).include?(object) : parent.public_send(field.name) == object
+      end
     end
   end
 end
