@@ -45,6 +45,31 @@ RSpec.describe "HistoryIndex action", type: :request, active_record: true do
     expect(page.status_code).to eq 200
   end
 
+  context "with a model PaperTrail does not version" do
+    let!(:team) { FactoryBot.create :team }
+
+    it "lists no history", :aggregate_failures do
+      visit history_index_path(model_name: "team")
+      expect(page.status_code).to eq 200
+      expect(all("table#history tbody tr").count).to eq 0
+    end
+
+    it "renders no History link", :aggregate_failures do
+      visit index_path(model_name: "team")
+      is_expected.not_to have_css("li.history_index_collection_link")
+      visit index_path(model_name: "paper_trail_test")
+      is_expected.to have_css("li.history_index_collection_link")
+    end
+
+    it "renders the History link for an auditing adapter that does not define auditable?" do
+      adapter = Class.new { def listing_for_model(*) = [] }
+      RailsAdminNext.config { |config| config.audit_with { @auditing_adapter = adapter.new } }
+
+      visit index_path(model_name: "team")
+      is_expected.to have_css("li.history_index_collection_link")
+    end
+  end
+
   it "supports sorting", js: true do
     visit history_index_path(model_name: "paper_trail_test")
     find("th.header", text: "Item").click

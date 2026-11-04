@@ -82,4 +82,25 @@ RSpec.describe RailsAdminNext::Extensions::PaperTrail::AuditingAdapter, active_r
       expect(listing.map(&:message)).to eq ["kept"]
     end
   end
+
+  describe "a model without has_paper_trail" do
+    subject(:adapter) { described_class.new(nil, "User", "PaperTrail::Version") }
+
+    let(:team) { FactoryBot.create :team }
+    let(:model) { RailsAdminNext::AbstractModel.new(Team) }
+
+    it "is not auditable, while a versioned model is", :aggregate_failures do
+      expect(adapter.auditable?(model)).to be false
+      expect(adapter.auditable?(RailsAdminNext::AbstractModel.new(PaperTrailTest))).to be true
+    end
+
+    it "lists no model history", :aggregate_failures do
+      expect(adapter.listing_for_model(model, nil, false, false, false, nil, 20).total_count).to eq 0
+      expect(adapter.listing_for_model(model, nil, false, false, false, nil, 20, scope: Team.all).total_count).to eq 0
+    end
+
+    it "lists no record history" do
+      expect(adapter.listing_for_object(model, team, nil, false, false, false, nil, 20).total_count).to eq 0
+    end
+  end
 end

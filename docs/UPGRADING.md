@@ -913,3 +913,13 @@ A `last_created_at` override in model config is not scoped for you. It runs with
 `bindings[:controller].authorization_scope(:index, abstract_model)`: the authorized relation, an
 empty one when the policy scope is broken, or `nil` without an authorization adapter. Calling the
 adapter's `query` directly skips that check.
+
+## History is hidden for a model PaperTrail does not version
+
+With `config.audit_with :paper_trail`, a model without `has_paper_trail` no longer shows History
+links, and its history pages list no versions. They used to fail with `NoMethodError`.
+
+An auditing adapter may define `auditable?(abstract_model)`. When it answers false, the
+`history_index` and `history_show` actions are hidden for that model. A custom adapter that does
+not define it keeps the History links on every model, as before. A `visible` block you configure
+on either history action replaces this check.

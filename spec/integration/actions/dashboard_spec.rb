@@ -62,6 +62,14 @@ RSpec.describe "Dashboard action", type: :request do
     is_expected.not_to have_content "Jackie Robinson"
   end
 
+  it "shows the PaperTrail history feed", active_record: true do
+    RailsAdminNext.config { |c| c.audit_with :paper_trail, "User", "PaperTrail::Version" }
+    with_versioning { FactoryBot.create :paper_trail_test }
+
+    visit dashboard_path
+    is_expected.to have_css("#block-tables h2", text: "History")
+  end
+
   it "counts are different for same-named models in different modules" do
     allow(RailsAdminNext.config(User::Confirmed).abstract_model).to receive(:count).and_return(10)
     allow(RailsAdminNext.config(Comment::Confirmed).abstract_model).to receive(:count).and_return(0)

@@ -24,7 +24,7 @@ module RailsAdminNext
 
     helper_method :_current_user
 
-    attr_reader :object, :model_config, :abstract_model, :authorization_adapter
+    attr_reader :object, :model_config, :abstract_model, :auditing_adapter, :authorization_adapter
 
     # nil without an authorization adapter. With one, a scope that is not a relation (nil, a
     # Hash, a Proc, an Array) comes from a broken policy and lists nothing: merged in, most of
