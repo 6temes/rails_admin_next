@@ -20,8 +20,7 @@ module RailsAdminNext
         def associated_model_listable?
           return true unless bindings[:controller].authorization_adapter
 
-          index = RailsAdminNext::Config::Actions.find(:index)&.with(controller: bindings[:controller], abstract_model: associated_model_config.abstract_model)
-          index.present? && index.authorized?.present?
+          RailsAdminNext::Config::Actions.find(:index)&.with(controller: bindings[:controller], abstract_model: associated_model_config.abstract_model)&.authorized?
         end
 
         register_instance_option :pretty_value do

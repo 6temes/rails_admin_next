@@ -140,6 +140,9 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     context "with associations in the schema" do
       before do
         stub_const("TeamPolicy", Class.new(ApplicationPolicy) { def index? = true })
+        stub_const("TeamPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.where.not(name: "Yankees") })
+        stub_const("DraftPolicy", Class.new(ApplicationPolicy))
+        stub_const("DraftPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
         RailsAdminNext.config(Player) do
           export do
             field :name
@@ -189,6 +192,12 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
         end
         page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
         expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"}, "draft" => {"college" => "Yale"})
+      end
+
+      it "includes an association whose index rule returns a truthy non-boolean" do
+        stub_const("TeamPolicy", Class.new(TeamPolicy) { def index? = [] })
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"})
       end
 
       it "offers on the export form only the associations whose model the user may list", :aggregate_failures do
