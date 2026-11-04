@@ -112,7 +112,7 @@ module RailsAdminNext
       register_instance_option :last_created_at do
         next unless abstract_model.properties.detect { |c| c.name == :created_at }
 
-        authorized_scope = bindings&.dig(:controller)&.authorization_adapter&.query(:index, abstract_model)
+        authorized_scope = bindings&.dig(:controller)&.authorization_scope(:index, abstract_model)
         (authorized_scope&.unscope(:order) || abstract_model.model).last.try(:created_at)
       end
 

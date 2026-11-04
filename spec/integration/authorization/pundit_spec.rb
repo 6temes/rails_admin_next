@@ -519,6 +519,17 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
 
       it_behaves_like "an authorization scope that is not a relation", counted_on_dashboard:
     end
+
+    describe "a history policy Scope that resolves to #{label}", active_record: true do
+      before do
+        policy = Class.new(ScopedPaperTrailTestPolicy)
+        policy.const_set(:Scope, Class.new(ScopedPaperTrailTestPolicy::Scope) { define_method(:resolve) { resolve.call(scope) } })
+        stub_const("PaperTrailTestPolicy", policy)
+        @user.update(roles: %i[admin])
+      end
+
+      it_behaves_like "history under an authorization scope that is not a relation"
+    end
   end
 
   context "when custom authorization key is suffixed with ?" do
