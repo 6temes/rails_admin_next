@@ -739,8 +739,9 @@ An included association also exports only the records the associated model's pol
 `Scope`, ActionPolicy `relation_scope`) lets the user list. A linked record outside that scope
 exports as an empty cell in CSV and is left out of JSON and XML, as if the row had no such record.
 An associated model whose policy defines no scope exports none of its records, as its list shows
-none. Each batch of exported rows loads an included association in one query. The list and show
-pages still show associated records by their label without this scope.
+none. Each batch of exported rows narrows an included association with one more query, whatever its
+shape, through associations included. The list and show pages still show associated records by
+their label without this scope.
 
 ## `associated_collection_scope` runs after the list sort
 

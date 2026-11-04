@@ -228,6 +228,77 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
         end
       end
 
+      context "with through associations" do
+        let(:league) { FactoryBot.create(:league, name: "Majors") }
+        let(:league_schema) { {only: ["name"], include: {teams: {only: ["name"]}, players: {only: ["name"]}}} }
+
+        before do
+          stub_const("LeaguePolicy", Class.new(ApplicationPolicy) { def index? = true })
+          stub_const("LeaguePolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+          division = FactoryBot.create(:division, custom_league_id: league.id)
+          Team.find_by!(name: "Mets").update!(division:)
+          yankees = FactoryBot.create(:team, name: "Yankees", division:)
+          Player.find_by!(name: "Charlie").update!(team: yankees)
+          Player.find_by!(name: "Bob").update!(team: Team.find_by!(name: "Mets"))
+          RailsAdminNext.config(League) do
+            export do
+              field :name
+              field :teams
+              field :players
+            end
+          end
+          RailsAdminNext.config(Team) { export { field :name } }
+          RailsAdminNext.config(Player) { export { field :name } }
+        end
+
+        # In the request body, as a query string would sort players ahead of teams.
+        it "keeps the listable records reached through a hidden one when the through association comes first", :aggregate_failures do
+          page.driver.post(export_path(model_name: "league", json: true, all: true), schema: league_schema)
+          league_json = JSON.parse(page.driver.response.body).sole
+          expect(league_json["teams"]).to eq [{"name" => "Mets"}]
+          expect(league_json["players"]).to contain_exactly({"name" => "Alice"}, {"name" => "Charlie"})
+
+          page.driver.post(export_path(model_name: "league", csv: true, all: true, csv_options: {generator: {col_sep: ","}}), schema: league_schema)
+          header, row = CSV.parse(page.driver.response.body)
+          expect(header).to eq ["Name", "Name [Teams]", "Name [Players]"]
+          expect(row[0..1]).to eq ["Majors", "Mets"]
+          expect(row[2].split(",")).to contain_exactly("Alice", "Charlie")
+
+          page.driver.post(export_path(model_name: "league", xml: true, all: true), schema: league_schema)
+          expect(page.driver.response.body).to include("<name>Charlie</name>")
+          expect(page.driver.response.body).not_to include("Yankees", "Bob")
+        end
+
+        context "when the through association has a where scope" do
+          around do |example|
+            League.has_many :named_players, -> { where.not(name: nil) }, through: :teams, source: :players
+            example.run
+          ensure
+            League._reflections = League._reflections.except(:named_players)
+            League.clear_reflections_cache
+          end
+
+          it "exports only the records the associated model's scope lets the user list" do
+            RailsAdminNext.config(League) do
+              export do
+                field :name
+                field :named_players
+              end
+            end
+            schema = {only: ["name"], include: {named_players: {only: ["name"]}}}
+
+            page.driver.post(export_path(model_name: "league", schema:, json: true, all: true))
+            expect(JSON.parse(page.driver.response.body).sole["named_players"]).to contain_exactly({"name" => "Alice"}, {"name" => "Charlie"})
+          end
+        end
+      end
+
+      it "exports no associated record when the associated model's scope resolves to nil" do
+        stub_const("TeamPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = nil })
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice"}, {"name" => "Charlie"}]
+      end
+
       it "loads each included association in one query per batch, however many rows" do
         stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 100)
         export = ->(format) do

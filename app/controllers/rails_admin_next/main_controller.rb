@@ -215,17 +215,28 @@ module RailsAdminNext
     end
 
     # Export's included associations hold only the rows the user may list on the associated model.
-    # One query per association for each batch of records.
+    # Loaded rows are filtered rather than the preload scoped: a through association with a where
+    # scope ignores a preload scope, and a through preload reuses its through association's rows,
+    # so every association loads in full before any is narrowed.
     def authorize_included(records)
       names = @schema&.dig(:include)&.keys
       return records if @authorization_adapter.nil? || names.blank?
 
       records = records.to_a
+      ActiveRecord::Associations::Preloader.new(records:, associations: names).call
       names.each do |name|
         klass = @abstract_model.model.reflect_on_association(name).klass
-        auth_scope = @authorization_adapter.query(:index, RailsAdminNext::AbstractModel.new(klass))
-        records.each { it.association(name).reset }
-        ActiveRecord::Associations::Preloader.new(records:, associations: name, scope: within_authorized(klass.all, auth_scope)).call
+        associations = records.map { it.association(name) }
+        loaded = klass.where(klass.primary_key => associations.flat_map { Array.wrap(it.target) }.map(&:id))
+        allowed = within_authorized(loaded, authorization_scope(:index, RailsAdminNext::AbstractModel.new(klass))).pluck(*Array(klass.primary_key)).to_set
+        associations.each do |association|
+          association.target =
+            if association.collection?
+              association.target.select { allowed.include?(it.id) }
+            elsif allowed.include?(association.target&.id)
+              association.target
+            end
+        end
       end
       records
     end
