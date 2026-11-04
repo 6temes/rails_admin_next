@@ -17,7 +17,7 @@ module RailsAdminNext
 
     def list_entries(model_config = @model_config, auth_scope_key = :index, additional_scope = nil, pagination = !(params[:all] || params[:bulk_ids]))
       scope = model_config.scope
-      auth_scope = @authorization_adapter&.query(auth_scope_key, model_config.abstract_model)
+      auth_scope = authorization_scope(auth_scope_key, model_config.abstract_model)
       scope = scope.merge(auth_scope) if auth_scope
       tab = list_scope if model_config == @model_config
       if tab
@@ -31,7 +31,7 @@ module RailsAdminNext
     # The association scope chains after get_collection, which only works on an unpaginated relation.
     def association_entries(model_config, collection_scope)
       scope = model_config.scope
-      auth_scope = @authorization_adapter&.query(:index, model_config.abstract_model)
+      auth_scope = authorization_scope(:index, model_config.abstract_model)
       scope = scope.merge(auth_scope) if auth_scope
       scope = get_collection(model_config, scope, false)
       collection_scope ? scope.instance_eval(&collection_scope) : scope

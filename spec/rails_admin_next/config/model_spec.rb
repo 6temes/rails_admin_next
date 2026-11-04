@@ -161,7 +161,7 @@ RSpec.describe RailsAdminNext::Config::Model do
     it "dates the newest record, whatever order the scope carries" do
       FactoryBot.create(:team, name: "z", created_at: 30.days.ago)
       FactoryBot.create(:team, name: "a", created_at: 1.day.ago)
-      controller = double(authorization_adapter: double(query: Team.order(:name)))
+      controller = double(authorization_scope: Team.order(:name))
 
       expect(RailsAdminNext.config(Team).with(controller:).last_created_at.to_date).to eq 1.day.ago.to_date
     end

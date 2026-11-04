@@ -297,6 +297,39 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
   end
 
+  {
+    "nil" => [->(_) {}, true],
+    "a hash" => [->(_) { {} }, false],
+    "a proc" => [->(_) { -> {} }, true],
+    "an array" => [->(scope) { scope.to_a }, false]
+  }.each do |label, (resolve, counted_on_dashboard)|
+    describe "a relation scope that resolves to #{label}", active_record: true do
+      before do
+        stub_const("PlayerPolicy", Class.new(ActionPolicies::PlayerPolicy) {
+          def self.name = "PlayerPolicy"
+
+          relation_scope { |relation| resolve.call(relation) }
+        })
+        @user.update(roles: %i[admin])
+      end
+
+      it_behaves_like "an authorization scope that is not a relation", counted_on_dashboard:
+    end
+
+    describe "a history relation scope that resolves to #{label}", active_record: true do
+      before do
+        stub_const("PaperTrailTestPolicy", Class.new(ActionPolicies::PaperTrailTestPolicy) {
+          def self.name = "PaperTrailTestPolicy"
+
+          relation_scope { |relation| resolve.call(relation) }
+        })
+        @user.update(roles: %i[admin])
+      end
+
+      it_behaves_like "history under an authorization scope that is not a relation"
+    end
+  end
+
   context "when custom authorization key is suffixed with ?" do
     before do
       @user.update(roles: [:admin])

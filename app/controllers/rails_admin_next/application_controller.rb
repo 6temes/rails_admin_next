@@ -26,6 +26,16 @@ module RailsAdminNext
 
     attr_reader :object, :model_config, :abstract_model, :authorization_adapter
 
+    # nil without an authorization adapter. With one, a scope that is not a relation (nil, a
+    # Hash, a Proc, an Array) comes from a broken policy and lists nothing: merged in, most of
+    # them would widen a list to every record.
+    def authorization_scope(action, abstract_model)
+      return unless @authorization_adapter
+
+      scope = @authorization_adapter.query(action, abstract_model)
+      scope.is_a?(ActiveRecord::Relation) ? scope : abstract_model.model.none
+    end
+
     def get_model
       @model_name = to_model_name(params[:model_name])
       raise RailsAdminNext::ModelNotFound unless (@abstract_model = visible_abstract_model(@model_name))
