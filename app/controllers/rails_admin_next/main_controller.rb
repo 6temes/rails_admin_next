@@ -214,6 +214,33 @@ module RailsAdminNext
       @_list_scopes ||= @model_config.list.with(controller: self, view: view_context, object: @abstract_model.model.new).scopes
     end
 
+    # Export's included associations hold only the rows the user may list on the associated model.
+    # Loaded rows are filtered rather than the preload scoped: a through association with a where
+    # scope ignores a preload scope, and a through preload reuses its through association's rows,
+    # so every association loads in full before any is narrowed.
+    def authorize_included(records)
+      names = @schema&.dig(:include)&.keys
+      return records if @authorization_adapter.nil? || names.blank?
+
+      records = records.to_a
+      ActiveRecord::Associations::Preloader.new(records:, associations: names).call
+      names.each do |name|
+        klass = @abstract_model.model.reflect_on_association(name).klass
+        associations = records.map { it.association(name) }
+        loaded = klass.where(klass.primary_key => associations.flat_map { Array.wrap(it.target) }.map(&:id))
+        allowed = within_authorized(loaded, authorization_scope(:index, RailsAdminNext::AbstractModel.new(klass))).pluck(*Array(klass.primary_key)).to_set
+        associations.each do |association|
+          association.target =
+            if association.collection?
+              association.target.select { allowed.include?(it.id) }
+            elsif allowed.include?(association.target&.id)
+              association.target
+            end
+        end
+      end
+      records
+    end
+
     # A row-value IN: `where(primary_key => relation)` renders an empty condition for composite keys.
     def within_authorized(scope, auth_scope)
       key = Array(scope.primary_key).map { scope.arel_table[it] }

@@ -725,6 +725,29 @@ page, is not destroyed, and counts in the "failed to be deleted" message. Before
 delete honoured only the scope, so a `destroy?` rule that reads the record, such as
 `!record.locked?`, stopped the single delete but not the bulk one.
 
+## Export includes an association only if its model may be listed
+
+With Pundit or ActionPolicy configured, export leaves out an association unless the policy grants
+`index?` on the associated model (or the rule named by the index action's `authorization_key`) and
+the index action is enabled for it.
+The export form stops offering its fields, and a submitted `schema[include]` naming it is dropped,
+for CSV, JSON and XML alike. Before, the user needed only `export?` on the exported model, so a
+user who could export players but not list teams still got each player's team columns. With no
+authorization adapter nothing changes.
+
+An included association also exports only the records the associated model's policy scope (Pundit
+`Scope`, ActionPolicy `relation_scope`) lets the user list. A linked record outside that scope
+exports as an empty cell in CSV and is left out of JSON and XML, as if the row had no such record.
+An associated model whose policy defines no scope exports none of its records, as its list shows
+none. Each batch of exported rows narrows an included association with one more query, whatever its
+shape, through associations included. The list and show pages still show associated records by
+their label without this scope.
+
+A method on the exported model that reads an included association sees the narrowed records, so
+one that dereferences a hidden `belongs_to` gets `nil`. A virtual field of the exported model is its
+own field: one that reads an association in full exports what it reads, whatever the associated
+model's scope.
+
 ## `associated_collection_scope` runs after the list sort
 
 Association pickers apply `associated_collection_scope` after the picked model's list sort,

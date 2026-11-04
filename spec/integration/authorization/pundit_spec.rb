@@ -136,6 +136,198 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
 
       expect(csv).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
+
+    context "with associations in the schema" do
+      before do
+        stub_const("TeamPolicy", Class.new(ApplicationPolicy) { def index? = true })
+        stub_const("TeamPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.where.not(name: "Yankees") })
+        stub_const("DraftPolicy", Class.new(ApplicationPolicy))
+        stub_const("DraftPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+        RailsAdminNext.config(Player) do
+          export do
+            field :name
+            field :team
+            field :draft
+          end
+        end
+        RailsAdminNext.config(Team) { export { field :name } }
+        RailsAdminNext.config(Draft) { export { field :college } }
+        Player.find_by!(name: "Alice").update!(team: FactoryBot.create(:team, name: "Mets"))
+        FactoryBot.create :draft, player: Player.find_by!(name: "Alice"), college: "Yale"
+      end
+
+      let(:schema) { {only: ["name"], include: {team: {only: ["name"]}, draft: {only: ["college"]}}} }
+
+      it "exports only the associations whose model the user may list", :aggregate_failures do
+        page.driver.post(export_path(model_name: "player", schema:, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+        expect(CSV.parse(page.driver.response.body)).to eq [["Name", "Name [Team]"], ["Alice", "Mets"], ["Charlie", ""]]
+
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"})
+
+        page.driver.post(export_path(model_name: "player", schema:, xml: true, all: true, sort: "name"))
+        expect(page.driver.response.body).to include("<name>Mets</name>")
+        expect(page.driver.response.body).not_to include("Yale")
+      end
+
+      it "leaves out an association whose model has the index action disabled" do
+        RailsAdminNext.config do |c|
+          c.actions do
+            dashboard
+            index { except %w[Team] }
+            export
+          end
+        end
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice")
+      end
+
+      it "asks the rule named by the index action's authorization_key" do
+        RailsAdminNext.config do |c|
+          c.actions do
+            dashboard
+            index { authorization_key :rails_admin_index }
+            export
+          end
+        end
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"}, "draft" => {"college" => "Yale"})
+      end
+
+      context "when the associated model's scope hides some of its records" do
+        before do
+          Player.find_by!(name: "Charlie").update!(team: FactoryBot.create(:team, name: "Yankees"))
+        end
+
+        it "exports only the associated records the scope lets the user list", :aggregate_failures do
+          page.driver.post(export_path(model_name: "player", schema:, csv: true, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}))
+          expect(CSV.parse(page.driver.response.body)).to eq [["Name", "Name [Team]"], ["Alice", "Mets"], ["Charlie", ""]]
+
+          page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+          expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice", "team" => {"name" => "Mets"}}, {"name" => "Charlie"}]
+
+          page.driver.post(export_path(model_name: "player", schema:, xml: true, all: true, sort: "name"))
+          expect(page.driver.response.body).to include("<name>Mets</name>")
+          expect(page.driver.response.body).not_to include("Yankees")
+        end
+
+        it "exports only the records of a has-many association the scope lets the user list" do
+          @user.update(roles: %i[admin export_player])
+          Player.find_by!(name: "Bob").update!(team: Team.find_by!(name: "Mets"))
+          RailsAdminNext.config(Team) do
+            export do
+              field :name
+              field :players
+            end
+          end
+          RailsAdminNext.config(Player) { export { field :name } }
+          team_schema = {only: ["name"], include: {players: {only: ["name"]}}}
+
+          page.driver.post(export_path(model_name: "team", schema: team_schema, json: true, all: true, sort: "name"))
+          expect(JSON.parse(page.driver.response.body).find { it["name"] == "Mets" }).to eq("name" => "Mets", "players" => [{"name" => "Alice"}])
+        end
+      end
+
+      context "with through associations" do
+        let(:league) { FactoryBot.create(:league, name: "Majors") }
+        let(:league_schema) { {only: ["name"], include: {teams: {only: ["name"]}, players: {only: ["name"]}}} }
+
+        before do
+          stub_const("LeaguePolicy", Class.new(ApplicationPolicy) { def index? = true })
+          stub_const("LeaguePolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = scope.all })
+          division = FactoryBot.create(:division, custom_league_id: league.id)
+          Team.find_by!(name: "Mets").update!(division:)
+          yankees = FactoryBot.create(:team, name: "Yankees", division:)
+          Player.find_by!(name: "Charlie").update!(team: yankees)
+          Player.find_by!(name: "Bob").update!(team: Team.find_by!(name: "Mets"))
+          RailsAdminNext.config(League) do
+            export do
+              field :name
+              field :teams
+              field :players
+            end
+          end
+          RailsAdminNext.config(Team) { export { field :name } }
+          RailsAdminNext.config(Player) { export { field :name } }
+        end
+
+        # In the request body, as a query string would sort players ahead of teams.
+        it "keeps the listable records reached through a hidden one when the through association comes first", :aggregate_failures do
+          page.driver.post(export_path(model_name: "league", json: true, all: true), schema: league_schema)
+          league_json = JSON.parse(page.driver.response.body).sole
+          expect(league_json["teams"]).to eq [{"name" => "Mets"}]
+          expect(league_json["players"]).to contain_exactly({"name" => "Alice"}, {"name" => "Charlie"})
+
+          page.driver.post(export_path(model_name: "league", csv: true, all: true, csv_options: {generator: {col_sep: ","}}), schema: league_schema)
+          header, row = CSV.parse(page.driver.response.body)
+          expect(header).to eq ["Name", "Name [Teams]", "Name [Players]"]
+          expect(row[0..1]).to eq ["Majors", "Mets"]
+          expect(row[2].split(",")).to contain_exactly("Alice", "Charlie")
+
+          page.driver.post(export_path(model_name: "league", xml: true, all: true), schema: league_schema)
+          expect(page.driver.response.body).to include("<name>Charlie</name>")
+          expect(page.driver.response.body).not_to include("Yankees", "Bob")
+        end
+
+        context "when the through association has a where scope" do
+          around do |example|
+            League.has_many :named_players, -> { where.not(name: nil) }, through: :teams, source: :players
+            example.run
+          ensure
+            League._reflections = League._reflections.except(:named_players)
+            League.clear_reflections_cache
+          end
+
+          it "exports only the records the associated model's scope lets the user list" do
+            RailsAdminNext.config(League) do
+              export do
+                field :name
+                field :named_players
+              end
+            end
+            schema = {only: ["name"], include: {named_players: {only: ["name"]}}}
+
+            page.driver.post(export_path(model_name: "league", schema:, json: true, all: true))
+            expect(JSON.parse(page.driver.response.body).sole["named_players"]).to contain_exactly({"name" => "Alice"}, {"name" => "Charlie"})
+          end
+        end
+      end
+
+      it "exports no associated record when the associated model's scope resolves to nil" do
+        stub_const("TeamPolicy::Scope", Class.new(ApplicationPolicy::Scope) { def resolve = nil })
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body)).to eq [{"name" => "Alice"}, {"name" => "Charlie"}]
+      end
+
+      it "loads each included association in one query per batch, however many rows" do
+        stub_const("RailsAdminNext::CSVConverter::BATCH_SIZE", 100)
+        export = ->(format) do
+          queries = 0
+          counter = ->(*, payload) { queries += 1 unless payload[:name].in?(%w[SCHEMA TRANSACTION]) || payload[:sql].start_with?("SAVEPOINT", "RELEASE") }
+          ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
+            page.driver.post(export_path({model_name: "player", schema:, all: true, sort: "name", csv_options: {generator: {col_sep: ","}}}.merge(format => true)))
+          end
+          queries
+        end
+
+        export.call(:csv) # the first request skips the signed-in user's lookup
+        before = %i[csv json xml].index_with(&export)
+        3.times { FactoryBot.create(:draft, player: FactoryBot.create(:player, team: FactoryBot.create(:team))) }
+        expect(%i[csv json xml].index_with(&export)).to eq before
+      end
+
+      it "includes an association whose index rule returns a truthy non-boolean" do
+        stub_const("TeamPolicy", Class.new(TeamPolicy) { def index? = [] })
+        page.driver.post(export_path(model_name: "player", schema:, json: true, all: true, sort: "name"))
+        expect(JSON.parse(page.driver.response.body).first).to eq("name" => "Alice", "team" => {"name" => "Mets"})
+      end
+
+      it "offers on the export form only the associations whose model the user may list", :aggregate_failures do
+        visit export_path(model_name: "player")
+        is_expected.to have_field("schema_include_team_only_name")
+        is_expected.not_to have_field("schema_include_draft_only_college")
+      end
+    end
   end
 
   describe "with admin role" do

@@ -50,7 +50,7 @@ module RailsAdminNext
                       @objects.collect { |object| {id: object.id.to_s, label: object.send(@model_config.object_label_method).to_s} }
                     end
                   else
-                    @objects.to_json(@schema || serialization_schema.default)
+                    authorize_included(@objects).to_json(@schema || serialization_schema.default)
                   end
 
                 if params[:send_data]
@@ -61,7 +61,7 @@ module RailsAdminNext
               end
 
               format.xml do
-                output = @objects.map { |object| object.serializable_hash(@schema || serialization_schema.default) }.to_xml(root: @abstract_model.model.model_name.plural)
+                output = authorize_included(@objects).map { |object| object.serializable_hash(@schema || serialization_schema.default) }.to_xml(root: @abstract_model.model.model_name.plural)
                 if params[:send_data]
                   send_data output, filename: "#{params[:model_name]}_#{DateTime.now.strftime("%Y-%m-%d_%Hh%Mm%S")}.xml"
                 else
@@ -70,7 +70,7 @@ module RailsAdminNext
               end
 
               format.csv do
-                header, encoding, output = CSVConverter.new(@objects, @schema).to_csv(params[:csv_options].permit!.to_h)
+                header, encoding, output = CSVConverter.new(@objects, @schema, prepare_batch: method(:authorize_included)).to_csv(params[:csv_options].permit!.to_h)
                 if params[:send_data]
                   send_data output,
                     type: "text/csv; charset=#{encoding}; #{"header=present" if header}",
