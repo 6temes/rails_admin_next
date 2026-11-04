@@ -910,4 +910,6 @@ Restrict versions to items inside those relations. An adapter that does not acce
 
 A `last_created_at` override in model config is not scoped for you. It runs with
 `bindings[:controller]`, so it can read
-`bindings[:controller].authorization_adapter&.query(:index, abstract_model)`.
+`bindings[:controller].authorization_scope(:index, abstract_model)`: the authorized relation, an
+empty one when the policy scope is broken, or `nil` without an authorization adapter. Calling the
+adapter's `query` directly skips that check.
