@@ -152,3 +152,15 @@ class StiBallPolicy < ApplicationPolicy
   end
   alias_method :update?, :edit?
 end
+
+class ScopedPaperTrailTestPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      scope.where.not(name: "out of scope")
+    end
+  end
+
+  def index?
+    user.roles.include? :admin
+  end
+end

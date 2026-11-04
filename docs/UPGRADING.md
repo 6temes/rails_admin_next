@@ -818,3 +818,29 @@ no gem migration to run — your existing `rails_admin_histories` table (if any)
 A record's history page now honours its column sort, and with no sort it lists newest
 first, like the model history page. It used to list a record's versions oldest first
 whatever the sort.
+
+## History and "last created" stay inside the authorization scope
+
+With an authorization adapter configured, the dashboard and the history pages now show only
+what the user may list:
+
+- The dashboard's history feed shows changes only to records of models the user may `index`,
+  and only to records inside that model's authorization scope (the scope `query(:index, ...)`
+  returns).
+- A model's history page (`history_index`) shows changes only to records inside the scope
+  `query(:history, ...)` returns.
+- A model's "Last created" time on the dashboard reads the newest record inside the scope.
+
+Changes to a deleted record are no longer shown under an authorization adapter, since no live
+record places them inside a scope. A record's own history page (`history_show`) is unchanged:
+it is authorized against the record itself. Without an authorization adapter, nothing changes.
+
+A custom auditing adapter must accept the new keyword arguments when an authorization adapter is
+configured: `latest(count, scopes:)`, where `scopes` maps each `AbstractModel` the user may list
+to its authorized relation, and `listing_for_model(..., scope:)`, the model's authorized relation.
+Restrict versions to items inside those relations. An adapter that does not accept them raises
+`ArgumentError` instead of listing unscoped history.
+
+A `last_created_at` override in model config is not scoped for you. It runs with
+`bindings[:controller]`, so it can read
+`bindings[:controller].authorization_adapter&.query(:index, abstract_model)`.

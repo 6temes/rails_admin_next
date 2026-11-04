@@ -135,6 +135,12 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
     end
   end
 
+  describe "history of records outside the relation scope", active_record: true do
+    before { @user.update(roles: %i[admin]) }
+
+    it_behaves_like "history within the authorization scope", ActionPolicies::PaperTrailTestPolicy
+  end
+
   describe "the relation scope" do
     before do
       %w[Charlie Alice].each { FactoryBot.create :player, name: it }

@@ -21,7 +21,13 @@ module RailsAdminNext
         register_instance_option :controller do
           proc do
             @general = true
-            @history = @auditing_adapter&.listing_for_model(@abstract_model, params[:query], params[:sort], params[:sort_reverse], params[:all], params[:page]) || []
+            listing = [@abstract_model, params[:query], params[:sort], params[:sort_reverse], params[:all], params[:page]]
+            @history =
+              if @authorization_adapter
+                @auditing_adapter&.listing_for_model(*listing, scope: @authorization_adapter.query(:history, @abstract_model))
+              else
+                @auditing_adapter&.listing_for_model(*listing)
+              end || []
 
             render @action.template_name
           end

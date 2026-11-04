@@ -354,6 +354,12 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
     end
   end
 
+  describe "history of records outside the policy Scope", active_record: true do
+    before { @user.update(roles: %i[admin]) }
+
+    it_behaves_like "history within the authorization scope", ScopedPaperTrailTestPolicy
+  end
+
   describe "with show in app role" do
     it "shows links to show in app action", :aggregate_failures do
       @user.update(roles: %i[admin read_player show_in_app_player])
