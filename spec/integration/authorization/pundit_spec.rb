@@ -630,9 +630,24 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(picked_player_ids(current_action: "create")).to contain_exactly(free_agent.id)
     end
 
-    it "scopes as for a new record when the source record does not exist" do
+    it "lists without a source record that does not exist" do
+      @user.update(roles: %i[admin update_team])
+      expect(picked_player_ids(current_action: "update", source_object_id: 0)).to contain_exactly(teammate.id, free_agent.id)
+    end
+
+    it "answers a denied source record exactly as a missing one" do
       @user.update(roles: %i[admin])
-      expect(picked_player_ids(current_action: "update", source_object_id: 0)).to contain_exactly(free_agent.id)
+      picked_player_ids(current_action: "update", source_object_id: team.id)
+      denied = response.body
+      picked_player_ids(current_action: "update", source_object_id: 0)
+      expect(response.body).to eq(denied)
+    end
+
+    it "lists without a source record outside the model's scope" do
+      @user.update(roles: %i[admin update_team])
+      excluded = team.id
+      RailsAdminNext.config(Team) { scope { Team.where.not(id: excluded) } }
+      expect(picked_player_ids(current_action: "update", source_object_id: team.id)).to contain_exactly(teammate.id, free_agent.id)
     end
   end
 

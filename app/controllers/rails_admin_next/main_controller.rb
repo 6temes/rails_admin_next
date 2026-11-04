@@ -268,8 +268,13 @@ module RailsAdminNext
       # Polymorphic pickers never send associated_collection, and their collection ignores the listed records.
       return nil unless field&.association? && !field.polymorphic? && field.associated_model_config == @model_config
 
-      source_object = source_abstract_model.get(params[:source_object_id])
-      return nil if source_object && !source_editable?(source_abstract_model, source_object)
+      # A new record's picker names no source. A named source that is missing, outside the model's
+      # scope or not editable lists the same way, so the response does not reveal which ids exist.
+      source_object = nil
+      if params[:source_object_id].present?
+        source_object = source_abstract_model.get(params[:source_object_id], source_model_config.scope)
+        return nil unless source_object && source_editable?(source_abstract_model, source_object)
+      end
 
       @association = field.with(controller: self, object: source_object)
       @association.associated_collection_scope

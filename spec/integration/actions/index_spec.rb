@@ -918,6 +918,23 @@ RSpec.describe "Index action", type: :request do
       get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: team.id)
       expect(JSON.parse(response.body).map { it["id"].to_i }).to eq([teammate.id])
     end
+
+    it "lists without a source record outside the model's scope" do
+      team = FactoryBot.create(:team)
+      teammate = FactoryBot.create(:player, team:)
+      free_agent = FactoryBot.create(:player)
+      RailsAdminNext.config Team do
+        scope { Team.where.not(id: team.id) }
+        field :players do
+          associated_collection_scope do
+            source = bindings[:object]
+            proc { |scope| scope.where(team_id: source&.id) }
+          end
+        end
+      end
+      get index_path(model_name: "player", compact: true, format: :json, associated_collection: "players", current_action: "update", source_abstract_model: "team", source_object_id: team.id)
+      expect(JSON.parse(response.body).map { it["id"].to_i }).to contain_exactly(teammate.id, free_agent.id)
+    end
   end
 
   context "with an associated_collection the picker guard rejects" do
