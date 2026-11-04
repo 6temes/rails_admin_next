@@ -292,8 +292,6 @@ module RailsAdminNext
       end
     end
 
-    # A nested subform's record is edited through its parent's form, so it counts as editable when
-    # the parent is and the record really belongs to that parent's nested association.
     # Asks the adapter directly: going through the edit action's authorized? would also apply its
     # enabled?/visible settings, changing pickers for hosts that only hide the edit link.
     def source_editable?(abstract_model, object, parents)
@@ -302,19 +300,32 @@ module RailsAdminNext
       edit = RailsAdminNext::Config::Actions.find(:edit)
       return false unless edit
 
-      key = edit.with(controller: self, abstract_model:, object:).authorization_key
-      return true if @authorization_adapter.authorized?(key, abstract_model, object)
+      editable?(edit, abstract_model, object) || edited_through_parent?(edit, abstract_model, object, parents)
+    end
 
+    def editable?(edit, abstract_model, object)
+      key = edit.with(controller: self, abstract_model:, object:).authorization_key
+      @authorization_adapter.authorized?(key, abstract_model, object)
+    end
+
+    # A subform's record is edited through the form it is nested in. A parent the user may edit
+    # renders its update section; any other parent is itself a subform, rendered from its nested
+    # section and reached through the next parent up.
+    def edited_through_parent?(edit, abstract_model, object, parents)
       parent_ref, *outer_parents = parents
       return false unless parent_ref && (parent_model = visible_abstract_model(to_model_name(parent_ref[:model])))
       return false unless (parent = parent_model.get(parent_ref[:id], parent_model.config.scope))
-      return false unless nested_under?(parent_model, parent, abstract_model, object)
 
-      source_editable?(parent_model, parent, outer_parents)
+      if editable?(edit, parent_model, parent)
+        nested_under?(parent_model.config.update, parent, abstract_model, object)
+      else
+        nested_under?(parent_model.config.nested, parent, abstract_model, object) &&
+          edited_through_parent?(edit, parent_model, parent, outer_parents)
+      end
     end
 
-    def nested_under?(parent_model, parent, abstract_model, object)
-      parent_model.config.edit.with(controller: self, object: parent).visible_fields.any? do |field|
+    def nested_under?(section, parent, abstract_model, object)
+      section.with(controller: self, view: view_context, object: parent).visible_fields.any? do |field|
         next false unless field.nested_form && !field.read_only? && field.associated_model_config == abstract_model.config
 
         field.multiple? ? parent.public_send(field.name).include?(object) : parent.public_send(field.name) == object

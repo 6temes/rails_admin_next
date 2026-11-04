@@ -830,9 +830,10 @@ bound, and a source id that does not exist now lists the index instead of runnin
 `associated_collection_scope` with a `nil` record.
 
 Inside a nested form the record is the nested one. Its pickers now also send the persisted records
-it is nested under, and the record counts as editable when the adapter allows editing a parent and
-the record belongs to one of that parent's visible, editable nested-form associations. A model
-edited only through its parent's form no longer needs an `edit?` policy of its own.
+it is nested under. The record counts as editable when the adapter allows editing a parent and the
+record belongs to a nested-form association that parent's form shows and lets the user edit: the
+`update` section of the parent the user edits, and the `nested` section of any parent in between.
+A model edited only through its parent's form no longer needs an `edit?` policy of its own.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
