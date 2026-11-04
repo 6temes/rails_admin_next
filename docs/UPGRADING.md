@@ -814,16 +814,25 @@ scope. Without an authorization adapter nothing changes.
 ## Association pickers check the source record
 
 An association picker's list can be shaped by the record whose form it sits on: an
-`associated_collection_scope` block reads it as `bindings[:object]`. With an authorization adapter
-configured, the picker now binds that record only when the adapter allows the edit action on it
-(`edit?` unless the action's `authorization_key` is changed; ActionPolicy aliases `edit?` to `update?`,
-Pundit does not). A host with no `edit` action binds no record.
-Otherwise the picker skips the field's `associated_collection_scope` and lists the picked model's
-index, as it does for any picker request it rejects. Hosts without an adapter see no change.
+`associated_collection_scope` block reads it as `bindings[:object]`. The picker now binds that
+record only when it can be loaded through the source model's `scope`, and, with an authorization
+adapter configured, only when the adapter allows the edit action on it (`edit?` unless the
+action's `authorization_key` is changed; ActionPolicy aliases `edit?` to `update?`, Pundit does
+not). A host with an adapter but no `edit` action binds no record.
 
-Inside a nested form the record is the nested one, not its parent. A model edited only through its
-parent's form needs a policy that allows `edit?` for its pickers to keep their
-`associated_collection_scope`.
+Otherwise the picker skips the field's `associated_collection_scope` and lists the picked model's
+index, as it does for any picker request it rejects. A source id that does not exist gets the same
+list, so the response does not reveal which ids exist. A new record's form names no source and
+still runs `associated_collection_scope` with a `nil` record.
+
+Hosts without an adapter see two changes: a source record outside the model's `scope` is no longer
+bound, and a source id that does not exist now lists the index instead of running
+`associated_collection_scope` with a `nil` record.
+
+Inside a nested form the record is the nested one. Its pickers now also send the persisted records
+it is nested under, and the record counts as editable when the adapter allows editing a parent and
+the record belongs to one of that parent's visible, editable nested-form associations. A model
+edited only through its parent's form no longer needs an `edit?` policy of its own.
 
 ## Removed: options deprecated before RailsAdmin 3.0
 
