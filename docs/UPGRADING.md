@@ -743,6 +743,11 @@ none. Each batch of exported rows narrows an included association with one more 
 shape, through associations included. The list and show pages still show associated records by
 their label without this scope.
 
+A method on the exported model that reads an included association sees the narrowed records, so
+one that dereferences a hidden `belongs_to` gets `nil`. A virtual field of the exported model is its
+own field: one that reads an association in full exports what it reads, whatever the associated
+model's scope.
+
 ## `associated_collection_scope` runs after the list sort
 
 Association pickers apply `associated_collection_scope` after the picked model's list sort,
