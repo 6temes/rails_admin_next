@@ -14,6 +14,10 @@ module RailsAdminNext
           true
         end
 
+        register_instance_option :visible? do
+          authorized? && auditable?
+        end
+
         register_instance_option :route_fragment do
           "history"
         end

@@ -114,6 +114,12 @@ module RailsAdminNext
             .collect { |version| VersionProxy.new(version, user_class) }
         end
 
+        # Optional in the auditing adapter contract: the history actions hide themselves for a model
+        # whose adapter answers false, and stay visible for an adapter that does not define it.
+        def auditable?(abstract_model)
+          versioned?(abstract_model.model)
+        end
+
         def delete_object(_object, _model, _user)
           # do nothing
         end
@@ -146,7 +152,11 @@ module RailsAdminNext
               sort_by
             end
 
-          versions = object.nil? ? versions_for_model(model, scope) : object.public_send(model.model.versions_association_name)
+          versions =
+            if !auditable?(model) then version_class.none
+            elsif object.nil? then versions_for_model(model, scope)
+            else object.public_send(model.model.versions_association_name)
+            end
           versions = versions.where("event LIKE ?", "%#{query}%") if query.present?
           versions = versions.reorder(sort)
 
