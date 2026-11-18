@@ -40,7 +40,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          ruby-version: "4.0.9"
+          ruby-version: .ruby-version
           bundler: none
 
       - name: Stamp the tag version into version.rb

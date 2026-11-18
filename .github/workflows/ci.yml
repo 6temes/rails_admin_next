@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Single supported runtime (Ruby 4.0.9 / Rails 8.1 / ActiveRecord / importmap + Propshaft).
+        # Single supported runtime (Ruby 4.0 / Rails 8.1 / ActiveRecord / importmap + Propshaft).
         # The adapter axis is kept because the filter/search SQL is generated per-adapter
         # (AbstractModel::StatementBuilder), so each adapter exercises a distinct code path.
         adapter: [sqlite3, postgresql, mysql2]
@@ -56,7 +56,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          ruby-version: "4.0.9"
+          ruby-version: .ruby-version
           bundler-cache: true
       - name: Install libvips
         # ActiveStorage's :vips variant processor; ruby-vips dlopens the libvips shared library.
@@ -83,7 +83,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          ruby-version: "4.0.9"
+          ruby-version: .ruby-version
           bundler-cache: true
       - name: Run Standard
         run: bundle exec standardrb
@@ -99,7 +99,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          ruby-version: "4.0.9"
+          ruby-version: .ruby-version
           bundler-cache: true
       # -A runs the full check set; reviewed false positives are recorded in config/brakeman.ignore.
       - name: Run Brakeman
@@ -116,7 +116,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          ruby-version: "4.0.9"
+          ruby-version: .ruby-version
           bundler-cache: true
       - name: Check Hyperdrive companion content
         run: bundle exec rake hyperdrive:skills:check hyperdrive:manifest:check
