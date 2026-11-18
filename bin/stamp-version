@@ -18,20 +18,26 @@ unless parts.size == 3 && parts.all? { it.match?(/\A(0|[1-9]\d*)\z/) }
 end
 
 source = File.read(path)
-stamped = %w[MAJOR MINOR PATCH].zip(parts).reduce(source) do |src, (name, value)|
+content = %w[MAJOR MINOR PATCH].zip(parts).reduce(source) do |src, (name, value)|
   pattern = /^(\s*#{name} = )\d+$/
   count = src.scan(pattern).size
   abort "stamp-version: expected one #{name} literal in #{path}, found #{count}" unless count == 1
   src.sub(pattern) { "#{$1}#{value}" }
 end
 
-File.write path, stamped
+stamped = "#{path}.stamped"
+File.write stamped, content
 
 # The patterns cannot see a block comment, a suffix or a later reassignment, so
-# Ruby loads the stamped file as `gem build` would and compares the version
+# Ruby loads the stamped copy as `gem build` would and compares the version
 # itself. Only the exit status is read: the file could print anything.
+# version.rb is replaced only once the copy passes.
 check = "load ARGV[0]; exit(RailsAdminNext::Version.to_s == ARGV[1])"
-unless system({"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil}, RbConfig.ruby, "-e", check, File.expand_path(path), version, out: File::NULL, err: File::NULL)
-  File.write path, source
-  abort "stamp-version: #{path} does not load as #{version.inspect}; restored it"
+begin
+  unless system({"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil}, RbConfig.ruby, "-e", check, File.expand_path(stamped), version, out: File::NULL, err: File::NULL)
+    abort "stamp-version: #{path} does not load as #{version.inspect} once stamped; left it unchanged"
+  end
+  File.rename stamped, path
+ensure
+  File.delete stamped if File.exist?(stamped)
 end

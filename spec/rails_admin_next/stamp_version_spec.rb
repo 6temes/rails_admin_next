@@ -75,6 +75,7 @@ RSpec.describe "bin/stamp-version" do
 
       expect(status).not_to be_success
       expect(File.binread(@target)).to eq(before)
+      expect(File.exist?("#{@target}.stamped")).to be(false)
     end
   end
 
