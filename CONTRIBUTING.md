@@ -139,6 +139,11 @@ shows no checks until a maintainer pushes its head commit to a branch here.
 
 Every push to `main` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
 draft with an auto-bumped version and the merged PR titles. Releasing is publishing that
-draft: the created tag triggers the `Publish Gem` workflow, which stamps the tag's version
-into `lib/rails_admin_next/version.rb`, builds the gem, and pushes it to RubyGems via
-trusted publishing. No version-bump commit and no local step are needed.
+draft: no version-bump commit and no local step are needed. The created tag runs the
+`Release` workflow, which runs the full CI suite on the tagged commit and, only if it
+passes, stamps the tag's version into `lib/rails_admin_next/version.rb`, builds the gem,
+and pushes it to RubyGems.
+
+Keep the rubygems.org trusted publisher on workflow `release.yml` and environment
+`release`. The release shape itself is described in the
+[Gem release section of the CI standard](https://github.com/6temes/claude-plugins/blob/main/docs/ci-standard.md#gem-release).

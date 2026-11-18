@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Stdlib only: the publish job installs no gems.
+
+version, path = ARGV
+abort "usage: bin/stamp-version VERSION FILE" unless ARGV.size == 2
+
+# No leading zeros: the gem builds as "3.1.4" from "3.1.04", and the publish job pushes the
+# file named for the tag, which would then not exist.
+parts = version.split(".", -1)
+unless parts.size == 3 && parts.all? { it.match?(/\A(0|[1-9]\d*)\z/) }
+  abort "#{version.inspect} is not a MAJOR.MINOR.PATCH release version"
+end
+
+source = File.read(path)
+stamped = %w[MAJOR MINOR PATCH].zip(parts).reduce(source) do |src, (name, value)|
+  pattern = /^(\s*#{name} = )\d+$/
+  count = src.scan(pattern).size
+  abort "#{path}: expected one #{name} = <integer> line, found #{count}" unless count == 1
+  src.sub(pattern) { "#{$1}#{value}" }
+end
+
+File.write(path, stamped)
