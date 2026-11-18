@@ -1,8 +1,8 @@
 name: Release
 
-# Publishes through RubyGems trusted publishing, so no API key is stored in this
-# repository. The rubygems.org publisher matches this file's name and the `release`
-# environment, which admits only `v*` tags: renaming either breaks publishing.
+# Publishes through RubyGems trusted publishing. The rubygems.org publisher matches
+# this file's name and the `release` environment, which admits only `v*` tags:
+# renaming either breaks publishing.
 on:
   push:
     tags: ["v*"]
