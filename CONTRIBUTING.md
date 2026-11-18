@@ -141,7 +141,7 @@ changes before pushing it.
 
 Publishing the release draft is the whole release: there is no version-bump commit, no local step and no API key.
 
-1. Every push to `main` updates a draft GitHub release from the merged pull request titles. Its version bumps the last published release: a pull request labelled `major` or `minor` bumps that part, and any other pull request bumps the patch.
+1. Every push to `main` updates a draft GitHub release from the merged pull request titles. Its version bumps the highest published release: a pull request labelled `major` or `minor` bumps that part, and any other pull request bumps the patch.
 2. Publish the draft. Its `vX.Y.Z` tag runs `release.yml`, which runs `ci.yml` on the tagged commit and, only if that passes, stamps the version into `lib/rails_admin_next/version.rb` with `bin/stamp-version`, builds the gem and pushes it through RubyGems trusted publishing in the `release` environment.
 
 `lib/rails_admin_next/version.rb` is never bumped by hand: its constants are only what a local `gem build` produces.
