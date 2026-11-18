@@ -96,7 +96,7 @@ There is no `spec/rails_helper.rb`: every spec does `require 'spec_helper'`, and
 
 ### Lint and security gates
 
-CI gates every push and pull request on the following checks. Run them locally before
+CI gates every push on the following checks. Run them locally before
 opening a pull request:
 
 ```bash
@@ -128,6 +128,9 @@ pull request with failing specs.
 6. Run the lint and security gates above.
 7. Add, commit, and push your changes.
 8. [Submit a pull request.][pr]
+
+CI runs on pushes to this repository, not on pull requests, so a pull request from a fork
+shows no checks until a maintainer pushes its head commit to a branch here.
 
 [fork]: https://docs.github.com/en/get-started/quickstart/fork-a-repo
 [pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request

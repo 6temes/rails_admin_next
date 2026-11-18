@@ -6,7 +6,7 @@
 
 **Rails ~> 8.1 · ActiveRecord · importmap + Propshaft · Turbo + Stimulus · zero build step**
 
-[![Build](https://github.com/6temes/rails_admin_next/actions/workflows/test.yml/badge.svg)](https://github.com/6temes/rails_admin_next/actions/workflows/test.yml)
+[![Build](https://github.com/6temes/rails_admin_next/actions/workflows/ci.yml/badge.svg)](https://github.com/6temes/rails_admin_next/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![Ruby](https://img.shields.io/badge/Ruby-4.0.9%2B-CC342D.svg)](https://www.ruby-lang.org)
 [![Rails](https://img.shields.io/badge/Rails-8.1-CC0000.svg)](https://rubyonrails.org)
