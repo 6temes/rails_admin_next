@@ -47,7 +47,7 @@ RSpec.describe "bin/stamp-version" do
     _, err, status = stamp("3.1.4")
 
     expect(status).not_to be_success
-    expect(err).to include('"3.1.4.beta"')
+    expect(err).to include("does not load as")
     expect(File.binread(@target)).to eq(before)
   end
 

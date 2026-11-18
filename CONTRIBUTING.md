@@ -139,22 +139,17 @@ changes before pushing it.
 
 ## Releasing (maintainers)
 
-Every push to `main` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
-draft with the merged PR titles and the next version. A PR labelled `major` or `minor`
-bumps that part, and any other PR bumps the patch; the bump counts from the last published
-release, and prereleases are skipped. Releasing is publishing that
-draft: no version-bump commit and no local step are needed. The created tag runs the
-`Release` workflow, which runs the full CI suite on the tagged commit and, only if it
-passes, stamps the tag's version into `lib/rails_admin_next/version.rb`, builds the gem,
-and pushes it to RubyGems.
+Publishing the release draft is the whole release: there is no version-bump commit, no local step and no API key.
 
-Keep the rubygems.org trusted publisher on workflow `release.yml` and environment
-`release`. The release shape itself is described in the
-[Gem release section of the CI standard](https://github.com/6temes/claude-plugins/blob/main/docs/ci-standard.md#gem-release).
+1. Every push to `main` updates a draft GitHub release from the merged pull request titles. Its version bumps the last published release: a pull request labelled `major` or `minor` bumps that part, and any other pull request bumps the patch.
+2. Publish the draft. Its `vX.Y.Z` tag runs `release.yml`, which runs `ci.yml` on the tagged commit and, only if that passes, stamps the version into `lib/rails_admin_next/version.rb` with `bin/stamp-version`, builds the gem and pushes it through RubyGems trusted publishing in the `release` environment.
 
-If the publish fails, fix the cause and re-run the failed jobs of that `Release` run. If the
-tagged commit itself is broken, or the run is more than 30 days old and GitHub no longer
-allows a re-run, leave its tag and release in place: release tags are never moved or
-deleted, so that version is skipped and the fix ships as the next release. Before
-publishing the next draft, regenerate its notes by re-running the latest `Release Drafter`
-run on `main`, so its version and notes follow the failed release.
+`lib/rails_admin_next/version.rb` is never bumped by hand: its constants are only what a local `gem build` produces.
+
+Release Drafter skips prereleases: drafts are never prereleases, and a published prerelease is ignored when it picks the release to bump from.
+
+The trusted publisher on rubygems.org must name workflow `release.yml` and environment `release`; a blank environment field accepts any environment. The release shape is described in the [Gem release section of the CI standard](https://github.com/6temes/claude-plugins/blob/main/docs/ci-standard.md#gem-release).
+
+### Recovering from a failed publish
+
+Release tags are never moved or deleted. Fix the cause and re-run the failed `publish` job on the same tag. If that tag cannot be released, because the tagged commit is broken or the run is too old to re-run, leave its tag and release in place and ship the fix as the next version. Before publishing that next draft, regenerate its notes by re-running the latest `Release Drafter` run on `main`, and add back any changes the failed release never shipped.

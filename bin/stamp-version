@@ -1,43 +1,37 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# Stamps a release version into version.rb before the gem is built:
+#
+#   bin/stamp-version VERSION FILE
+#
 # Stdlib only: the publish job installs no gems.
 
-require "open3"
-require "rbconfig"
-
-version, path = ARGV
 abort "usage: bin/stamp-version VERSION FILE" unless ARGV.size == 2
+version, path = ARGV
 
-# No leading zeros: the gem builds as "3.1.4" from "3.1.04", and the publish job pushes the
+# No leading zeros: "3.1.04" builds as "3.1.4", and the publish job pushes the gem
 # file named for the tag, which would then not exist.
 parts = version.split(".", -1)
 unless parts.size == 3 && parts.all? { it.match?(/\A(0|[1-9]\d*)\z/) }
-  abort "#{version.inspect} is not a MAJOR.MINOR.PATCH release version"
+  abort "stamp-version: #{version.inspect} is not a MAJOR.MINOR.PATCH version"
 end
 
 source = File.read(path)
 stamped = %w[MAJOR MINOR PATCH].zip(parts).reduce(source) do |src, (name, value)|
   pattern = /^(\s*#{name} = )\d+$/
   count = src.scan(pattern).size
-  abort "#{path}: expected one #{name} = <integer> line, found #{count}" unless count == 1
+  abort "stamp-version: expected one #{name} literal in #{path}, found #{count}" unless count == 1
   src.sub(pattern) { "#{$1}#{value}" }
 end
 
-File.write(path, stamped)
+File.write path, stamped
 
-# The line patterns cannot see every way Ruby assigns a constant, such as a later
-# assignment with a trailing comment, so the stamped file is loaded and checked as the
-# gem would read it, with no bundle loaded.
-verified = false
-begin
-  loaded, status = Open3.capture2(
-    {"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil}, RbConfig.ruby, "--disable-gems", "-e",
-    "load ARGV.fetch(0); print RailsAdminNext::Version.to_s", path,
-    err: File::NULL
-  )
-  verified = status.success? && loaded == version
-ensure
-  File.write(path, source) unless verified
+# The patterns cannot see a block comment, a suffix or a later reassignment, so
+# Ruby loads the stamped file as `gem build` would and compares the version
+# itself. Only the exit status is read: the file could print anything.
+check = "load ARGV[0]; exit(RailsAdminNext::Version.to_s == ARGV[1])"
+unless system({"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil}, RbConfig.ruby, "-e", check, path, version, out: File::NULL, err: File::NULL)
+  File.write path, source
+  abort "stamp-version: #{path} does not load as #{version.inspect}; restored it"
 end
-abort "#{path}: loads as #{loaded.inspect} after stamping, not #{version.inspect}; restored" unless verified
