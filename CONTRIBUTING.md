@@ -130,7 +130,9 @@ pull request with failing specs.
 8. [Submit a pull request.][pr]
 
 CI runs on pushes to this repository, not on pull requests, so a pull request from a fork
-shows no checks until a maintainer pushes its head commit to a branch here.
+shows no checks until a maintainer pushes its head commit to a branch here. That push runs
+the workflow files in that commit, not the ones on `main`, so review its `.github/workflows`
+changes before pushing it.
 
 [fork]: https://docs.github.com/en/get-started/quickstart/fork-a-repo
 [pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
@@ -151,7 +153,8 @@ Keep the rubygems.org trusted publisher on workflow `release.yml` and environmen
 [Gem release section of the CI standard](https://github.com/6temes/claude-plugins/blob/main/docs/ci-standard.md#gem-release).
 
 If the publish fails, fix the cause and re-run the failed jobs of that `Release` run. If the
-tagged commit itself is broken, leave its tag and release in place: release tags are never
-moved or deleted, so that version is skipped and the fix ships as the next release. Before
+tagged commit itself is broken, or the run is more than 30 days old and GitHub no longer
+allows a re-run, leave its tag and release in place: release tags are never moved or
+deleted, so that version is skipped and the fix ships as the next release. Before
 publishing the next draft, regenerate its notes by re-running the latest `Release Drafter`
 run on `main`, so its version and notes follow the failed release.
