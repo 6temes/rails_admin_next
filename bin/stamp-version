@@ -3,6 +3,9 @@
 
 # Stdlib only: the publish job installs no gems.
 
+require "open3"
+require "rbconfig"
+
 version, path = ARGV
 abort "usage: bin/stamp-version VERSION FILE" unless ARGV.size == 2
 
@@ -22,3 +25,16 @@ stamped = %w[MAJOR MINOR PATCH].zip(parts).reduce(source) do |src, (name, value)
 end
 
 File.write(path, stamped)
+
+# The line patterns cannot see every way Ruby assigns a constant, such as a later
+# assignment with a trailing comment, so the stamped file is loaded and checked as the
+# gem would read it, with no bundle loaded.
+loaded, status = Open3.capture2(
+  {"RUBYOPT" => nil, "BUNDLE_GEMFILE" => nil}, RbConfig.ruby, "--disable-gems", "-e",
+  "load ARGV.fetch(0); print RailsAdminNext::Version.to_s", path,
+  err: File::NULL
+)
+unless status.success? && loaded == version
+  File.write(path, source)
+  abort "#{path}: loads as #{loaded.inspect} after stamping, not #{version.inspect}; restored"
+end

@@ -40,6 +40,17 @@ RSpec.describe "bin/stamp-version" do
     expect(stamped_version).to eq("3.1.4|nil")
   end
 
+  it "fails when PRE is set, since the gem would not build as the tag's version" do
+    File.write(@target, source.sub(/^(\s*PRE = ).*$/, '\1"beta"'))
+    before = File.binread(@target)
+
+    _, err, status = stamp("3.1.4")
+
+    expect(status).not_to be_success
+    expect(err).to include('"3.1.4.beta"')
+    expect(File.binread(@target)).to eq(before)
+  end
+
   ["3.1", "4.0.0.beta", "", "3.1.04"].each do |version|
     it "rejects #{version.inspect} and leaves the file unchanged" do
       File.write(@target, source)
@@ -49,6 +60,21 @@ RSpec.describe "bin/stamp-version" do
       expect(status).not_to be_success
       expect(err).to include(version.inspect)
       expect(File.read(@target)).to eq(source)
+    end
+  end
+
+  [
+    ["commented out", "=begin\n    PATCH = 9\n=end"],
+    ["real", "    PATCH = 9 # override"]
+  ].each do |kind, second|
+    it "fails on a #{kind} second PATCH assignment after the placeholder, leaving the file unchanged" do
+      File.write(@target, source.sub(/^(\s*PATCH = \d+\n)/) { "#{$1}#{second}\n" })
+      before = File.binread(@target)
+
+      _, _, status = stamp("3.1.4")
+
+      expect(status).not_to be_success
+      expect(File.binread(@target)).to eq(before)
     end
   end
 

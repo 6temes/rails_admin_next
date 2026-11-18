@@ -138,7 +138,9 @@ shows no checks until a maintainer pushes its head commit to a branch here.
 ## Releasing (maintainers)
 
 Every push to `main` updates a [Release Drafter](https://github.com/6temes/rails_admin_next/releases)
-draft with an auto-bumped version and the merged PR titles. Releasing is publishing that
+draft with the merged PR titles and the next version. A PR labelled `major` or `minor`
+bumps that part, and any other PR bumps the patch; the bump counts from the last published
+release, and prereleases are skipped. Releasing is publishing that
 draft: no version-bump commit and no local step are needed. The created tag runs the
 `Release` workflow, which runs the full CI suite on the tagged commit and, only if it
 passes, stamps the tag's version into `lib/rails_admin_next/version.rb`, builds the gem,
@@ -147,3 +149,9 @@ and pushes it to RubyGems.
 Keep the rubygems.org trusted publisher on workflow `release.yml` and environment
 `release`. The release shape itself is described in the
 [Gem release section of the CI standard](https://github.com/6temes/claude-plugins/blob/main/docs/ci-standard.md#gem-release).
+
+If the publish fails, fix the cause and re-run the failed jobs of that `Release` run. If the
+tagged commit itself is broken, leave its tag and release in place: release tags are never
+moved or deleted, so that version is skipped and the fix ships as the next release. Before
+publishing the next draft, regenerate its notes by re-running the latest `Release Drafter`
+run on `main`, so its version and notes follow the failed release.
