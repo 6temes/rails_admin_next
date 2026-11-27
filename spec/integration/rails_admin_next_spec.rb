@@ -101,7 +101,7 @@ RSpec.describe RailsAdminNext, type: :request do
     end
 
     it "sits at the bottom of the viewport on a short page", js: true do
-      page.driver.resize(1280, 900)
+      page.current_window.resize_to(1280, 900)
       visit index_path(model_name: "player")
       gap = page.evaluate_script("window.innerHeight - document.querySelector('footer.admin-footer').getBoundingClientRect().bottom")
       expect(gap).to be_within(1).of(0)

@@ -1448,6 +1448,27 @@ RSpec.describe "Index action", type: :request do
       expect(cols[0..3]).to eq(all_team_columns[1..4])
       expect(cols).to contain_exactly(*all_team_columns[1..])
     end
+
+    it "lets a vertical wheel over the table scroll the page", js: true do
+      FactoryBot.create_list :team, 40
+      page.current_window.resize_to(1024, 600)
+      visit index_path(model_name: "team")
+      # Font metrics and sub-pixel row heights leave a pixel or two of vertical
+      # overflow on some platforms (macOS Chrome); shift the table to reproduce it.
+      table = page.evaluate_script(<<~JS)
+        (() => {
+          const table = document.querySelector("#sidescroll table")
+          table.style.position = "relative"
+          table.style.top = "3px"
+          return table.getBoundingClientRect().toJSON()
+        })()
+      JS
+      page.driver.browser.page.command("Input.dispatchMouseEvent", type: "mouseWheel", x: table["left"] + 100, y: table["top"] + 100, deltaX: 0, deltaY: 400)
+
+      page.document.synchronize do
+        raise Capybara::ExpectationNotMet, "window did not scroll" unless page.evaluate_script("window.scrollY") > 100
+      end
+    end
   end
 
   context "with composite primary keys", composite_primary_keys: true do

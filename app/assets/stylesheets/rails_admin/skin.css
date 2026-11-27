@@ -431,15 +431,18 @@ body.rails_admin #filters_box {
   }
 }
 body.rails_admin .dashboard-statistics {
-  overflow-x: auto;
-  overscroll-behavior: contain;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
 }
 body.rails_admin #sidescroll {
   margin-bottom: 20px;
-  overflow-x: auto;
+  /* overflow-x: auto alone computes overflow-y to auto as well, and with a
+     pixel of sub-pixel overflow the wrapper becomes a vertical scroller that
+     swallows wheel scrolling meant for the page. */
+  overflow: auto hidden;
   /* Horizontal wheel/trackpad scrolls stop at the table edge instead of
      chaining into a browser back/forward navigation gesture. */
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
   .table {
     margin-bottom: 0;
   }
