@@ -1,4 +1,4 @@
-<%# locals: (collection: @objects, frame_prefix: "list_batch", target: "list_rows", row_partial: "list_row", row_locals: {properties: list_properties, checkboxes: @model_config.list.checkboxes?}, url_proc: ->(page) { index_path(list_params.except(:page).merge(page:)) }) -%>
+<%# locals: (collection: @objects, frame_prefix: "list_batch", target: "list_rows", row_partial: "list_row", row_locals: {properties: list_properties, checkboxes: @model_config.list.checkboxes?}, url_proc: method(:list_batch_url)) -%>
 <%= turbo_frame_tag "#{frame_prefix}_#{collection.current_page}" do %>
   <%= turbo_stream.append target do %>
     <% collection.each do |object| %>

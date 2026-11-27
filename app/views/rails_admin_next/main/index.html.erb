@@ -149,7 +149,7 @@
       </table>
     </div>
     <% if !numbered %>
-      <%= render 'next_batch', collection: @objects, url_proc: ->(page) { index_path(params.except(:page).merge(page:)) } if @objects.respond_to?(:full_page?) %>
+      <%= render 'next_batch', collection: @objects, url_proc: method(:list_batch_url) if @objects.respond_to?(:full_page?) %>
     <% elsif @model_config.list.limited_pagination %>
       <div class="row">
         <div class="col-md-6">

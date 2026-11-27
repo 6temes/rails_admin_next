@@ -103,8 +103,6 @@
 
 /* === Admin skin: layout and navbar ====================================== */
 body.rails_admin {
-  /* The fixed navbar's height: the space reserved above the page, and the
-     offset that sticky elements pin below. */
   --ra-navbar-height: 3.275rem;
   padding-top: var(--ra-navbar-height);
   .navbar .edit_user_root_link {
@@ -499,13 +497,6 @@ body.rails_admin .list-batch[busy] > .list-batch-status {
   }
 }
 
-/* The selection bar of an infinite-scroll list. The row checkboxes and the
-   all-matching fieldset ARE the state, written by the bulk-selection
-   controller; everything shown here derives from them via :has(). The bar
-   shows while any row is ticked. The offer shows while every loaded row is
-   ticked and the fieldset is disabled; once it is enabled the bar states that
-   every matching record is selected, and bulk actions that cannot act on the
-   whole matching set leave the menu. */
 body.rails_admin .selection-bar {
   display: none;
   position: sticky;

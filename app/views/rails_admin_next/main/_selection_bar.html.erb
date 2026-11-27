@@ -1,5 +1,5 @@
 <%# locals: (total_count:, offer:) -%>
-<%# The buttons are type="button" because the bar sits inside the bulk form. What shows is derived in skin.css from the row checkboxes and the fieldset. %>
+<%# The buttons are type="button" because the bar sits inside the bulk form. %>
 <div class="selection-bar">
   <span class="selection-count" data-bulk-selection-target="count"><%= t("admin.misc.selected_count", count: 0) %></span>
   <% if offer %>
@@ -21,8 +21,6 @@
   <%# Disabled, it submits nothing, so an explicit selection posts exactly the ticked ids. %>
   <fieldset class="all-matching" disabled hidden data-bulk-selection-target="allMatching">
     <%= hidden_field_tag :all_matching, "true", id: nil %>
-    <% URI.decode_www_form(request.params.slice("query", "f", "sort", "sort_reverse").to_query).each do |name, value| %>
-      <%= hidden_field_tag name, value, id: nil %>
-    <% end %>
+    <%= list_filter_hidden_fields %>
   </fieldset>
 </div>

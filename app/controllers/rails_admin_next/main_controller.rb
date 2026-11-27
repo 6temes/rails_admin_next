@@ -221,7 +221,17 @@ module RailsAdminNext
       model_config.abstract_model.all(options, scope)
     end
 
-    # The relation is always rebuilt from the filter params, so the flag never trusts a client-side count or ids.
+    def render_history
+      if turbo_frame_request? && !@model_config.list.numbered_pagination? && @history.respond_to?(:full_page?)
+        render partial: "rails_admin_next/main/batch", layout: false, locals: {
+          collection: @history, frame_prefix: "history_batch", target: "history_rows", row_partial: "history_row", row_locals: {},
+          url_proc: ->(page) { url_for(request.query_parameters.except("page").merge(page:, only_path: true)) }
+        }
+      else
+        render @action.template_name
+      end
+    end
+
     def all_matching?
       params[:all_matching].present? && @action.all_matching?
     end

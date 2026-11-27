@@ -162,7 +162,6 @@ module RailsAdminNext
             else object.public_send(model.model.versions_association_name)
             end
           versions = versions.where("event LIKE ?", "%#{query}%") if query.present?
-          # The primary key breaks ties in the chosen sort, so offset pages never repeat or skip a version.
           versions = versions.reorder(sort).order(versions.primary_key => :desc)
 
           paginate_versions(versions, all, (page.presence || 1).to_i, per_page.to_i)

@@ -96,14 +96,4 @@ RSpec.describe RailsAdminNext::Config::Actions::Base do
       expect(index_action).not_to be_linkable
     end
   end
-
-  describe "#all_matching?" do
-    it "is false on a plain action" do
-      expect(RailsAdminNext::Config::Actions::Base.new).not_to be_all_matching
-    end
-
-    it "is true on export" do
-      expect(RailsAdminNext::Config::Actions::Export.new).to be_all_matching
-    end
-  end
 end

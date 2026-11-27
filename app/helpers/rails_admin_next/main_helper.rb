@@ -21,15 +21,20 @@ module RailsAdminNext
       "danger"                          # > 1/3 of max
     end
 
-    # The request's params without Rails plumbing or values equal to the defaults,
-    # so every link the list builds (sort headers, scope tabs, the pager, the next
-    # batch) carries the reader's filter, query, scope, sort and per and nothing else.
     def list_params
       @_list_params ||= request.params.except(:authenticity_token, :action, :controller, :utf8, :bulk_export).tap do |list_params|
         list_params.delete(:query) if list_params[:query].blank?
         list_params.delete(:sort_reverse) unless list_params[:sort_reverse] == "true"
         list_params.delete(:sort) if list_params[:sort] == @model_config.list.sort_by.to_s
       end
+    end
+
+    def list_batch_url(page)
+      index_path(list_params.except(:page).merge(page:))
+    end
+
+    def list_filter_hidden_fields
+      safe_join(URI.decode_www_form(request.params.slice("query", "f", "sort", "sort_reverse").to_query).map { |name, value| hidden_field_tag name, value, id: nil })
     end
 
     def list_properties

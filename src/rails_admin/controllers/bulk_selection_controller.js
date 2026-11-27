@@ -10,6 +10,8 @@ export default class extends Controller {
   static targets = ["allMatching", "count", "header", "row"];
   static values = { selectedCount: String };
 
+  #refreshQueued = false;
+
   #onPageshow = (event) => {
     if (event.persisted) this.#enableRows();
   };
@@ -24,14 +26,13 @@ export default class extends Controller {
     window.removeEventListener("pageshow", this.#onPageshow);
   }
 
-  // Rows that arrive with a batch join an all-matching selection ticked.
   rowTargetConnected(row) {
     if (this.#allMatching) row.checked = true;
-    this.#refresh();
+    this.#queueRefresh();
   }
 
   rowTargetDisconnected() {
-    this.#refresh();
+    this.#queueRefresh();
   }
 
   toggleAll() {
@@ -58,6 +59,16 @@ export default class extends Controller {
   // request carries no ids; a page restored after that submit needs them back.
   #enableRows() {
     this.rowTargets.forEach((row) => (row.disabled = false));
+  }
+
+  // A batch connects its rows one by one; one refresh covers them all.
+  #queueRefresh() {
+    if (this.#refreshQueued) return;
+    this.#refreshQueued = true;
+    queueMicrotask(() => {
+      this.#refreshQueued = false;
+      if (this.element.isConnected) this.#refresh();
+    });
   }
 
   #refresh() {

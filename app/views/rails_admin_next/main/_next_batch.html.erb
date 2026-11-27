@@ -2,7 +2,8 @@
 <%# full_page? is the count-free test: next_page and last_page? would run a COUNT. %>
 <% if collection.full_page? %>
   <% next_page = collection.current_page + 1 %>
-  <%= turbo_frame_tag "#{frame_prefix}_#{next_page}", src: url_proc.call(next_page), loading: :lazy, class: "list-batch", data: {
+  <% next_url = url_proc.call(next_page) %>
+  <%= turbo_frame_tag "#{frame_prefix}_#{next_page}", src: next_url, loading: :lazy, class: "list-batch", data: {
         controller: "infinite-scroll",
         action: "turbo:before-fetch-request->infinite-scroll#started:self turbo:fetch-request-error->infinite-scroll#failed:self turbo:frame-missing->infinite-scroll#missing:self",
         infinite_scroll_error_value: t('admin.pagination.error'),
@@ -11,7 +12,7 @@
     <div class="list-batch-status">
       <span class="list-batch-loading"><%= t('admin.loading') %></span>
       <span class="list-batch-error" role="status" data-infinite-scroll-target="error"></span>
-      <%= link_to t('admin.pagination.load_more'), url_proc.call(next_page), class: "list-batch-link btn btn-light", data: { infinite_scroll_target: "link", action: "infinite-scroll#load" } %>
+      <%= link_to t('admin.pagination.load_more'), next_url, class: "list-batch-link btn btn-light", data: { infinite_scroll_target: "link", action: "infinite-scroll#load" } %>
     </div>
   <% end %>
 <% elsif collection.current_page > 1 %>

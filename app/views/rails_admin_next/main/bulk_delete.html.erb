@@ -15,9 +15,7 @@
     <% end %>
   <% else %>
     <%= hidden_field_tag :all_matching, params[:all_matching], id: nil %>
-    <% URI.decode_www_form(request.params.slice("query", "f", "sort", "sort_reverse").to_query).each do |name, value| %>
-      <%= hidden_field_tag name, value, id: nil %>
-    <% end %>
+    <%= list_filter_hidden_fields %>
     <%= hidden_field_tag :expected_count, @count, id: nil %>
   <% end %>
   <div class="form-actions">

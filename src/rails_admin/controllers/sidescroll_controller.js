@@ -39,7 +39,10 @@ export default class extends Controller {
   #position() {
     const cells = [...this.element.querySelectorAll("thead tr .sticky")];
     const first = cells[0]?.offsetLeft;
-    this.#offsets = cells.map((cell) => cell.offsetLeft - first);
+    const offsets = cells.map((cell) => cell.offsetLeft - first);
+    if (this.#offsets?.join() === offsets.join()) return;
+
+    this.#offsets = offsets;
     this.element.querySelectorAll("tr").forEach((row) => this.#apply(row));
   }
 
