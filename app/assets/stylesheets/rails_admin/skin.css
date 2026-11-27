@@ -462,6 +462,39 @@ body.rails_admin #sidescroll {
 body.rails_admin .pagination .page-item {
   white-space: nowrap;
 }
+/* The next-batch frame under an infinite-scroll list: its link while idle,
+   the loading text while Turbo marks the frame busy, and the error beside the
+   link (relabelled Retry) once a load failed. The error is a live region, so
+   it stays displayed and is empty until a load fails. Child combinators keep
+   a loaded frame's state from reaching the frame nested inside it. */
+body.rails_admin .list-batch {
+  display: block;
+}
+body.rails_admin .list-batch-status,
+body.rails_admin .list-end {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 1rem;
+  color: var(--ra-gray-600);
+}
+body.rails_admin .list-batch-loading {
+  display: none;
+}
+body.rails_admin .list-batch-error {
+  color: var(--ra-danger);
+  &:not(:empty) {
+    margin-inline-end: 0.75rem;
+  }
+}
+body.rails_admin .list-batch[busy] > .list-batch-status {
+  > .list-batch-loading {
+    display: inline;
+  }
+  > .list-batch-link {
+    display: none;
+  }
+}
 
 /* === Admin skin: footer ================================================= */
 body.rails_admin .admin-footer {
