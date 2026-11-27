@@ -35,6 +35,10 @@ module RailsAdminNext
           end
         end
 
+        register_instance_option :all_matching? do
+          true
+        end
+
         register_instance_option :bulkable? do
           true
         end

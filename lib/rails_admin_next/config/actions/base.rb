@@ -104,6 +104,13 @@ module RailsAdminNext
           false
         end
 
+        # Bulk actions only. When true, a submit carrying params[:all_matching] acts on every record the
+        # current filter matches: params[:bulk_ids] is absent and list_entries returns the whole filtered set
+        # unpaginated. When false, such a submit through the bulk menu is refused as a cancel.
+        register_instance_option :all_matching? do
+          false
+        end
+
         # View partial name (called in default :controller block)
         register_instance_option :template_name do
           key.to_sym

@@ -137,6 +137,12 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(csv).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
 
+    it "POST /admin/player/export for every matching player exports only permitted players, whatever ids are submitted" do
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, all_matching: "true", sort: "name", bulk_ids: Player.where(name: %w[Alice Bob]).ids, csv_options: {generator: {col_sep: ","}}))
+
+      expect(CSV.parse(page.driver.response.body)).to eq [["Name"], ["Alice"], ["Charlie"]]
+    end
+
     context "with associations in the schema" do
       before do
         stub_const("TeamPolicy", Class.new(ApplicationPolicy) { def index? = true })
