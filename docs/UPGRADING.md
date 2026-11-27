@@ -923,3 +923,101 @@ An auditing adapter may define `auditable?(abstract_model)`. When it answers fal
 `history_index` and `history_show` actions are hidden for that model. A custom adapter that does
 not define it keeps the History links on every model, as before. A `visible` block you configure
 on either history action replaces this check.
+
+## Lists load more rows as you scroll
+
+A model's list no longer shows page links. It loads the next batch of rows, `items_per_page`
+at a time, as the reader nears the bottom, with a "Load more" link and a retry link when a
+batch fails. The same applies to a model's history page and a record's history page. The
+`turbo-rails` floor is now `>= 2.0`: the batch states rely on `turbo:frame-missing` and on
+Turbo 8's de-duplication of appended rows.
+
+To keep numbered pages for a model, opt out per list:
+
+```ruby
+config.model "Order" do
+  list do
+    pagination :numbered
+  end
+end
+```
+
+`pagination` takes `:infinite` (the default) or `:numbered`; any other value raises
+`ArgumentError`. A numbered list renders the footer it always did, "Show all" link
+included, and `limited_pagination` keeps its meaning in both modes: no COUNT. History pages
+read the option from the model's list section.
+
+What else changes under infinite scroll:
+
+- `?page=N` URLs still work and open at that batch: the list starts at page N and loads the
+  following batches from there.
+- The "Show all" link is gone. `all=true` still works, so existing URLs and "Export found"
+  are unaffected.
+- The record count moves above the table, with a thousands delimiter, in the same
+  `div.total-count`. Only the first batch of a list without `limited_pagination` runs a
+  COUNT, and a `limited_pagination` list shows no count.
+- Paginated lists, numbered or not, now order by primary key (descending) after the sort, so
+  a record cannot appear on two pages or on none. A grouped relation is left alone.
+- Overrides of the `_pagination` partial apply to numbered lists only.
+- The fixed navbar's height is now the CSS variable `--ra-navbar-height`, which sticky
+  elements pin below.
+
+New locale keys, under `admin.pagination`: `end`, `error`, `load_more`, `retry`; under
+`admin.misc`: `all_matching_selected`, `all_matching_selected_uncounted`,
+`select_all_matching`, `select_all_matching_uncounted`, `selected_count`; under
+`admin.flash`: `bulk_delete_recount`; under `admin.form`: `bulk_delete_count`.
+
+## Bulk actions can act on every matching record
+
+Ticking rows on an infinite-scroll list shows a selection bar that counts the ticked rows
+and offers "Select all N matching" once a full batch is ticked. The bulk menu moved from the
+page header into that bar, and a bulk link now carries `data-bulk-action` (it was
+`data-action`), with `data-all-matching` on the actions that accept every matching record.
+Numbered lists keep the menu where it was.
+
+"Export found" and bulk delete accept it. A host bulk action opts in with `all_matching?`:
+
+```ruby
+class Archive < RailsAdminNext::Config::Actions::Base
+  RailsAdminNext::Config::Actions.register(self)
+
+  register_instance_option(:bulkable?) { true }
+  register_instance_option(:all_matching?) { true }
+
+  register_instance_option :controller do
+    proc do
+      @objects = list_entries(@model_config, :update)
+      @objects.each(&:archive!)
+      redirect_to back_or_index
+    end
+  end
+end
+```
+
+The contract an opted-in action accepts: with `params[:all_matching]` present there are no
+`params[:bulk_ids]`, and `list_entries` returns the whole filtered set unpaginated. The
+relation is rebuilt on the server from the authorization scope, the selected tab, the query
+and the filters, so the count in the bar is display only. An action that has not opted in
+and receives a submit carrying the flag answers it as a cancel: a redirect with the "No
+actions were taken" notice. `all_matching?` is false by default.
+
+## Bulk delete confirms large selections by count
+
+Above 100 records, the bulk delete confirmation states how many records will be deleted
+instead of listing each one. With "all matching" it never loads the records to do so. That
+count is scope-level, taken from the authorization scope, the tab, the query and the
+filters; `destroy?` still runs per record when the records are destroyed, and a refused
+record is reported as failed. So the N shown in the selection bar, which counts the index
+scope, can differ from the count on the confirmation, which counts the destroy scope.
+
+When the delete is confirmed under "all matching", the matching records are counted again.
+If the number differs from the one the page showed, nothing is deleted: the confirmation
+renders again with the new count and a notice that the set changed. Only the records counted
+are destroyed, so one that starts matching in the meantime is left alone.
+
+The confirmation form now carries its selection in hidden body fields (`bulk_ids[]`, or
+`all_matching` with the filter params and `expected_count`) instead of the query string, so
+a few hundred ids no longer overflow the URL. `scope` stays in the action URL.
+
+A very large set is destroyed in one synchronous request, in slices of 1,000 records. If the
+request is cut off partway, the records already destroyed stay destroyed.

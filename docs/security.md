@@ -25,6 +25,8 @@ destructive-action controls itself; a few things are left for the host to opt in
   check rather than listing or allowing anything; `user` cannot be replaced through `context:`.
 - **Destructive actions.** `delete` and `bulk_delete` render a confirmation page and additionally
   carry `data-turbo-confirm` on the destructive submit (Turbo's confirmation, not `@rails/ujs`).
+  A bulk delete above 100 records, or of "all matching", confirms by count, and the destroy
+  re-counts the matching records and deletes nothing if the number changed since the confirmation.
 - **Mass assignment.** Submitted attributes are sliced to the model config's `visible_fields`
   before `permit!`, at the top level and at every nested depth, regardless of the submitted
   nested-attributes cardinality (hash or array). At nested depth the slice also drops the child's

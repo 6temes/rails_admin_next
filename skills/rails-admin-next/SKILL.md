@@ -71,6 +71,8 @@ end
 
 A custom action subclasses `RailsAdminNext::Config::Actions::Base`, registers with `RailsAdminNext::Config::Actions.register(self)`, and then appears by name inside `config.actions`. Its options (`member`, `collection`, `http_methods`, `controller`, `link_icon`, `visible?`, `authorization_key`, `template_name` and the rest) are declared in `<gem>/lib/rails_admin_next/config/actions/base.rb`. `<gem>/lib/rails_admin_next/config/actions/show_in_app.rb` is a short example. The action renders the host view app/views/rails_admin_next/main/<template_name>.html.erb.
 
+A bulk action acts on every record the current filter matches only if it opts in with `all_matching?` (false by default; `export` and `bulk_delete` set it true). With `params[:all_matching]` present it receives no `params[:bulk_ids]`, and `list_entries` returns the whole filtered set unpaginated. The "Bulk actions can act on every matching record" section of `<gem>/docs/UPGRADING.md` has an example.
+
 Icons take logical names, never Font Awesome classes: `link_icon :show_in_app` or `navigation_icon :list`. The list is in the "Icons" section of `<gem>/docs/UPGRADING.md`.
 
 ## Authorization and history
