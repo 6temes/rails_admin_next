@@ -1,8 +1,8 @@
-<%# locals: (collection:, url_proc:) -%>
+<%# locals: (collection:, url_proc:, frame_prefix: "list_batch") -%>
 <%# full_page? is the count-free test: next_page and last_page? would run a COUNT. %>
 <% if collection.full_page? %>
   <% next_page = collection.current_page + 1 %>
-  <%= turbo_frame_tag "list_batch_#{next_page}", src: url_proc.call(next_page), loading: :lazy, class: "list-batch", data: {
+  <%= turbo_frame_tag "#{frame_prefix}_#{next_page}", src: url_proc.call(next_page), loading: :lazy, class: "list-batch", data: {
         controller: "infinite-scroll",
         action: "turbo:before-fetch-request->infinite-scroll#started:self turbo:fetch-request-error->infinite-scroll#failed:self turbo:frame-missing->infinite-scroll#missing:self",
         infinite_scroll_error_value: t('admin.pagination.error'),
