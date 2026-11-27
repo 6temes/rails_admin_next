@@ -8,6 +8,7 @@ RSpec.describe "Index action", type: :request do
   describe "page" do
     it 'shows "List of Models", should show filters and should show column headers' do
       RailsAdminNext.config.default_items_per_page = 1
+      RailsAdminNext.config(Player) { list { pagination :numbered } }
       2.times { FactoryBot.create :player } # two pages of players
       visit index_path(model_name: "player")
       is_expected.to have_content("List of Players")
@@ -774,6 +775,7 @@ RSpec.describe "Index action", type: :request do
     end
 
     before do
+      RailsAdminNext.config(Player) { list { pagination :numbered } }
       FactoryBot.create_list :player, 3
     end
 
@@ -949,6 +951,7 @@ RSpec.describe "Index action", type: :request do
     end
 
     it "renders the fallback list with limited_pagination" do
+      RailsAdminNext.config(Player) { list { pagination :numbered } }
       allow(RailsAdminNext::AbstractModel.new(Player).config.list).to receive(:limited_pagination).and_return(true)
       visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
       within("ul.pagination") { expect(find("li:last")).to have_content("Next »") }

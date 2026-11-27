@@ -26,6 +26,11 @@ module RailsAdminNext
           false
         end
 
+        # :infinite appends rows as the reader scrolls; :numbered keeps the page links.
+        register_instance_option :pagination do
+          :infinite
+        end
+
         register_instance_option :search_by do
           nil
         end
@@ -44,6 +49,14 @@ module RailsAdminNext
 
         register_instance_option :row_css_class do
           ""
+        end
+
+        def numbered_pagination?
+          case pagination
+          when :infinite then false
+          when :numbered then true
+          else raise ArgumentError, "Unsupported pagination #{pagination.inspect}, use :infinite or :numbered"
+          end
         end
 
         def fields_for_table
