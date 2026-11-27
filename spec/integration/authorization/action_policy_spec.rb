@@ -271,6 +271,14 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
         expect(@player_model.get(@retired.id)).not_to be_nil
       end
 
+      it "counts and destroys every matching player only inside the relation scope", :aggregate_failures do
+        post bulk_action_path(bulk_action: "bulk_delete", model_name: "player", all_matching: "true")
+        expect(response.body).to include("2 Players will be deleted")
+
+        delete bulk_delete_path(model_name: "player", all_matching: "true", expected_count: "2")
+        expect(Player.pluck(:name)).to eq ["Bob"]
+      end
+
       context "with a destroy? rule that depends on the record" do
         before do
           allow(Player).to receive(:policy_class).and_return(ActionPolicies::SuspendedPlayerPolicy)

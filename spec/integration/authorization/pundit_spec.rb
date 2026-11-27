@@ -475,6 +475,15 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
       expect(@player_model.get(retired_player.id)).not_to be_nil
     end
 
+    it "counts and destroys every matching player only inside the policy Scope", :aggregate_failures do
+      post bulk_action_path(bulk_action: "bulk_delete", model_name: "player", all_matching: "true")
+      expect(response.body).to include("1 Player will be deleted")
+
+      delete bulk_delete_path(model_name: "player", all_matching: "true", expected_count: "1")
+      expect(@player_model.get(active_player.id)).to be_nil
+      expect(@player_model.get(retired_player.id)).not_to be_nil
+    end
+
     context "with a destroy? rule that depends on the record" do
       let!(:suspended_player) { FactoryBot.create :player, suspended: true }
 
@@ -489,6 +498,15 @@ RSpec.describe "RailsAdminNext Pundit Authorization", type: :request do
 
         expect(response.body).to include(active_player.name)
         expect(response.body).not_to include(suspended_player.name)
+      end
+
+      it "DELETE /admin/player/bulk_delete of every matching player leaves records destroy? refuses and counts them as failed", :aggregate_failures do
+        delete bulk_delete_path(model_name: "player", all_matching: "true", expected_count: "2")
+
+        expect(@player_model.get(active_player.id)).to be_nil
+        expect(@player_model.get(suspended_player.id)).not_to be_nil
+        expect(flash[:success]).to eq "1 Player successfully deleted"
+        expect(flash[:error]).to eq "1 Player failed to be deleted"
       end
 
       it "DELETE /admin/player/bulk_delete leaves records destroy? refuses and counts them as failed", :aggregate_failures do
