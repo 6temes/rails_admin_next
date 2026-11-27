@@ -111,6 +111,15 @@ RSpec.describe "HistoryIndex action", type: :request, active_record: true do
       expect(body).to have_css("turbo-frame", count: 1)
     end
 
+    it "keeps a routing option in the query string out of the next batch's path", :aggregate_failures do
+      RailsAdminNext.config.default_items_per_page = 10
+      body = batch(2, "script_name" => "//evil.example")
+
+      src = body.find("turbo-frame#history_batch_2 turbo-frame#history_batch_3")[:src]
+      expect(src).to start_with(history_index_path(model_name: "paper_trail_test"))
+      expect(link_target(src)).to eq [history_index_path(model_name: "paper_trail_test"), {"page" => "3", "script_name" => "//evil.example"}]
+    end
+
     it "carries the query into the next-batch URL" do
       visit history_index_path(model_name: "paper_trail_test", query: "update")
 

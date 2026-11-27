@@ -225,7 +225,7 @@ module RailsAdminNext
       if turbo_frame_request? && !@model_config.list.numbered_pagination? && @history.respond_to?(:full_page?)
         render partial: "rails_admin_next/main/batch", layout: false, locals: {
           collection: @history, frame_prefix: "history_batch", target: "history_rows", row_partial: "history_row", row_locals: {},
-          url_proc: ->(page) { url_for(request.query_parameters.except("page").merge(page:, only_path: true)) }
+          url_proc: ->(page) { "#{request.path}?#{request.query_parameters.except("page").merge("page" => page).to_query}" }
         }
       else
         render @action.template_name

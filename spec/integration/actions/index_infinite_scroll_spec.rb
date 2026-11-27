@@ -179,6 +179,13 @@ RSpec.describe "Index action under infinite scroll", type: :request do
       is_expected.to have_css("#sidescroll ~ div.total-count", count: 1, text: "45 players")
       is_expected.to have_no_css("turbo-frame")
     end
+
+    it "answers a frame request with the paged list, not a batch", :aggregate_failures do
+      body = batch(2)
+
+      expect(body).to have_css("ul.pagination")
+      expect(body).to have_no_css("turbo-stream")
+    end
   end
 
   it "gives rows of a composite-key model a DOM id", composite_primary_keys: true do
