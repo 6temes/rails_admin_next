@@ -9,6 +9,8 @@
   properties = list_properties
   numbered = @model_config.list.numbered_pagination?
   checkboxes = @model_config.list.checkboxes?
+  selectable = checkboxes && !numbered
+  total_count = (@objects.respond_to?(:total_count) ? @objects.total_count.to_i : @objects.to_a.size) unless numbered || @model_config.list.limited_pagination
   table_table_header_count = begin
     count = checkboxes ? 1 : 0
     count = count + properties.count
@@ -39,7 +41,7 @@
       </ul>
     </li>
   <% end %>
-  <% if checkboxes %>
+  <% if checkboxes && numbered %>
     <%= bulk_menu %>
   <% end %>
 <% end %>
@@ -92,13 +94,12 @@
       <% end %>
     </ul>
   <% end %>
-  <% unless numbered || @model_config.list.limited_pagination %>
-    <% total_count = @objects.respond_to?(:total_count) ? @objects.total_count.to_i : @objects.to_a.size %>
+  <% if total_count %>
     <div class="total-count">
       <%= "#{number_with_delimiter(total_count)} #{@model_config.pluralize(total_count).downcase}" %>
     </div>
   <% end %>
-  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"] do %>
+  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"], data: ({controller: "bulk-selection", bulk_selection_selected_count_value: t("admin.misc.selected_count")} if selectable) do %>
     <%= hidden_field_tag :bulk_action %>
     <%= hidden_field_tag :scope, params[:scope] if params[:scope].present? %>
     <% if description.present? %>
@@ -108,13 +109,16 @@
         </strong>
       </p>
     <% end %>
+    <% if selectable %>
+      <%= render "selection_bar", total_count:, offer: @objects.respond_to?(:full_page?) && @objects.full_page? %>
+    <% end %>
     <div id="sidescroll" data-controller="sidescroll">
       <table class="table table-condensed table-striped table-hover">
         <thead>
           <tr>
             <% if checkboxes %>
               <th class="shrink sticky">
-                <input class="toggle" type="checkbox" />
+                <%= tag.input class: "toggle", type: "checkbox", data: ({bulk_selection_target: "header", action: "change->bulk-selection#toggleAll"} if selectable) %>
               </th>
             <% end %>
             <% properties.each do |property| %>

@@ -54,6 +54,11 @@ en:
       time_ago: "%{time} ago"
       ago: "ago"
       more: "Plus %{count} more %{models_name}"
+      all_matching_selected: "All %{count} matching %{models_name} are selected"
+      all_matching_selected_uncounted: "All matching %{models_name} are selected"
+      select_all_matching: "Select all %{count} matching %{models_name}"
+      select_all_matching_uncounted: "Select all matching %{models_name}"
+      selected_count: "%{count} selected"
     flash:
       successful: "%{name} successfully %{action}"
       error: "%{name} failed to be %{action}"

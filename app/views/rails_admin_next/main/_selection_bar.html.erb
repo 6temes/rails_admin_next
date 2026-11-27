@@ -1,0 +1,28 @@
+<%# locals: (total_count:, offer:) -%>
+<%# The buttons are type="button" because the bar sits inside the bulk form. What shows is derived in skin.css from the row checkboxes and the fieldset. %>
+<div class="selection-bar">
+  <span class="selection-count" data-bulk-selection-target="count"><%= t("admin.misc.selected_count", count: 0) %></span>
+  <% if offer %>
+    <% if total_count %>
+      <% models_name = @model_config.pluralize(total_count).downcase %>
+      <% offer_label = t("admin.misc.select_all_matching", count: number_with_delimiter(total_count), models_name:) %>
+      <% selected_label = t("admin.misc.all_matching_selected", count: number_with_delimiter(total_count), models_name:) %>
+    <% else %>
+      <% models_name = @model_config.label_plural.downcase %>
+      <% offer_label = t("admin.misc.select_all_matching_uncounted", models_name:) %>
+      <% selected_label = t("admin.misc.all_matching_selected_uncounted", models_name:) %>
+    <% end %>
+    <button type="button" class="btn btn-link selection-offer" data-action="bulk-selection#selectAllMatching"><%= offer_label %></button>
+    <span class="selection-all-matching"><%= selected_label %></span>
+  <% end %>
+  <ul class="nav selection-menu">
+    <%= bulk_menu %>
+  </ul>
+  <%# Disabled, it submits nothing, so an explicit selection posts exactly the ticked ids. %>
+  <fieldset class="all-matching" disabled hidden data-bulk-selection-target="allMatching">
+    <%= hidden_field_tag :all_matching, "true", id: nil %>
+    <% URI.decode_www_form(request.params.slice("query", "f", "sort", "sort_reverse").to_query).each do |name, value| %>
+      <%= hidden_field_tag name, value, id: nil %>
+    <% end %>
+  </fieldset>
+</div>

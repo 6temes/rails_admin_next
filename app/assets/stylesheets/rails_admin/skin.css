@@ -103,7 +103,10 @@
 
 /* === Admin skin: layout and navbar ====================================== */
 body.rails_admin {
-  padding-top: 3.275rem;
+  /* The fixed navbar's height: the space reserved above the page, and the
+     offset that sticky elements pin below. */
+  --ra-navbar-height: 3.275rem;
+  padding-top: var(--ra-navbar-height);
   .navbar .edit_user_root_link {
     position: relative;
     img {
@@ -496,6 +499,60 @@ body.rails_admin .list-batch[busy] > .list-batch-status {
   }
 }
 
+/* The selection bar of an infinite-scroll list. The row checkboxes and the
+   all-matching fieldset ARE the state, written by the bulk-selection
+   controller; everything shown here derives from them via :has(). The bar
+   shows while any row is ticked. The offer shows while every loaded row is
+   ticked and the fieldset is disabled; once it is enabled the bar states that
+   every matching record is selected, and bulk actions that cannot act on the
+   whole matching set leave the menu. */
+body.rails_admin .selection-bar {
+  display: none;
+  position: sticky;
+  top: var(--ra-navbar-height);
+  z-index: 4;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--ra-body-bg);
+  border-bottom: 1px solid var(--ra-border-color);
+  .selection-offer {
+    padding: 0;
+  }
+  .selection-offer,
+  .selection-all-matching {
+    display: none;
+  }
+  .selection-menu {
+    margin-inline-start: auto;
+  }
+}
+body.rails_admin
+  #bulk_form:has(input[name="bulk_ids[]"]:checked)
+  .selection-bar {
+  display: flex;
+}
+body.rails_admin
+  #bulk_form:has(fieldset.all-matching:disabled):not(
+    :has(input[name="bulk_ids[]"]:not(:checked))
+  )
+  .selection-offer {
+  display: inline-block;
+}
+body.rails_admin #bulk_form:has(fieldset.all-matching:enabled) {
+  .selection-count {
+    display: none;
+  }
+  .selection-all-matching {
+    display: inline;
+  }
+  #bulk_menu li:has(> .bulk-link:not([data-all-matching])) {
+    display: none;
+  }
+}
+
 /* === Admin skin: footer ================================================= */
 body.rails_admin .admin-footer {
   padding: 2rem 0 1rem;
@@ -511,14 +568,14 @@ body.rails_admin .admin-footer {
   body.rails_admin .admin-main {
     display: flex;
     flex-direction: column;
-    min-height: calc(100dvh - 3.275rem);
+    min-height: calc(100dvh - var(--ra-navbar-height));
   }
   body.rails_admin .admin-main > .admin-footer {
     margin-top: auto;
   }
   body.rails_admin .sidebar.btn-toggle-nav {
     position: fixed;
-    top: 3.275rem;
+    top: var(--ra-navbar-height);
     bottom: 0;
     overflow-y: auto;
     /* Sidebar scrolling stops at its own ends instead of chaining to the

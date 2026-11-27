@@ -1,6 +1,7 @@
 import { application } from "rails_admin/application";
 
 import AlertController from "rails_admin/controllers/alert_controller";
+import BulkSelectionController from "rails_admin/controllers/bulk_selection_controller";
 import CollapseController from "rails_admin/controllers/collapse_controller";
 import DropdownController from "rails_admin/controllers/dropdown_controller";
 import FeedbackController from "rails_admin/controllers/feedback_controller";
@@ -19,6 +20,7 @@ import SidescrollController from "rails_admin/controllers/sidescroll_controller"
 // known set of controllers and must stay self-contained — it can't scan the
 // host's controllers/ path under importmap+Propshaft.
 application.register("alert", AlertController);
+application.register("bulk-selection", BulkSelectionController);
 application.register("collapse", CollapseController);
 application.register("dropdown", DropdownController);
 application.register("feedback", FeedbackController);

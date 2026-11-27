@@ -46,8 +46,11 @@ document.addEventListener("click", (event) => {
 });
 
 // --- Index list: select-all bulk checkboxes ----------------------------------
+// Numbered lists only: under infinite scroll the bulk-selection controller owns
+// the header checkbox.
 document.addEventListener("change", (event) => {
   if (!event.target.matches("#list input.toggle")) return;
+  if (event.target.closest("[data-controller~='bulk-selection']")) return;
   document
     .querySelectorAll("#list [name='bulk_ids[]']")
     .forEach((checkbox) => (checkbox.checked = event.target.checked));
@@ -67,11 +70,20 @@ document.addEventListener("click", (event) => {
   if (!link) return;
   event.preventDefault();
   const action = document.getElementById("bulk_action");
-  if (action) action.value = link.dataset.action;
+  if (action) action.value = link.dataset.bulkAction;
+  const form = document.getElementById("bulk_form");
+  // An all-matching submit sends the filter instead of ids, and a deep
+  // selection's ids would exceed Rack's 4096-param limit. The bulk-selection
+  // controller re-enables the rows when the page is shown again.
+  if (form?.querySelector("fieldset.all-matching:enabled")) {
+    form
+      .querySelectorAll("[name='bulk_ids[]']")
+      .forEach((checkbox) => (checkbox.disabled = true));
+  }
   // Native submit (full navigation): the bulk action renders its confirmation
   // page with a 200, which Turbo's form handling would reject as "must
   // redirect".
-  document.getElementById("bulk_form")?.submit();
+  form?.submit();
 });
 
 // --- Index list: reset filters -----------------------------------------------

@@ -429,6 +429,47 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  describe "from the selection bar", js: true do
+    let!(:smiths) { %w[Alice Bea Carol].map { FactoryBot.create :player, name: "#{it} Smithfield" } }
+    let!(:outsider) { FactoryBot.create :player, name: "Dora Outsider" }
+
+    # Two rows a batch, so the three matching players fill the first batch and the offer shows.
+    # The second batch loads on its own; waiting for the end keeps it from landing unticked
+    # after the header is ticked.
+    before do
+      RailsAdminNext.config.default_items_per_page = 2
+      visit index_path(model_name: "player", query: "Smithfield")
+      is_expected.to have_css(".list-end")
+      is_expected.to have_css("tbody#list_rows tr", count: 3)
+    end
+
+    def delete_selected
+      find("button#bulk_menu_toggle").click
+      find("#bulk_menu .bulk-link", text: "Delete selected Players").click
+    end
+
+    it "confirms every matching player by count and deletes them", :aggregate_failures do
+      find("#bulk_form input.toggle").check
+      click_button "Select all 3 matching players"
+      delete_selected
+
+      is_expected.to have_content "3 Players will be deleted"
+      accept_confirm { click_button "Yes, I'm sure" }
+      is_expected.to have_content "3 Players successfully deleted"
+      expect(Player.all).to eq [outsider]
+    end
+
+    it "lists only the one ticked player of the matching set", :aggregate_failures do
+      find("input[name='bulk_ids[]'][value='#{smiths.last.id}']").check
+      delete_selected
+
+      is_expected.to have_content "The following objects will be deleted"
+      is_expected.to have_content "Carol Smithfield"
+      is_expected.to have_no_content "Alice Smithfield"
+      is_expected.to have_no_content "Bea Smithfield"
+    end
+  end
+
   context "with composite primary keys", composite_primary_keys: true do
     let!(:fanships) { FactoryBot.create_list(:fanship, 3) }
 

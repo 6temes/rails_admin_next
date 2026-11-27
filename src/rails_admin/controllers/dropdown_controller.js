@@ -5,10 +5,12 @@ const ITEM = ".dropdown-item";
 // Menu button (WAI-ARIA APG) on a native popover. The toggle is a
 // <button popovertarget> and the menu carries popover="auto", so the platform
 // owns the top layer, click-to-toggle, and outside-click/Escape light
-// dismissal (do NOT reimplement those). The controller lives on the toggle;
-// its menu is the next sibling (`.dropdown-menu`), so the menu items stay out
-// of Stimulus's action-parsing scope — important because the bulk-action
-// items carry their own `data-action` attribute read by interactions.js.
+// dismissal (do NOT reimplement those). The controller lives on the toggle
+// and its menu is the next sibling (`.dropdown-menu`). The bulk-action items
+// name their action in `data-bulk-action`, read by interactions.js, not
+// `data-action`: under infinite scroll the bulk menu sits inside the
+// bulk-selection controller's element, where Stimulus would parse
+// `data-action` as an action descriptor.
 //
 // What is left for JS:
 //   - ArrowDown/ArrowUp on the closed toggle open the menu onto its
