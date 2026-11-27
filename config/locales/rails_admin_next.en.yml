@@ -29,6 +29,10 @@ en:
       previous: "&laquo; Prev"
       next: "Next &raquo;"
       truncate: "…"
+      end: "End of list"
+      error: "The next rows could not be loaded."
+      load_more: "Load more"
+      retry: "Retry"
     misc:
       search: "Search"
       filter: "Filter"

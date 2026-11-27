@@ -1,0 +1,14 @@
+<%# locals: (collection:, url_proc:) -%>
+<%# full_page? is the count-free test: next_page and last_page? would run a COUNT. %>
+<% if collection.full_page? %>
+  <% next_page = collection.current_page + 1 %>
+  <%= turbo_frame_tag "list_batch_#{next_page}", src: url_proc.call(next_page), loading: :lazy, class: "list-batch" do %>
+    <div class="list-batch-status">
+      <span class="list-batch-loading"><%= t('admin.loading') %></span>
+      <span class="list-batch-error" role="status" hidden><%= t('admin.pagination.error') %></span>
+      <%= link_to t('admin.pagination.load_more'), url_proc.call(next_page), class: "list-batch-link btn btn-light", data: { retry_label: t('admin.pagination.retry') } %>
+    </div>
+  <% end %>
+<% elsif collection.current_page > 1 %>
+  <p class="list-end"><%= t('admin.pagination.end') %></p>
+<% end %>

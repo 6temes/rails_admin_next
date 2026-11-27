@@ -1,0 +1,11 @@
+<%# locals: () -%>
+<% properties = list_properties %>
+<% checkboxes = @model_config.list.checkboxes? %>
+<%= turbo_frame_tag "list_batch_#{@objects.current_page}" do %>
+  <%= turbo_stream.append "list_rows" do %>
+    <% @objects.each do |object| %>
+      <%= render 'list_row', object:, properties:, checkboxes: %>
+    <% end %>
+  <% end %>
+  <%= render 'next_batch', collection: @objects, url_proc: ->(page) { index_path(list_params.except(:page).merge(page:)) } %>
+<% end %>

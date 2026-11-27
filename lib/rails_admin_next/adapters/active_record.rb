@@ -166,8 +166,15 @@ module RailsAdminNext
       # Offset-mode pagination over the (already ordered/filtered) relation.
       # geared_pagination runs the real LIMIT/OFFSET/COUNT; the returned
       # PaginatedCollection is the thin view-facing wrapper.
+      #
+      # The primary key breaks ties in the sort, so a record cannot sit on two
+      # pages or on none. Only paginated relations get it: export batches by
+      # primary key when the sort is a single order. A grouped relation is left
+      # alone, since ordering by a column outside the GROUP BY is an error on
+      # PostgreSQL.
       def paginate_scope(scope, page, per)
         per = [per.to_i, 1].max
+        scope = scope.order(Array(scope.primary_key).index_with(:desc)) if scope.primary_key && scope.group_values.empty?
         recordset = GearedPagination::Recordset.new(scope, per_page: per)
         RailsAdminNext::PaginatedCollection.from_recordset(recordset, page, per)
       end

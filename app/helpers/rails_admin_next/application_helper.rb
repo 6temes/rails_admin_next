@@ -165,7 +165,7 @@ module RailsAdminNext
         li_class = ["nav-item", "icon", "#{action.key}_#{parent}_link"]
           .concat(action.enabled? ? [] : ["disabled"])
         content_tag(:li, {class: li_class}.merge(only_icon ? {title: wording, rel: "tooltip"} : {})) do
-          label = rails_admin_icon(action.link_icon) + " " + content_tag(:span, wording, (only_icon ? {style: "display:none"} : {}))
+          label = rails_admin_icon(action.link_icon) + " " + content_tag(:span, wording, (only_icon ? {hidden: true} : {}))
           if action.enabled? || !only_icon
             href =
               if action.enabled?

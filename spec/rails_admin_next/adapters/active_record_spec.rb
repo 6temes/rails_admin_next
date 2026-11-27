@@ -160,6 +160,31 @@ RSpec.describe "RailsAdminNext::Adapters::ActiveRecord", active_record: true do
         expect(abstract_model.all(sort: "id", page: 1, per: 2).to_a).to eq(@players[-2, 2].reverse)
       end
 
+      it "returns each record exactly once across pages of a sort with tied values" do
+        Player.update_all(name: "Same")
+        sql = []
+        pages = ActiveSupport::Notifications.subscribed(->(*, payload) { sql << payload[:sql] }, "sql.active_record") do
+          (1..@players.size).flat_map { abstract_model.all(sort: "name", page: it, per: 1).to_a }
+        end
+        expect(pages).to match_array(@players)
+        # SQLite happens to return ties in a stable order; the primary key in ORDER BY is what holds elsewhere.
+        expect(sql.grep(/ORDER BY/).map { it.tr("`", '"')[/ORDER BY .*/] }).to all(include('"players"."id"'))
+      end
+
+      it "keeps a single order value on an unpaginated sorted relation" do
+        expect(abstract_model.all(sort: "name").order_values).to eq(["name desc"])
+      end
+
+      it "paginates and sorts a grouped scope without a primary-key tiebreaker" do
+        grouped = Player.select(:name).group(:name)
+        sql = []
+        rows = ActiveSupport::Notifications.subscribed(->(*, payload) { sql << payload[:sql] }, "sql.active_record") do
+          abstract_model.all({sort: "name", page: 1, per: 2}, grouped).to_a
+        end
+        expect(rows.size).to eq 2
+        expect(sql.grep(/GROUP BY/).join.tr("`", '"')).not_to include('"players"."id"')
+      end
+
       it "supports ordering" do
         expect(abstract_model.all(sort: "id", sort_reverse: true)).to eq(@players.sort)
         expect(abstract_model.all(sort: %w[id name], sort_reverse: true).to_sql.tr("`", '"')).to include('ORDER BY "players"."id" ASC, "players"."name" ASC')
