@@ -55,6 +55,13 @@ RSpec.describe "Index action under infinite scroll", type: :request do
       expect(link_target(next_frame[:src])).to eq page_target(3)
     end
 
+    it "keeps a routing option in the query string out of the next batch's path" do
+      body = batch(2, "script_name" => "//evil.example")
+
+      src = body.find("turbo-frame#list_batch_2 turbo-frame#list_batch_3")[:src]
+      expect(link_target(src)).to eq [index_path(model_name: "player"), {"page" => "3", "script_name" => "//evil.example"}]
+    end
+
     it "ends the list on page 3 with 5 rows and no further frame" do
       body = batch(3)
 
