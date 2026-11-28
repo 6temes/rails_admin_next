@@ -190,6 +190,26 @@ RSpec.describe "BulkDelete action", type: :request do
     end
   end
 
+  context "when a foreign key refuses one destroy", active_record: true do
+    # Created in this order so the refused record is destroyed first in the id-descending batch.
+    let!(:deletable) { FactoryBot.create(:player) }
+    let!(:referenced) { FactoryBot.create(:player) }
+
+    before do
+      allow_any_instance_of(Player).to receive(:destroy_hook) do |player|
+        raise ActiveRecord::InvalidForeignKey, "referenced" if player.id == referenced.id
+      end
+    end
+
+    it "deletes the records after it and reports the refused one", :aggregate_failures do
+      delete(bulk_delete_path(bulk_action: "bulk_delete", model_name: "player", bulk_ids: [deletable.id, referenced.id]))
+
+      expect(flash[:success]).to match(/1 Player successfully deleted/)
+      expect(flash[:error]).to match(/1 Player failed to be deleted/)
+      expect(Player.all).to eq [referenced]
+    end
+  end
+
   context "when a destroy raises an unexpected error mid-batch", active_record: true do
     # Created in reverse: the batch runs in the list's default id-descending order.
     let!(:failing) { FactoryBot.create(:player) }

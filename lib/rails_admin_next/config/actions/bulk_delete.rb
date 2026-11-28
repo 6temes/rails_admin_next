@@ -54,8 +54,8 @@ module RailsAdminNext
             elsif request.delete? # BULK DESTROY
               destroyed = 0
               not_destroyed = 0
-              # Rescue per record: dependent: :restrict_with_exception raises, and an
-              # escaping raise would abandon every record behind it in the batch.
+              # Rescue per record: a restrict_with_exception association, a foreign key or a
+              # raising callback would otherwise abandon every record behind it in the batch.
               # Audit inside the loop so any other raise still leaves a history row
               # for each record already destroyed.
               destroy = lambda do |object|
@@ -66,7 +66,7 @@ module RailsAdminNext
 
                 @auditing_adapter&.delete_object(object, @abstract_model, _current_user)
                 destroyed += 1
-              rescue ActiveRecord::DeleteRestrictionError
+              rescue ActiveRecord::DeleteRestrictionError, ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotDestroyed
                 not_destroyed += 1
               end
 
