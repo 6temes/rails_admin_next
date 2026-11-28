@@ -65,17 +65,19 @@ RailsAdminNext.config do |config|
 end
 ```
 
-> **Note on `style-src`.** The admin still renders five inline `style="…"` attributes, which a CSP
+> **Note on `style-src`.** The admin still renders inline `style="…"` attributes, which a CSP
 > nonce cannot cover (nonces apply to `<script>`/`<style>` elements, not style attributes), so a
 > `style-src` directive needs `:unsafe_inline` for now. The engine's own `<style>` element (the
 > index column-width block) is nonced. The remaining attributes:
 >
-> - the `#loading` badge's positioning in the layout, and the delete-notice `<li>` spacing —
->   static values, removable by moving them into the stylesheet;
-> - the file-upload delete toggle's initial `display:none` — conditional initial state, removable
->   by switching to the `hidden` attribute;
+> - the `#loading` badge's positioning in the layout, the delete-notice `<li>` spacing and the
+>   polymorphic association select's float: static values, removable by moving them into the
+>   stylesheet;
+> - `display:none` on the form builder's legend for the default fieldset, on the file-upload
+>   delete toggle and its checkbox, and on the multiple-file-upload keep and delete checkboxes:
+>   hidden or conditional initial state, removable by switching to the `hidden` attribute;
 > - the dashboard's `.progress` margin (static) and each progress bar's `width: N%` (a per-row
->   dynamic value — the one that genuinely resists removal; it would need the nonced-`<style>`
+>   dynamic value, the one that genuinely resists removal; it would need the nonced-`<style>`
 >   route or a native `<progress>` element).
 >
-> Once those five are reauthored, `:unsafe_inline` can be dropped.
+> Once those are reauthored, `:unsafe_inline` can be dropped.
