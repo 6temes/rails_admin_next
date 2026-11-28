@@ -262,17 +262,5 @@ RSpec.describe "Bulk selection under infinite scroll", type: :request do
       is_expected.to have_content "The following objects will be deleted"
       is_expected.to have_content players.first.name
     end
-
-    it "keeps page-only selection and the menu in the contextual tabs on a numbered list", :aggregate_failures do
-      RailsAdminNext.config(Player) { list { pagination :numbered } }
-      FactoryBot.create_list(:player, 25)
-      visit index_path(model_name: "player")
-
-      header.check
-      expect(checked_rows.size).to eq 20
-      is_expected.to have_no_css(".selection-bar", visible: :all)
-      is_expected.to have_no_css("fieldset.all-matching", visible: :all)
-      is_expected.to have_css(".nav-tabs #bulk_menu_toggle")
-    end
   end
 end

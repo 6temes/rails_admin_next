@@ -20,15 +20,9 @@ module RailsAdminNext
           RailsAdminNext::Config.default_items_per_page
         end
 
-        # Positive value shows only prev, next links in pagination.
-        # This is for avoiding count(*) query.
+        # Skips the COUNT query, so the list shows no record count.
         register_instance_option :limited_pagination do
           false
-        end
-
-        # :infinite appends rows as the reader scrolls; :numbered keeps the page links.
-        register_instance_option :pagination do
-          :infinite
         end
 
         register_instance_option :search_by do
@@ -49,14 +43,6 @@ module RailsAdminNext
 
         register_instance_option :row_css_class do
           ""
-        end
-
-        def numbered_pagination?
-          case pagination
-          when :infinite then false
-          when :numbered then true
-          else raise ArgumentError, "Unsupported pagination #{pagination.inspect}, use :infinite or :numbered"
-          end
         end
 
         def fields_for_table

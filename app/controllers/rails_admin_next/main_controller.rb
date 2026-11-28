@@ -238,7 +238,7 @@ module RailsAdminNext
 
     # A frame request from a list's next-batch frame, answered with the batch's rows alone.
     def batch_request?(collection)
-      turbo_frame_request? && !@model_config.list.numbered_pagination? && collection.respond_to?(:full_page?)
+      turbo_frame_request? && collection.respond_to?(:full_page?)
     end
 
     def list_scopes

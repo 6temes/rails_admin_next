@@ -46,10 +46,10 @@
 </table>
 <% unless params[:all] %>
   <% url_proc = ->(page) { send(path_method, params.except('page', :page).merge(page:)) } %>
-  <% if !@model_config.list.numbered_pagination? && @history.respond_to?(:full_page?) %>
+  <% if @history.respond_to?(:full_page?) %>
     <%= render 'next_batch', collection: @history, url_proc:, frame_prefix: "history_batch" %>
   <% elsif @history.respond_to?(:current_page) %>
-    <%= render 'pagination', collection: @history, mode: :numbered, url_proc: %>
+    <%= render 'pagination', collection: @history, url_proc: %>
     <%= link_to(t("admin.misc.show_all"), send(path_method, params.merge(all: true)), class: "show-all btn btn-light") unless (tc = @history.total_count) <= @history.size || tc > 100 %>
   <% end %>
 <% end %>

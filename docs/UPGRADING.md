@@ -932,22 +932,9 @@ batch fails. The same applies to a model's history page and a record's history p
 `turbo-rails` floor is now `>= 2.0`: the batch states rely on `turbo:frame-missing` and on
 Turbo 8's de-duplication of appended rows.
 
-To keep numbered pages for a model, opt out per list:
+There is no option to keep numbered pages. `limited_pagination` keeps its meaning: no COUNT.
 
-```ruby
-config.model "Order" do
-  list do
-    pagination :numbered
-  end
-end
-```
-
-`pagination` takes `:infinite` (the default) or `:numbered`; any other value raises
-`ArgumentError`. A numbered list renders the footer it always did, "Show all" link
-included, and `limited_pagination` keeps its meaning in both modes: no COUNT. History pages
-read the option from the model's list section.
-
-What else changes under infinite scroll:
+What else changes:
 
 - `?page=N` URLs still work and open at that batch: the list starts at page N and loads the
   following batches from there.
@@ -956,9 +943,11 @@ What else changes under infinite scroll:
 - The record count moves above the table, with a thousands delimiter, in the same
   `div.total-count`. Only the first batch of a list without `limited_pagination` runs a
   COUNT, and a `limited_pagination` list shows no count.
-- Paginated lists, numbered or not, now order by primary key (descending) after the sort, so
+- Paginated lists now order by primary key (descending) after the sort, so
   a record cannot appear on two pages or on none. A grouped relation is left alone.
-- Overrides of the `_pagination` partial apply to numbered lists only.
+- The `_pagination` partial no longer renders on the index. It is kept only for history pages
+  of a custom auditing adapter whose listing has no `full_page?`, and it lost its `mode`
+  local.
 - The fixed navbar's height is now the CSS variable `--ra-navbar-height`, which sticky
   elements pin below.
 

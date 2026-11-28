@@ -180,14 +180,6 @@ RSpec.describe "HistoryIndex action", type: :request, active_record: true do
       is_expected.to have_no_css("turbo-frame")
     end
 
-    it "keeps the numbered pager for a model set to it", :aggregate_failures do
-      RailsAdminNext.config(PaperTrailTest) { list { pagination :numbered } }
-      visit history_index_path(model_name: "paper_trail_test")
-
-      is_expected.to have_css("table#history ~ nav ul.pagination")
-      is_expected.to have_no_css("turbo-frame")
-    end
-
     describe "in the browser", js: true do
       it "brings the 21st version's row in once scrolled to the bottom" do
         visit history_index_path(model_name: "paper_trail_test")

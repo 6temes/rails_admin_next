@@ -7,10 +7,8 @@
   export_action = nil unless export_action && authorized?(export_action.authorization_key, @abstract_model)
   description = RailsAdminNext.config(@abstract_model.model_name).description
   properties = list_properties
-  numbered = @model_config.list.numbered_pagination?
   checkboxes = @model_config.list.checkboxes?
-  selectable = checkboxes && !numbered
-  total_count = (@objects.respond_to?(:total_count) ? @objects.total_count.to_i : @objects.to_a.size) unless numbered || @model_config.list.limited_pagination
+  total_count = (@objects.respond_to?(:total_count) ? @objects.total_count.to_i : @objects.to_a.size) unless @model_config.list.limited_pagination
   table_table_header_count = begin
     count = checkboxes ? 1 : 0
     count = count + properties.count
@@ -40,9 +38,6 @@
         <% end %>
       </ul>
     </li>
-  <% end %>
-  <% if checkboxes && numbered %>
-    <%= bulk_menu %>
   <% end %>
 <% end %>
 
@@ -99,7 +94,7 @@
       <%= "#{number_with_delimiter(total_count)} #{@model_config.pluralize(total_count).downcase}" %>
     </div>
   <% end %>
-  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"], data: ({controller: "bulk-selection", bulk_selection_selected_count_value: t("admin.misc.selected_count")} if selectable) do %>
+  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"], data: ({controller: "bulk-selection", bulk_selection_selected_count_value: t("admin.misc.selected_count")} if checkboxes) do %>
     <%= hidden_field_tag :bulk_action %>
     <%= hidden_field_tag :scope, params[:scope] if params[:scope].present? %>
     <% if description.present? %>
@@ -109,7 +104,7 @@
         </strong>
       </p>
     <% end %>
-    <% if selectable %>
+    <% if checkboxes %>
       <%= render "selection_bar", total_count:, offer: @objects.respond_to?(:full_page?) && @objects.full_page? %>
     <% end %>
     <div id="sidescroll" data-controller="sidescroll">
@@ -118,7 +113,7 @@
           <tr>
             <% if checkboxes %>
               <th class="shrink sticky">
-                <%= tag.input class: "toggle", type: "checkbox", data: ({bulk_selection_target: "header", action: "change->bulk-selection#toggleAll"} if selectable) %>
+                <%= tag.input class: "toggle", type: "checkbox", data: ({bulk_selection_target: "header", action: "change->bulk-selection#toggleAll"} if checkboxes) %>
               </th>
             <% end %>
             <% properties.each do |property| %>
@@ -148,33 +143,6 @@
         </tbody>
       </table>
     </div>
-    <% if !numbered %>
-      <%= render 'next_batch', collection: @objects, url_proc: method(:list_batch_url) if @objects.respond_to?(:full_page?) %>
-    <% elsif @model_config.list.limited_pagination %>
-      <div class="row">
-        <div class="col-md-6">
-          <%= render 'pagination', collection: @objects, mode: :limited, url_proc: ->(page) { index_path(params.except('page', :page).merge(page: page)) } %>
-        </div>
-      </div>
-    <% elsif @objects.respond_to?(:total_count) %>
-      <% total_count = @objects.total_count.to_i %>
-      <div class="row">
-        <div class="col-md-6">
-          <%= render 'pagination', collection: @objects, mode: :numbered, url_proc: ->(page) { index_path(params.except('page', :page).merge(page: page)) } %>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <%= link_to(t("admin.misc.show_all"), index_path(params.merge(all: true)), class: "show-all btn btn-light clearfix") unless total_count > 100 || total_count <= @objects.to_a.size %>
-        </div>
-      </div>
-      <div class="clearfix total-count">
-        <%= "#{total_count} #{@model_config.pluralize(total_count).downcase}" %>
-      </div>
-    <% else %>
-      <div class="clearfix total-count">
-        <%= "#{@objects.size} #{@model_config.pluralize(@objects.size).downcase}" %>
-      </div>
-    <% end %>
+    <%= render 'next_batch', collection: @objects, url_proc: method(:list_batch_url) if @objects.respond_to?(:full_page?) %>
   <% end %>
 </div>

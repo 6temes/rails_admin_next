@@ -67,14 +67,6 @@ RSpec.describe "HistoryShow action", type: :request, active_record: true do
 
       expect(link_target(body.find("turbo-frame#history_batch_2 turbo-frame#history_batch_3")[:src])).to eq [show_path, {"page" => "3"}]
     end
-
-    it "keeps the numbered pager for a model set to it", :aggregate_failures do
-      RailsAdminNext.config(PaperTrailTest) { list { pagination :numbered } }
-      visit show_path
-
-      expect(page).to have_css("table#history ~ nav ul.pagination")
-      expect(page).to have_no_css("turbo-frame")
-    end
   end
 
   context "with a model PaperTrail does not version" do
