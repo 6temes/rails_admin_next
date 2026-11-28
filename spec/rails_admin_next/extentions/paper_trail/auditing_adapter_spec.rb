@@ -74,6 +74,13 @@ RSpec.describe RailsAdminNext::Extensions::PaperTrail::AuditingAdapter, active_r
       expect_any_instance_of(ActiveRecord::Relation).to receive(:reorder).with(id: :desc).and_call_original
       subject.listing_for_model model, nil, false, false, true, nil, 20
     end
+    it "breaks ties in the given sort on the newest version first" do
+      versions = Array.new(3) { PaperTrail::Version.create!(item: FactoryBot.create(:paper_trail_test), event: "update", whodunnit: "same") }
+
+      listing = subject.listing_for_model model, nil, :username, false, false, nil, 20
+      expect(listing.map(&:id)).to eq versions.map(&:id).reverse
+    end
+
     it "lists only versions whose item is in the given scope" do
       PaperTrail::Version.create!(item: FactoryBot.create(:paper_trail_test, name: "kept"), event: "kept")
       PaperTrail::Version.create!(item: FactoryBot.create(:paper_trail_test, name: "dropped"), event: "dropped")

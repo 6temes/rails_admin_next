@@ -42,6 +42,19 @@ RSpec.shared_examples "history within the authorization scope" do |policy|
     is_expected.not_to have_content("deleted-record-change")
   end
 
+  it "lists in a model's history batch only changes to records in the user's scope", :aggregate_failures do
+    RailsAdminNext.config.default_items_per_page = 1
+    PaperTrail::Version.create!(item: in_scope, event: "later-in-scope-change")
+
+    get history_index_path(model_name: "paper_trail_test", page: 2), headers: {"Turbo-Frame" => "history_batch_2"}
+    batch = Capybara.string(Nokogiri::HTML5.fragment(response.body))
+
+    expect(batch).to have_css("turbo-stream[target='history_rows']")
+    expect(batch.native.css("turbo-stream > template tr").map(&:text).join).to include("in-scope-change")
+    expect(response.body).not_to include("deleted-record-change")
+    expect(response.body).not_to include("out-of-scope-change")
+  end
+
   it "dates a model's last created record from within the user's scope" do
     visit dashboard_path
 

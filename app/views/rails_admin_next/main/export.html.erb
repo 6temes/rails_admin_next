@@ -1,4 +1,5 @@
 <% params = request.params.except(:action, :controller, :utf8, :page, :per_page, :format, :authenticity_token) %>
+<% params = params.except(:bulk_ids) if params[:all_matching].present? %>
 <% visible_fields = @model_config.export.with(view: self, object: @abstract_model.model.new, controller: self.controller).visible_fields %>
 <%= form_tag export_path(params.merge(all: true)), method: 'post', class: "main", data: {turbo: false} do %>
   <input name="send_data" type="hidden" value="true" />

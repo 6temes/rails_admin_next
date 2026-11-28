@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "propshaft", ">= 1.2"
   spec.add_dependency "rails", "~> 8.1"
   spec.add_dependency "stimulus-rails", "~> 1.3"
-  spec.add_dependency "turbo-rails", [">= 1.0", "< 3"]
+  spec.add_dependency "turbo-rails", [">= 2.0", "< 3"]
   spec.add_development_dependency "bundler", ">= 1.0"
   spec.authors = ["Daniel López Prat"]
   spec.description = "A Rails engine that auto-generates an easy-to-use admin interface for your ActiveRecord data. A modernized fork of RailsAdmin, originally created by Erik Michaels-Ober, Bogdan Gaza, and contributors."

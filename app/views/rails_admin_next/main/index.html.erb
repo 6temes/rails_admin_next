@@ -1,16 +1,14 @@
 <%
   query = params[:query]
-  params = request.params.except(:authenticity_token, :action, :controller, :utf8, :bulk_export)
-  params.delete(:query) if params[:query].blank?
-  params.delete(:sort_reverse) unless params[:sort_reverse] == 'true'
-  sort_reverse = params[:sort_reverse]
+  sort_reverse = ('true' if params[:sort_reverse] == 'true')
   sort = params[:sort]
-  params.delete(:sort) if params[:sort] == @model_config.list.sort_by.to_s
+  params = list_params
   export_action = RailsAdminNext::Config::Actions.find(:export, { controller: self.controller, abstract_model: @abstract_model })
   export_action = nil unless export_action && authorized?(export_action.authorization_key, @abstract_model)
   description = RailsAdminNext.config(@abstract_model.model_name).description
-  properties = @model_config.list.with(controller: self.controller, view: self, object: @abstract_model.model.new).fields_for_table
+  properties = list_properties
   checkboxes = @model_config.list.checkboxes?
+  total_count = (@objects.respond_to?(:total_count) ? @objects.total_count.to_i : @objects.to_a.size) unless @model_config.list.limited_pagination
   table_table_header_count = begin
     count = checkboxes ? 1 : 0
     count = count + properties.count
@@ -40,9 +38,6 @@
         <% end %>
       </ul>
     </li>
-  <% end %>
-  <% if checkboxes %>
-    <%= bulk_menu %>
   <% end %>
 <% end %>
 
@@ -94,7 +89,12 @@
       <% end %>
     </ul>
   <% end %>
-  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"] do %>
+  <% if total_count %>
+    <div class="total-count">
+      <%= "#{number_with_delimiter(total_count)} #{@model_config.pluralize(total_count).downcase}" %>
+    </div>
+  <% end %>
+  <%= form_tag bulk_action_path(model_name: @abstract_model.to_param), method: :post, id: "bulk_form", class: ["form", "mb-3"], data: ({controller: "bulk-selection", bulk_selection_selected_count_value: t("admin.misc.selected_count")} if checkboxes) do %>
     <%= hidden_field_tag :bulk_action %>
     <%= hidden_field_tag :scope, params[:scope] if params[:scope].present? %>
     <% if description.present? %>
@@ -104,13 +104,16 @@
         </strong>
       </p>
     <% end %>
+    <% if checkboxes %>
+      <%= render "selection_bar", total_count:, offer: @objects.respond_to?(:full_page?) && @objects.full_page? %>
+    <% end %>
     <div id="sidescroll" data-controller="sidescroll">
       <table class="table table-condensed table-striped table-hover">
         <thead>
           <tr>
             <% if checkboxes %>
               <th class="shrink sticky">
-                <input class="toggle" type="checkbox" />
+                <%= tag.input class: "toggle", type: "checkbox", data: ({bulk_selection_target: "header", action: "change->bulk-selection#toggleAll"} if checkboxes) %>
               </th>
             <% end %>
             <% properties.each do |property| %>
@@ -126,26 +129,9 @@
             <th class="last shrink"></th>
           </tr>
         </thead>
-        <tbody class="table-group-divider">
+        <tbody class="table-group-divider" id="list_rows">
           <% @objects.each do |object| %>
-            <tr class="<%= @abstract_model.param_key %>_row <%= @model_config.list.with(object: object).row_css_class %>">
-              <% if checkboxes %>
-                <td class="sticky">
-                  <%= check_box_tag "bulk_ids[]", object.id.to_s, false %>
-                </td>
-              <% end %>
-              <% properties.map{ |property| property.bind(:object, object) }.each do |property| %>
-                <% value = property.pretty_value %>
-                <%= content_tag(:td, class: [property.sticky? && 'sticky', property.css_class, property.type_css_class].select(&:present?), title: strip_tags(value.to_s)) do %>
-                  <%= value %>
-                <% end %>
-              <% end %>
-              <td class="last links ra-sidescroll-frozen">
-                <ul class="nav d-inline list-inline">
-                  <%= menu_for :member, @abstract_model, object, true %>
-                </ul>
-              </td>
-            </tr>
+            <%= render 'list_row', object:, properties:, checkboxes: %>
           <% end %>
           <% if @objects.empty? %>
             <tr class="empty_row">
@@ -157,31 +143,6 @@
         </tbody>
       </table>
     </div>
-    <% if @model_config.list.limited_pagination %>
-      <div class="row">
-        <div class="col-md-6">
-          <%= render 'pagination', collection: @objects, mode: :limited, url_proc: ->(page) { index_path(params.except('page', :page).merge(page: page)) } %>
-        </div>
-      </div>
-    <% elsif @objects.respond_to?(:total_count) %>
-      <% total_count = @objects.total_count.to_i %>
-      <div class="row">
-        <div class="col-md-6">
-          <%= render 'pagination', collection: @objects, mode: :numbered, url_proc: ->(page) { index_path(params.except('page', :page).merge(page: page)) } %>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <%= link_to(t("admin.misc.show_all"), index_path(params.merge(all: true)), class: "show-all btn btn-light clearfix") unless total_count > 100 || total_count <= @objects.to_a.size %>
-        </div>
-      </div>
-      <div class="clearfix total-count">
-        <%= "#{total_count} #{@model_config.pluralize(total_count).downcase}" %>
-      </div>
-    <% else %>
-      <div class="clearfix total-count">
-        <%= "#{@objects.size} #{@model_config.pluralize(@objects.size).downcase}" %>
-      </div>
-    <% end %>
+    <%= render 'next_batch', collection: @objects, url_proc: method(:list_batch_url) if @objects.respond_to?(:full_page?) %>
   <% end %>
 </div>

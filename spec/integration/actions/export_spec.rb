@@ -182,6 +182,55 @@ RSpec.describe "Export action", type: :request do
     end
   end
 
+  describe "acting on every matching record" do
+    let!(:smiths) { %w[Carol Alice Bea].map { FactoryBot.create :player, name: "#{it} Smithfield", retired: it == "Bea" } }
+    let!(:outsider) { FactoryBot.create :player, name: "Dora Outsider" }
+
+    def exported_names(**params)
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, csv_options: {generator: {col_sep: ","}}, **params))
+      CSV.parse(page.driver.response.body).drop(1).flatten
+    end
+
+    it "renders a form that keeps the flag and the query and leaves the ticked ids out", :aggregate_failures do
+      post(bulk_action_path(bulk_action: "export", model_name: "player", all_matching: "true", query: "Smithfield", bulk_ids: [outsider.id]))
+      form_action = Nokogiri::HTML(response.body).at_css("form.main")["action"]
+      form_params = Rack::Utils.parse_nested_query(URI.parse(form_action).query)
+      expect(form_params).to include("all_matching" => "true", "query" => "Smithfield", "all" => "true")
+      expect(form_params).not_to have_key("bulk_ids")
+    end
+
+    it "streams the records the query matches, whatever ids are submitted" do
+      expect(exported_names(all_matching: "true", query: "Smithfield", bulk_ids: [outsider.id])).to contain_exactly("Carol Smithfield", "Alice Smithfield", "Bea Smithfield")
+    end
+
+    it "streams only the records in the scope tab" do
+      RailsAdminNext.config(Player) { list { scopes [nil, :retired] } }
+      expect(exported_names(all_matching: "true", scope: "retired", bulk_ids: [outsider.id])).to contain_exactly("Bea Smithfield")
+    end
+
+    it "streams only the records the filter matches" do
+      expect(exported_names(all_matching: "true", f: {name: {"1" => {o: "is", v: "Alice Smithfield"}}}, bulk_ids: [outsider.id])).to contain_exactly("Alice Smithfield")
+    end
+
+    it "streams the matching records in the requested sort" do
+      expect(exported_names(all_matching: "true", query: "Smithfield", sort: "name")).to eq ["Alice Smithfield", "Bea Smithfield", "Carol Smithfield"]
+    end
+
+    it "streams the file when the export form posts back with the bulk action and no ids" do
+      expect(exported_names(bulk_action: "export", all_matching: "true", query: "Smithfield")).to contain_exactly("Carol Smithfield", "Alice Smithfield", "Bea Smithfield")
+    end
+
+    it "streams only the submitted ids without the flag" do
+      expect(exported_names(bulk_action: "export", bulk_ids: [outsider.id, smiths.first.id])).to contain_exactly("Dora Outsider", "Carol Smithfield")
+    end
+
+    it "renders the form and streams nothing on a GET", :aggregate_failures do
+      get(export_path(model_name: "player", csv: true, all: true, all_matching: "true", query: "Smithfield"))
+      expect(response.media_type).to eq "text/html"
+      expect(response.body).to include("Select fields to export")
+    end
+  end
+
   describe "schema for json and xml" do
     let(:team) { FactoryBot.create :team, name: "Exported", revenue: 1000 }
 

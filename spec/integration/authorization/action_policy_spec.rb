@@ -173,6 +173,19 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
       expect(CSV.parse(page.driver.response.body)).to eq [["Name"], ["Alice"], ["Charlie"]]
     end
 
+    it "narrows an export of every matching record, whatever ids are submitted" do
+      @user.update(roles: %i[admin read_player])
+      RailsAdminNext.config(Player) do
+        export do
+          field :name
+        end
+      end
+
+      page.driver.post(export_path(model_name: "player", schema: {only: ["name"]}, csv: true, all: true, all_matching: "true", sort: "name", bulk_ids: Player.where(name: %w[Alice Bob]).ids, csv_options: {generator: {col_sep: ","}}))
+
+      expect(CSV.parse(page.driver.response.body)).to eq [["Name"], ["Alice"], ["Charlie"]]
+    end
+
     it "exports only the associations whose model the user may list", :aggregate_failures do
       stub_const("TeamPolicy", Class.new(ActionPolicies::TeamPolicy) { relation_scope { |relation| relation } })
       @user.update(roles: %i[admin read_player])
@@ -256,6 +269,14 @@ RSpec.describe "RailsAdminNext ActionPolicy Authorization", type: :request do
         delete bulk_delete_path(model_name: "player", bulk_ids: [@active, @retired].collect(&:id))
         expect(@player_model.get(@active.id)).to be_nil
         expect(@player_model.get(@retired.id)).not_to be_nil
+      end
+
+      it "counts and destroys every matching player only inside the relation scope", :aggregate_failures do
+        post bulk_action_path(bulk_action: "bulk_delete", model_name: "player", all_matching: "true")
+        expect(response.body).to include("2 Players will be deleted")
+
+        delete bulk_delete_path(model_name: "player", all_matching: "true", expected_count: "2")
+        expect(Player.pluck(:name)).to eq ["Bob"]
       end
 
       context "with a destroy? rule that depends on the record" do

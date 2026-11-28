@@ -1,0 +1,9 @@
+<%# locals: (collection: @objects, frame_prefix: "list_batch", target: "list_rows", row_partial: "list_row", row_locals: {properties: list_properties, checkboxes: @model_config.list.checkboxes?}, url_proc: method(:list_batch_url)) -%>
+<%= turbo_frame_tag "#{frame_prefix}_#{collection.current_page}" do %>
+  <%= turbo_stream.append target do %>
+    <% collection.each do |object| %>
+      <%= render row_partial, object:, **row_locals %>
+    <% end %>
+  <% end %>
+  <%= render 'next_batch', collection:, url_proc:, frame_prefix: %>
+<% end %>

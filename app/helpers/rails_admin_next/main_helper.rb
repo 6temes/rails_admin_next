@@ -21,6 +21,26 @@ module RailsAdminNext
       "danger"                          # > 1/3 of max
     end
 
+    def list_params
+      @_list_params ||= request.params.except(:authenticity_token, :action, :controller, :utf8, :bulk_export).tap do |list_params|
+        list_params.delete(:query) if list_params[:query].blank?
+        list_params.delete(:sort_reverse) unless list_params[:sort_reverse] == "true"
+        list_params.delete(:sort) if list_params[:sort] == @model_config.list.sort_by.to_s
+      end
+    end
+
+    def list_batch_url(page)
+      index_path(list_params.except(:page).merge(page:))
+    end
+
+    def list_filter_hidden_fields
+      safe_join(URI.decode_www_form(request.params.slice("query", "f", "sort", "sort_reverse").to_query).map { |name, value| hidden_field_tag name, value, id: nil })
+    end
+
+    def list_properties
+      @_list_properties ||= @model_config.list.with(controller:, view: self, object: @abstract_model.model.new).fields_for_table
+    end
+
     def filterable_fields
       @filterable_fields ||= @model_config.list.fields.select(&:filterable?)
     end

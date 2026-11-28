@@ -35,6 +35,10 @@ module RailsAdminNext
         def item
           @version.item_id
         end
+
+        def id
+          @version.id
+        end
       end
 
       module ControllerExtension
@@ -158,7 +162,7 @@ module RailsAdminNext
             else object.public_send(model.model.versions_association_name)
             end
           versions = versions.where("event LIKE ?", "%#{query}%") if query.present?
-          versions = versions.reorder(sort)
+          versions = versions.reorder(sort).order(versions.primary_key => :desc)
 
           paginate_versions(versions, all, (page.presence || 1).to_i, per_page.to_i)
         end
@@ -175,7 +179,7 @@ module RailsAdminNext
           recordset = GearedPagination::Recordset.new(versions, per_page:)
           page = recordset.page(current_page)
           proxies = page.records.map { |version| VersionProxy.new(version, user_class) }
-          RailsAdminNext::PaginatedCollection.new(proxies, current_page: page.number, per_page:, total_count: recordset.records_count)
+          RailsAdminNext::PaginatedCollection.new(proxies, current_page: page.number, per_page:, total_count: -> { recordset.records_count })
         end
 
         def versions_for_model(model, scope = nil)

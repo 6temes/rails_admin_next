@@ -165,7 +165,7 @@ module RailsAdminNext
         li_class = ["nav-item", "icon", "#{action.key}_#{parent}_link"]
           .concat(action.enabled? ? [] : ["disabled"])
         content_tag(:li, {class: li_class}.merge(only_icon ? {title: wording, rel: "tooltip"} : {})) do
-          label = rails_admin_icon(action.link_icon) + " " + content_tag(:span, wording, (only_icon ? {style: "display:none"} : {}))
+          label = rails_admin_icon(action.link_icon) + " " + content_tag(:span, wording, (only_icon ? {hidden: true} : {}))
           if action.enabled? || !only_icon
             href =
               if action.enabled?
@@ -190,7 +190,7 @@ module RailsAdminNext
           content_tag(:ul, id: "bulk_menu", class: "dropdown-menu dropdown-menu-end", role: "menu", popover: "auto") do
             actions.collect do |action|
               content_tag :li, role: "none" do
-                link_to wording_for(:bulk_link, action, abstract_model), "#", class: "dropdown-item bulk-link", role: "menuitem", tabindex: "-1", data: {action: action.action_name}
+                link_to wording_for(:bulk_link, action, abstract_model), "#", class: "dropdown-item bulk-link", role: "menuitem", tabindex: "-1", data: {bulk_action: action.action_name, all_matching: (true if action.all_matching?)}
               end
             end.join.html_safe
           end

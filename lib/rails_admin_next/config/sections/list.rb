@@ -20,8 +20,7 @@ module RailsAdminNext
           RailsAdminNext::Config.default_items_per_page
         end
 
-        # Positive value shows only prev, next links in pagination.
-        # This is for avoiding count(*) query.
+        # Skips the COUNT query, so the list shows no record count.
         register_instance_option :limited_pagination do
           false
         end

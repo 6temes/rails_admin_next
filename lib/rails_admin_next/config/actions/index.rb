@@ -38,7 +38,12 @@ module RailsAdminNext
 
             respond_to do |format|
               format.html do
-                render @action.template_name, status: @status_code || :ok
+                # Rendering the batch without the layout keeps it independent of the host's parent controller.
+                if batch_request?(@objects)
+                  render partial: "rails_admin_next/main/batch", layout: false
+                else
+                  render @action.template_name, status: @status_code || :ok
+                end
               end
 
               format.json do

@@ -38,43 +38,18 @@
       <% end %>
     </tr>
   </thead>
-  <tbody class="table-group-divider">
-    <% @history.each_with_index do |object, index| %>
-      <tr>
-        <% unless object.created_at.nil? %>
-          <td>
-            <%= l(object.created_at, format: :long, default: l(object.created_at, format: :long)) %>
-          </td>
-        <% end %>
-        <td>
-          <%= object.username %>
-        </td>
-        <% if @general %>
-          <% if o = @abstract_model.get(object.item) %>
-            <% label = o.send(@abstract_model.config.object_label_method) %>
-            <% if show_action = action(:show, @abstract_model, o) %>
-              <td>
-                <%= link_to(label, url_for(action: show_action.action_name, model_name: @abstract_model.to_param, id: o.id)) %>
-              </td>
-            <% else %>
-              <td>
-                <%= label %>
-              </td>
-            <% end %>
-          <% else %>
-            <td>
-              <%= "#{@abstract_model.config.label} ##{object.item}" %>
-            </td>
-          <% end %>
-        <% end %>
-        <td>
-          <%= object.message.in?(['delete', 'new']) ? t("admin.actions.#{object.message}.done").capitalize : object.message %>
-        </td>
-      </tr>
+  <tbody class="table-group-divider" id="history_rows">
+    <% @history.each do |object| %>
+      <%= render 'history_row', object: %>
     <% end %>
   </tbody>
 </table>
-<% unless params[:all] || !@history.respond_to?(:current_page) %>
-  <%= render 'pagination', collection: @history, mode: :numbered, url_proc: ->(page) { send(path_method, params.except('page', :page).merge(page: page)) } %>
-  <%= link_to(t("admin.misc.show_all"), send(path_method, params.merge(all: true)), class: "show-all btn btn-light") unless (tc = @history.total_count) <= @history.size || tc > 100 %>
+<% unless params[:all] %>
+  <% url_proc = ->(page) { send(path_method, params.except('page', :page).merge(page:)) } %>
+  <% if @history.respond_to?(:full_page?) %>
+    <%= render 'next_batch', collection: @history, url_proc:, frame_prefix: "history_batch" %>
+  <% elsif @history.respond_to?(:current_page) %>
+    <%= render 'pagination', collection: @history, url_proc: %>
+    <%= link_to(t("admin.misc.show_all"), send(path_method, params.merge(all: true)), class: "show-all btn btn-light") unless (tc = @history.total_count) <= @history.size || tc > 100 %>
+  <% end %>
 <% end %>

@@ -33,7 +33,7 @@ module RailsAdminNext
                 @auditing_adapter&.listing_for_model(*listing)
               end || []
 
-            render @action.template_name
+            render_history
           end
         end
 

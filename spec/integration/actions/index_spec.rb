@@ -26,7 +26,6 @@ RSpec.describe "Index action", type: :request do
       # test that no link uses the "wildcard route" with the main
       # controller and list method
       # it "does not use the 'wildcard route'" do
-      is_expected.to have_selector("a[href*='all=true']") # make sure we're fully testing pagination
       is_expected.to have_no_selector("a[href^='/rails_admin_next/main/list']")
     end
   end
@@ -777,76 +776,6 @@ RSpec.describe "Index action", type: :request do
       FactoryBot.create_list :player, 3
     end
 
-    describe "with limited_pagination=false" do
-      before { RailsAdminNext.config.default_items_per_page = 1 }
-
-      it "page 1" do
-        visit_page(1)
-
-        within("ul.pagination") do
-          expect(find("li:first")).to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-          expect(find("li.active")).to have_content("1")
-        end
-      end
-
-      it "page 2" do
-        visit_page(2)
-
-        within("ul.pagination") do
-          expect(find("li:first")).to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-          expect(find("li.active")).to have_content("2")
-        end
-      end
-
-      it "page 3" do
-        visit_page(3)
-
-        within("ul.pagination") do
-          expect(find("li:first")).to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-          expect(find("li.active")).to have_content("3")
-        end
-      end
-    end
-
-    context "with limited_pagination=true" do
-      before do
-        RailsAdminNext.config.default_items_per_page = 1
-        allow(RailsAdminNext::AbstractModel.new(Player).config.list)
-          .to receive(:limited_pagination)
-          .and_return(true)
-      end
-
-      it "page 1" do
-        visit_page(1)
-
-        within("ul.pagination") do
-          expect(find("li:first")).not_to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-        end
-      end
-
-      it "page 2" do
-        visit_page(2)
-
-        within("ul.pagination") do
-          expect(find("li:first")).to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-        end
-      end
-
-      it "page 3" do
-        visit_page(3)
-
-        within("ul.pagination") do
-          expect(find("li:first")).to have_content("« Prev")
-          expect(find("li:last")).to have_content("Next »")
-        end
-      end
-    end
-
     describe "number of items per page" do
       before do
         FactoryBot.create_list :league, 2
@@ -946,12 +875,6 @@ RSpec.describe "Index action", type: :request do
     it "paginates the fallback list" do
       visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
       expect(page).to have_css("tbody tr", count: 1)
-    end
-
-    it "renders the fallback list with limited_pagination" do
-      allow(RailsAdminNext::AbstractModel.new(Player).config.list).to receive(:limited_pagination).and_return(true)
-      visit index_path(model_name: "player", associated_collection: "name", current_action: "update", source_abstract_model: "team", source_object_id: FactoryBot.create(:team).id)
-      within("ul.pagination") { expect(find("li:last")).to have_content("Next »") }
     end
 
     it "lists normally without a source_abstract_model" do

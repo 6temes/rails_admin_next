@@ -14,10 +14,18 @@ module RailsAdminNext
 
     def bulk_action
       get_model
-      process(params[:bulk_action]) if params[:bulk_action].in?(RailsAdminNext::Config::Actions.all(:bulkable, controller: self, abstract_model: @abstract_model).collect(&:route_fragment))
+      action = RailsAdminNext::Config::Actions.all(:bulkable, controller: self, abstract_model: @abstract_model).detect { it.route_fragment == params[:bulk_action] }
+      return unless action
+
+      if params[:all_matching].present?
+        return redirect_to(back_or_index, notice: I18n.t("admin.flash.noaction")) unless action.all_matching?
+
+        params.delete(:bulk_ids)
+      end
+      process(params[:bulk_action])
     end
 
-    def list_entries(model_config = @model_config, auth_scope_key = :index, additional_scope = nil, pagination = !(params[:all] || params[:bulk_ids]))
+    def list_entries(model_config = @model_config, auth_scope_key = :index, additional_scope = nil, pagination = !(params[:all] || params[:bulk_ids] || all_matching?))
       scope = model_config.scope
       auth_scope = authorization_scope(auth_scope_key, model_config.abstract_model)
       scope = scope.merge(auth_scope) if auth_scope
@@ -192,7 +200,8 @@ module RailsAdminNext
     end
 
     def check_for_cancel
-      cancelling = params[:_continue] || (params[:bulk_action] && !params[:bulk_ids])
+      # @action is not set yet, so the flag alone decides; bulk_action refuses it for an action that has not opted in.
+      cancelling = params[:_continue] || (params[:bulk_action] && !params[:bulk_ids] && params[:all_matching].blank?)
       return unless cancelling
 
       redirect_to(back_or_index, notice: I18n.t("admin.flash.noaction"))
@@ -208,8 +217,28 @@ module RailsAdminNext
       options = options.merge(get_sort_hash(model_config))
       options = options.merge(query: params[:query]) if params[:query].present?
       options = options.merge(filters: params[:f]) if params[:f].present?
-      options = options.merge(bulk_ids: params[:bulk_ids]) if params[:bulk_ids]
+      options = options.merge(bulk_ids: params[:bulk_ids]) if params[:bulk_ids] && !all_matching?
       model_config.abstract_model.all(options, scope)
+    end
+
+    def render_history
+      if batch_request?(@history)
+        render partial: "rails_admin_next/main/batch", layout: false, locals: {
+          collection: @history, frame_prefix: "history_batch", target: "history_rows", row_partial: "history_row", row_locals: {},
+          url_proc: ->(page) { "#{request.path}?#{request.query_parameters.except("page").merge("page" => page).to_query}" }
+        }
+      else
+        render @action.template_name
+      end
+    end
+
+    def all_matching?
+      params[:all_matching].present? && @action.all_matching?
+    end
+
+    # A frame request from a list's next-batch frame, answered with the batch's rows alone.
+    def batch_request?(collection)
+      turbo_frame_request? && collection.respond_to?(:full_page?)
     end
 
     def list_scopes
