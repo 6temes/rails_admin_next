@@ -475,7 +475,7 @@ RSpec.describe "BulkDelete action", type: :request do
 
     it "provides check boxes for bulk operation" do
       visit index_path(model_name: "fanship")
-      fanships.each { |fanship| is_expected.to have_css(%(input[name="bulk_ids[]"][value="#{fanship.id}"])) }
+      fanships.each { |fanship| is_expected.to have_css(%(input[name="bulk_ids[]"][value="#{RailsAdminNext::Support::CompositeKeysSerializer.serialize(fanship.id)}"])) }
     end
 
     it "deletes the records selected through the confirmation form" do
