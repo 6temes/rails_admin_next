@@ -222,7 +222,7 @@ module RailsAdminNext
     end
 
     def render_history
-      if turbo_frame_request? && !@model_config.list.numbered_pagination? && @history.respond_to?(:full_page?)
+      if batch_request?(@history)
         render partial: "rails_admin_next/main/batch", layout: false, locals: {
           collection: @history, frame_prefix: "history_batch", target: "history_rows", row_partial: "history_row", row_locals: {},
           url_proc: ->(page) { "#{request.path}?#{request.query_parameters.except("page").merge("page" => page).to_query}" }
@@ -234,6 +234,11 @@ module RailsAdminNext
 
     def all_matching?
       params[:all_matching].present? && @action.all_matching?
+    end
+
+    # A frame request from a list's next-batch frame, answered with the batch's rows alone.
+    def batch_request?(collection)
+      turbo_frame_request? && !@model_config.list.numbered_pagination? && collection.respond_to?(:full_page?)
     end
 
     def list_scopes

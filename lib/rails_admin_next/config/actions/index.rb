@@ -38,9 +38,8 @@ module RailsAdminNext
 
             respond_to do |format|
               format.html do
-                # A frame request from the next-batch frame gets the rows alone; rendering
-                # without the layout keeps it independent of the host's parent controller.
-                if turbo_frame_request? && !@model_config.list.numbered_pagination?
+                # Rendering the batch without the layout keeps it independent of the host's parent controller.
+                if batch_request?(@objects)
                   render partial: "rails_admin_next/main/batch", layout: false
                 else
                   render @action.template_name, status: @status_code || :ok
